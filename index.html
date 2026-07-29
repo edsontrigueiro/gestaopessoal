@@ -1,643 +1,389 @@
-// ============================================================
-//  NEXVOT — Gestão Inteligente — app.js (v5)
-//  Identidade Oris: preto + laranja #FF5E04 usado com escassez.
-//  Verde e vermelho SÓ para resultado real (hábito cumprido,
-//  dia fechado, conta vencida).
-//  Sessão anônima do Supabase: sem tela de login, com RLS ativo.
-//  Requer: Authentication → Sign In / Providers → "Allow anonymous
-//  sign-ins" LIGADO no painel do Supabase.
-// ============================================================
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0F0F0F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NexVot">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230F0F0F'/><path d='M6 21h20M6 11h20M6 16h13' stroke='%23FF5E04' stroke-width='3'/></svg>">
+<title>NexVot - Gestão Inteligente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;900&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --preto:#0F0F0F; --sup:#191919; --card:#222222; --card-2:#2A2A2A;
+  --linha:#2E2E2E; --linha-f:#3A3A3A;
+  --texto:#F2F2F2; --fraco:#9A9A9A; --apagado:#666666;
+  --laranja:#FF5E04; --laranja-esc:#7A2D02;
+  --green:#1F8A5A; --red:#D93A2B;
+  --disp:"Archivo",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --corpo:"Inter",system-ui,-apple-system,sans-serif;
+  --nav-h:calc(64px + env(safe-area-inset-bottom));
+  --mola:cubic-bezier(.22,1,.32,1);
+  --hachura:repeating-linear-gradient(45deg,transparent 0 4px,rgba(255,94,4,.06) 4px 5px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;border-radius:0}
+html{background:var(--preto)}
+body{
+  margin:0;background:var(--preto);color:var(--texto);font-family:var(--corpo);
+  font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;
+  padding:calc(14px + env(safe-area-inset-top)) 14px calc(var(--nav-h) + 22px);
+  max-width:760px;margin-inline:auto;overscroll-behavior-y:none;
+}
+h1,h2,h3{margin:0;font-family:var(--disp);font-weight:900;letter-spacing:-.01em;text-transform:uppercase}
+button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
+input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--laranja);outline-offset:2px}
+::placeholder{color:#5A5A5A}
+[hidden]{display:none !important}
+ul{list-style:none;margin:0;padding:0}
+svg{display:block;overflow:visible}
 
-// Sinaliza que o módulo carregou (o watchdog do index.html olha isto).
-window.__APP_CARREGOU__ = true;
+.rot{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--fraco)}
+.rot.laranja{color:var(--laranja)}
+.card{background:var(--card);border:1px solid var(--linha);padding:15px 16px;margin-bottom:10px}
+.cab{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.vazio{color:var(--fraco);font-size:13.5px;padding:10px 0;line-height:1.55}
+.press:active{transform:scale(.97)}
+@media (prefers-reduced-motion:no-preference){ .press{transition:transform .12s var(--mola)} }
 
-// O cliente é criado dentro do boot(), depois de validar a config.
-// Criar aqui em cima faria o módulo estourar antes de qualquer mensagem
-// chegar na tela — que foi exatamente o bug da primeira versão.
-let sb = null;
+.splash{display:grid;place-items:center;min-height:70vh;text-align:center;gap:14px;color:var(--fraco);font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.splash b{font-family:var(--disp);font-weight:900;font-size:30px;color:var(--texto);letter-spacing:-.01em}
+.splash .erro{color:var(--red);max-width:310px;line-height:1.75;letter-spacing:0;font-size:12px;text-transform:none}
 
-function erroFatal(msg){
-  const el = document.getElementById("splash-txt");
-  if(el){ el.className = "erro"; el.textContent = msg; }
-  console.error("[NexVot]", msg);
+/* topo */
+.topo{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.topo .data{font-family:var(--disp);font-weight:900;font-size:19px;text-transform:uppercase;line-height:1.15;letter-spacing:-.01em}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--linha-f);padding:8px 12px;
+  font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--fraco);white-space:nowrap}
+.chip.on{border-color:var(--green);color:var(--green)}
+.chip.acao{background:var(--laranja);border-color:var(--laranja);color:#140800;box-shadow:3px 3px 0 #000}
+.chip.acao:active{box-shadow:1px 1px 0 #000;transform:translate(2px,2px)}
+
+/* views */
+.view{display:none}
+.view.ativa{display:block}
+@media (prefers-reduced-motion:no-preference){
+  .view.ativa{animation:entra .3s var(--mola) both}
+  .view.ativa.de-dir{animation-name:entraDir} .view.ativa.de-esq{animation-name:entraEsq}
+  @keyframes entra{from{opacity:0}to{opacity:1}}
+  @keyframes entraDir{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+  @keyframes entraEsq{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:none}}
+  .card{animation:sobeCard .34s var(--mola) both;animation-delay:var(--d,0ms)}
+  @keyframes sobeCard{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 }
 
-const CATEGORIAS = ["Mercado","Comer fora","Transporte","Casa","Contas","Saúde","Lazer","Outros"];
-// LARANJA é o único ponto de verdade da cor no JS. Trocou aqui, trocou em tudo
-// que é desenhado em SVG. O CSS lê de --laranja no index.html.
-const LARANJA = "#FF5E04";
-// rampa por POSIÇÃO no ranking do mês: o maior gasto recebe o laranja, o resto desce em cinza
-const RAMPA = [LARANJA,"#B34204","#8A8A8A","#6E6E6E","#585858","#474747","#3A3A3A","#2E2E2E"];
-const BLOCOS = [
-  { id:"manha", nome:"Manhã" },
-  { id:"trabalho", nome:"Trabalho" },
-  { id:"noite", nome:"Noite" }
-];
-const ROTINA_PRONTA = [
-  { bloco:"manha",    nome:"Levantar sem soneca" },
-  { bloco:"manha",    nome:"Beber água antes do café" },
-  { bloco:"manha",    nome:"Mover o corpo 20 min" },
-  { bloco:"manha",    nome:"Escrever as 3 prioridades do dia" },
-  { bloco:"trabalho", nome:"Bloco de 90 min sem celular" },
-  { bloco:"trabalho", nome:"Lançar os gastos do dia" },
-  { bloco:"trabalho", nome:"Zerar a caixa de entrada" },
-  { bloco:"noite",    nome:"Sem tela 30 min antes de dormir" },
-  { bloco:"noite",    nome:"Deixar o dia seguinte planejado" },
-  { bloco:"noite",    nome:"Fechar o dia no painel" }
-];
-const ORDEM_VIEWS = ["hoje","agenda","numeros"];
+/* hero */
+.hero{background:var(--sup);background-image:var(--hachura);border:1px solid var(--linha-f);
+  border-left:4px solid var(--laranja);padding:18px 18px 16px;margin-bottom:10px}
+.hero .val{font-family:var(--disp);font-weight:900;font-size:46px;line-height:1;margin:10px 0 12px;
+  font-variant-numeric:tabular-nums;letter-spacing:-.025em}
+.hero .val small{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--fraco);margin-right:6px;letter-spacing:0}
+.hero-linha{display:flex;gap:7px;flex-wrap:wrap}
+.hero-linha .chip{background:rgba(15,15,15,.5)}
 
-let usuario = null;
-let viewAtual = "hoje";
-let calRef = null, selDia = null, catSel = null, dataAlvo = null, digitos = "";
-const abertos = new Set();   // blocos de rotina expandidos manualmente
-const db = { lancamentos:[], contas:[], habitos:[], marcas:[], fechados:[], eventos:[] };
+/* rotina */
+.bloco{margin-bottom:12px}
+.bloco:last-child{margin-bottom:0}
+.bloco-cab{display:flex;align-items:center;gap:9px;width:100%;padding:7px 0;text-align:left}
+.bloco-cab .nome{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--fraco);flex:1}
+.bloco.pronto .bloco-cab .nome{color:var(--green)}
+.prog{height:3px;background:var(--linha);width:54px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--laranja)}
+.bloco.pronto .prog i{background:var(--green)}
+.prog-n{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--apagado);min-width:26px;text-align:right}
+.seta{font-family:var(--mono);font-size:11px;color:var(--apagado)}
+@media (prefers-reduced-motion:no-preference){ .prog i{transition:width .3s var(--mola)} }
+.hab{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--linha);width:100%;text-align:left}
+.marca{width:24px;height:24px;flex:none;border:1.5px solid var(--linha-f);display:grid;place-items:center;
+  font-family:var(--mono);font-size:12px;font-weight:700;color:transparent}
+.hab.on .marca{background:var(--green);border-color:var(--green);color:#04170E}
+.hab .nome{flex:1;min-width:0;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hab.on .nome{color:var(--fraco);text-decoration:line-through;text-decoration-color:var(--apagado)}
+.fita{display:flex;gap:2px;flex:none}
+.fita i{width:4px;height:14px;background:var(--linha);display:block}
+.fita i.on{background:var(--green)}
 
-/* ================= utilidades ================= */
-const $ = id => document.getElementById(id);
-const isoDe = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-const hojeISO = () => isoDe(new Date());
-const mesDe = s => s.slice(0,7);
-const ultimoDia = (a,m) => new Date(a,m,0).getDate();
-const dataDoMes = (a,m,d) => `${a}-${String(m).padStart(2,"0")}-${String(Math.min(Math.max(d,1),ultimoDia(a,m))).padStart(2,"0")}`;
-const diasEntre = (a,b) => Math.round((new Date(b+"T00:00:00") - new Date(a+"T00:00:00"))/86400000);
-const somaDias = (s,n) => { const d = new Date(s+"T00:00:00"); d.setDate(d.getDate()+n); return isoDe(d); };
-const brl  = n => Number(n).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
-const brl0 = n => n>=1000 ? (n/1000).toFixed(n>=10000?0:1).replace(".",",")+"k" : String(Math.round(n));
-const esc  = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const numBR = s => { const n = parseFloat(String(s).replace(/\./g,"").replace(",",".")); return isFinite(n)?n:0; };
-const extenso = (s,op) => new Date(s+"T00:00:00").toLocaleDateString("pt-BR", op||{weekday:"long",day:"2-digit",month:"long"});
-const curto = s => s.slice(8,10)+"/"+s.slice(5,7);
-const tocar = ms => { try{ navigator.vibrate && navigator.vibrate(ms||8); }catch(e){} };
+/* listas */
+.item{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--linha)}
+.item:last-child{border-bottom:none}
+.item .nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14.5px}
+.item .cifra{font-family:var(--disp);font-weight:700;font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tag{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  padding:4px 7px;border:1px solid var(--linha-f);color:var(--fraco);white-space:nowrap}
+.tag.perto{border-color:var(--laranja);color:var(--laranja)}
+.tag.vencido{background:var(--red);border-color:var(--red);color:#1A0503}
+.barra-cat{width:3px;height:16px;flex:none;background:var(--linha-f)}
+.mini{border:1px solid var(--linha-f);color:var(--fraco);padding:7px 11px;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.mini:active{border-color:var(--laranja);color:var(--laranja)}
+.x{color:var(--apagado);padding:6px 8px;font-family:var(--mono);font-size:14px}
+.x:active{color:var(--red)}
 
-let tToast = null;
-function toast(txt, erro){
-  let el = $("toast");
-  if(!el){ el = document.createElement("div"); el.id = "toast"; el.className = "toast"; document.body.appendChild(el); }
-  el.textContent = txt;
-  el.style.borderColor = erro ? "var(--red)" : "var(--laranja)";
-  el.style.color = erro ? "var(--red)" : "var(--texto)";
-  clearTimeout(tToast);
-  tToast = setTimeout(()=>{ el.remove(); }, erro ? 4200 : 1700);
-}
-const falhou = e => { console.error(e); toast((e && e.message) || "falha ao salvar", true); };
+/* calendário */
+.cal-nav{display:flex;align-items:center;gap:6px}
+.cal-nav button{border:1px solid var(--linha-f);color:var(--fraco);width:32px;height:32px;font-family:var(--mono);font-size:14px;line-height:1}
+.cal-mes{font-family:var(--disp);font-weight:900;font-size:15px;text-transform:uppercase;min-width:108px;text-align:center}
+.cal-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.cal-sem b{font-family:var(--mono);font-size:9px;color:var(--apagado);text-align:center;font-weight:400}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dia{aspect-ratio:1;border:1px solid var(--linha);position:relative;overflow:hidden;
+  display:grid;place-items:center;background:var(--sup)}
+.dia .fundo{position:absolute;inset:0;background:var(--laranja);opacity:0}
+.dia .n{position:relative;font-family:var(--disp);font-weight:700;font-size:14px;color:var(--fraco);font-variant-numeric:tabular-nums}
+.dia.gastou .n{color:#fff}
+.dia.fora{opacity:.25}
+.dia.hoje{border-color:var(--laranja);border-width:2px}
+.dia.hoje .n{color:var(--laranja)}
+.dia.conta::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--red);z-index:1}
+.dia.evento::after{content:"";position:absolute;top:0;right:0;border-top:11px solid var(--texto);border-left:11px solid transparent;z-index:1}
+.dia .sub{position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--green);z-index:1}
+.cal-leg{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+.cal-leg span{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;color:var(--fraco)}
+.amostra{width:22px;height:22px;flex:none;border:1px solid var(--linha);position:relative;background:var(--sup)}
 
-/* ================= abertura ================= */
-async function boot(){
-  // ---- validação da config, com mensagem visível para cada caso ----
-  if(!window.CONFIG)
-    return erroFatal("O config.js não carregou. Confira se o arquivo existe na raiz do repo e se não tem erro de digitação — um erro de sintaxe impede o arquivo inteiro de rodar.");
+/* nav */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:40;height:var(--nav-h);
+  padding:0 10px env(safe-area-inset-bottom);display:flex;align-items:center;justify-content:space-around;
+  background:rgba(15,15,15,.94);border-top:1px solid var(--linha-f)}
+.nav .aba{flex:1;max-width:88px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--apagado)}
+.nav .aba svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:square}
+.nav .aba span{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.nav .aba.ativa{color:var(--laranja)}
+@media (prefers-reduced-motion:no-preference){ .nav .aba{transition:color .16s var(--mola)} }
+.fab{width:52px;height:52px;flex:none;background:var(--laranja);color:#140800;
+  display:grid;place-items:center;font-family:var(--disp);font-weight:900;font-size:26px;line-height:0;
+  box-shadow:4px 4px 0 #000;margin-top:-12px}
+.fab:active{box-shadow:1px 1px 0 #000;transform:translate(3px,3px)}
 
-  const url = String(window.CONFIG.SUPABASE_URL || "").trim();
-  const chave = String(window.CONFIG.SUPABASE_ANON_KEY || "").trim();
+/* sheets */
+.veu{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;opacity:0}
+.veu.aberto{opacity:1}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--sup);border-top:2px solid var(--laranja);
+  padding:8px 16px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow-y:auto;
+  transform:translateY(100%);max-width:760px;margin-inline:auto}
+.sheet.aberto{transform:none}
+@media (prefers-reduced-motion:no-preference){ .veu{transition:opacity .24s var(--mola)} .sheet{transition:transform .3s var(--mola)} }
+.puxador{width:36px;height:3px;background:var(--linha-f);margin:7px auto 14px}
+.sheet-cab{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.sheet-cab h3{font-size:17px}
 
-  if(!url || url.includes("SEU-PROJETO") || url.includes("COLE-AQUI"))
-    return erroFatal("A SUPABASE_URL ainda é o valor de exemplo. Cole a URL do seu projeto (Supabase → Settings → API → Data API).");
-  if(!/^https:\/\/[a-z0-9-]+\.supabase\.(co|in)\/?$/i.test(url))
-    return erroFatal("A SUPABASE_URL está malformada: \"" + url + "\". Ela precisa ser exatamente https://xxxxxxxx.supabase.co — sem barra extra no fim, sem espaço, e não é o Project ID sozinho.");
-  if(!chave || chave.includes("COLE-AQUI"))
-    return erroFatal("A chave ainda é o valor de exemplo. Cole a publishable (sb_publishable_...) ou a anon (eyJ...).");
-  if(chave.startsWith("sb_secret_") || chave.includes("service_role"))
-    return erroFatal("Essa é a chave SECRET. Ela ignora o RLS e não pode ficar num app de navegador. Use a publishable (sb_publishable_...).");
+/* teclado */
+.mostrador{text-align:center;padding:4px 0 14px}
+.mostrador .v{font-family:var(--disp);font-weight:900;font-size:48px;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.025em}
+.mostrador .v.zero{color:var(--apagado)}
+.mostrador .v small{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--fraco);margin-right:6px;letter-spacing:0}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:3px;margin-bottom:11px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips .chip{flex:none}
+.chips .chip.sel{background:var(--laranja);border-color:var(--laranja);color:#140800}
+.teclado{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
+.tecla{height:56px;background:var(--card);border:1px solid var(--linha);
+  font-family:var(--disp);font-weight:900;font-size:21px;display:grid;place-items:center}
+.tecla:active{background:var(--card-2);border-color:var(--laranja)}
+.tecla.aux{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--fraco)}
+.btn-ok{width:100%;background:var(--laranja);color:#140800;padding:16px;box-shadow:4px 4px 0 #000;
+  font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+.btn-ok:active{box-shadow:1px 1px 0 #000;transform:translate(3px,3px)}
+.btn-ok[disabled]{background:var(--card);color:var(--apagado);box-shadow:none;transform:none}
+.aviso{font-family:var(--mono);font-size:10.5px;color:var(--red);min-height:15px;text-align:center;margin-bottom:8px}
+.sub-secao{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--apagado);margin:16px 0 2px}
 
-  try{
-    sb = createClient(url, chave);
-  }catch(e){
-    return erroFatal("Não consegui criar o cliente do Supabase: " + e.message);
+.add{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.add input,.add select{border:1px solid var(--linha);background:var(--preto);padding:11px 12px;font-size:15px;min-width:0;color-scheme:dark}
+.add .f-nome{flex:1 1 110px}
+.add .f-num{width:74px;font-family:var(--mono);font-size:13.5px}
+
+.leg{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+.leg div{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px}
+.leg .b{width:3px;height:14px;flex:none}
+.leg .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fraco);text-transform:uppercase;letter-spacing:.06em}
+.leg .v{font-family:var(--disp);font-weight:700;font-variant-numeric:tabular-nums}
+.kpi-lin{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.kpi{background:var(--card);border:1px solid var(--linha);border-left:3px solid var(--acento,var(--linha-f));padding:13px 14px}
+.kpi .v{font-family:var(--disp);font-weight:900;font-size:22px;margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.kpi .sub{font-family:var(--mono);font-size:10px;color:var(--fraco);margin-top:4px}
+
+.toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 12px);transform:translateX(-50%);z-index:70;
+  background:var(--card);border:1px solid var(--laranja);padding:11px 18px;
+  font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;max-width:88vw;text-align:center}
+.eixo{font-family:var(--mono);font-size:9px;fill:#6E6E6E}
+
+@media (min-width:760px){ .kpi-lin{grid-template-columns:repeat(4,1fr)} .hero .val{font-size:54px} }
+</style>
+</head>
+<body>
+
+<div id="splash" class="splash"><b>NEXVOT</b><span id="splash-txt">abrindo</span></div>
+
+<main id="app" hidden>
+
+  <header class="topo">
+    <div>
+      <div class="rot laranja">NexVot · Gestão Inteligente</div>
+      <div id="topo-data" class="data"></div>
+    </div>
+    <button id="btn-dia" class="chip acao press">Fechar o dia</button>
+  </header>
+
+  <section id="v-hoje" class="view ativa">
+    <div class="hero">
+      <div class="rot">Saiu hoje</div>
+      <div id="hero-val" class="val"><small>R$</small>0,00</div>
+      <div class="hero-linha">
+        <span id="hero-mes" class="chip"></span>
+        <span id="hero-ritmo" class="chip"></span>
+      </div>
+    </div>
+
+    <div class="card" style="--d:40ms">
+      <div class="cab"><div class="rot">Rotina de hoje</div><span id="rot-cont" class="rot"></span></div>
+      <div id="rotina"></div>
+      <button id="h-seed" class="mini press" style="margin-top:12px;width:100%" hidden>Usar a rotina pronta</button>
+    </div>
+
+    <div class="card" style="--d:80ms">
+      <div class="cab"><div class="rot">Contas a vencer</div></div>
+      <ul id="lista-contas"></ul>
+      <div class="add">
+        <input id="c-nome" class="f-nome" placeholder="conta" aria-label="Nome da conta">
+        <input id="c-dia" class="f-num" inputmode="numeric" placeholder="dia" aria-label="Dia">
+        <input id="c-valor" class="f-num" inputmode="decimal" placeholder="valor" aria-label="Valor">
+        <button id="c-add" class="mini press">Add</button>
+      </div>
+    </div>
+
+    <div class="card" style="--d:120ms">
+      <div class="cab"><div class="rot">Últimos lançamentos</div><span id="cont-hoje" class="rot"></span></div>
+      <ul id="lista-lanc"></ul>
+    </div>
+  </section>
+
+  <section id="v-agenda" class="view">
+    <div class="card">
+      <div class="cab">
+        <div class="rot">Calendário</div>
+        <div class="cal-nav">
+          <button id="cal-ant" class="press" aria-label="Mês anterior">&lsaquo;</button>
+          <span id="cal-mes" class="cal-mes"></span>
+          <button id="cal-prox" class="press" aria-label="Próximo mês">&rsaquo;</button>
+        </div>
+      </div>
+      <div class="cal-sem"><b>D</b><b>S</b><b>T</b><b>Q</b><b>Q</b><b>S</b><b>S</b></div>
+      <div id="cal" class="cal"></div>
+      <div class="cal-leg">
+        <span><i class="amostra"><i style="position:absolute;inset:0;background:var(--laranja);opacity:.55"></i></i>gastou</span>
+        <span><i class="amostra"><i style="position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--red)"></i></i>conta vence</span>
+        <span><i class="amostra"><i style="position:absolute;top:0;right:0;border-top:11px solid var(--texto);border-left:11px solid transparent"></i></i>compromisso</span>
+        <span><i class="amostra"><i style="position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--green)"></i></i>dia fechado</span>
+      </div>
+    </div>
+    <div class="card" style="--d:60ms">
+      <div class="cab"><div class="rot">Próximos compromissos</div></div>
+      <ul id="lista-eventos"></ul>
+    </div>
+  </section>
+
+  <section id="v-numeros" class="view">
+    <div class="kpi-lin">
+      <div class="kpi" style="--acento:var(--laranja)"><div class="rot">No mês</div><div id="k-mes" class="v"></div><div id="k-mes-sub" class="sub"></div></div>
+      <div class="kpi"><div class="rot">Vs. mês passado</div><div id="k-ritmo" class="v"></div><div id="k-ritmo-sub" class="sub"></div></div>
+    </div>
+    <div class="card">
+      <div class="cab"><div class="rot">Ritmo do mês</div><div id="leg-ritmo" class="rot"></div></div>
+      <div id="g-ritmo"></div>
+    </div>
+    <div class="card" style="--d:60ms">
+      <div class="cab"><div class="rot">Para onde foi</div></div>
+      <div id="g-donut"></div>
+      <div id="leg-donut" class="leg"></div>
+    </div>
+    <div class="card" style="--d:100ms">
+      <div class="cab"><div class="rot">Dados</div></div>
+      <button id="btn-export" class="mini press" style="width:100%">Baixar backup</button>
+      <div class="vazio" style="font-size:12px">Sessão anônima: os dados ficam presos a este navegador. Limpar os dados do Safari apaga o acesso.</div>
+    </div>
+  </section>
+
+</main>
+
+<nav id="nav" class="nav" hidden>
+  <button class="aba ativa" data-view="hoje">
+    <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h13"/></svg><span>Hoje</span>
+  </button>
+  <button id="fab" class="fab press" aria-label="Lançar gasto">+</button>
+  <button class="aba" data-view="agenda">
+    <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Agenda</span>
+  </button>
+  <button class="aba" data-view="numeros">
+    <svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 15v-4M13 15V8M18 15v-6"/></svg><span>Números</span>
+  </button>
+</nav>
+
+<div id="veu" class="veu" hidden></div>
+
+<section id="sheet-lanc" class="sheet" hidden aria-label="Lançar gasto">
+  <div class="puxador"></div>
+  <div class="sheet-cab"><h3>Lançar gasto</h3><button id="lanc-fechar" class="mini press">Fechar</button></div>
+  <div class="mostrador"><div id="mostrador" class="v zero"><small>R$</small>0,00</div></div>
+  <div id="chips-data" class="chips"></div>
+  <div id="chips-cat" class="chips"></div>
+  <div class="teclado">
+    <button class="tecla press" data-k="1">1</button><button class="tecla press" data-k="2">2</button><button class="tecla press" data-k="3">3</button>
+    <button class="tecla press" data-k="4">4</button><button class="tecla press" data-k="5">5</button><button class="tecla press" data-k="6">6</button>
+    <button class="tecla press" data-k="7">7</button><button class="tecla press" data-k="8">8</button><button class="tecla press" data-k="9">9</button>
+    <button class="tecla aux press" data-k="00">00</button><button class="tecla press" data-k="0">0</button><button class="tecla aux press" data-k="del">apagar</button>
+  </div>
+  <input id="nota" placeholder="nota (opcional)" style="width:100%;border:1px solid var(--linha);background:var(--preto);padding:11px 12px;margin-bottom:10px" aria-label="Nota">
+  <div id="aviso" class="aviso" role="status"></div>
+  <button id="btn-lancar" class="btn-ok press">Lançar</button>
+</section>
+
+<section id="sheet-dia" class="sheet" hidden aria-label="Detalhe do dia">
+  <div class="puxador"></div>
+  <div class="sheet-cab"><h3 id="dia-titulo"></h3><button id="dia-fechar" class="mini press">Fechar</button></div>
+  <div class="hero" style="margin-bottom:8px">
+    <div class="rot">Gasto no dia</div>
+    <div id="dia-total" class="val" style="font-size:34px;margin-bottom:0"></div>
+  </div>
+  <div class="sub-secao">Gastos</div>
+  <ul id="dia-lanc"></ul>
+  <div class="sub-secao">Contas com vencimento</div>
+  <ul id="dia-contas"></ul>
+  <div class="sub-secao">Compromissos</div>
+  <ul id="dia-eventos"></ul>
+  <div class="add">
+    <input id="e-titulo" class="f-nome" placeholder="compromisso" aria-label="Compromisso">
+    <input id="e-hora" type="time" style="width:106px;border:1px solid var(--linha);background:var(--preto);padding:11px 12px;color-scheme:dark" aria-label="Hora">
+    <button id="e-add" class="mini press">Add</button>
+  </div>
+  <button id="dia-lancar" class="btn-ok press" style="margin-top:16px">Lançar gasto neste dia</button>
+</section>
+
+<!-- Vigia: se o app.js não carregar (erro no esm.sh, sintaxe quebrada,
+     arquivo faltando), a tela ficaria muda para sempre. Isto avisa. -->
+<script>
+window.addEventListener("error", function(e){
+  var el = document.getElementById("splash-txt");
+  if(el && !document.getElementById("splash").hidden){
+    el.className = "erro";
+    el.textContent = "Erro ao carregar: " + (e.message || "arquivo não encontrado") +
+      (e.filename ? "  ·  em " + e.filename.split("/").pop() : "");
   }
-
-  // ---- sessão, com prazo: sem isso um erro de rede trava a tela para sempre ----
-  let data;
-  try{
-    const r = await Promise.race([
-      sb.auth.getSession(),
-      new Promise((_,rej)=>setTimeout(()=>rej(new Error("tempo esgotado")), 12000))
-    ]);
-    data = r.data;
-  }catch(e){
-    return erroFatal("Não consegui falar com o Supabase (" + e.message + "). Confira se a URL do projeto está certa e se o projeto não está pausado por inatividade.");
+}, true);
+setTimeout(function(){
+  var el = document.getElementById("splash-txt");
+  if(!window.__APP_CARREGOU__ && el && !document.getElementById("splash").hidden){
+    el.className = "erro";
+    el.textContent = "O app.js não carregou em 10 segundos. Abra o console (Cmd+Option+J) e leia a primeira linha vermelha. Causas comuns: erro de sintaxe no config.js, arquivo fora da raiz, ou o esm.sh inacessível.";
   }
-  if(!data.session){
-    $("splash-txt").textContent = "criando sua sessão";
-    const r = await sb.auth.signInAnonymously();
-    if(r.error)
-      return erroFatal("Não consegui abrir a sessão anônima. No Supabase: Authentication → Sign In / Providers → ligue \"Allow anonymous sign-ins\". Detalhe: " + r.error.message);
-    data = { session:r.data.session };
-  }
-  usuario = data.session.user;
-  selDia = hojeISO();
-  calRef = { a:+selDia.slice(0,4), m:+selDia.slice(5,7) };
-  dataAlvo = selDia;
-  $("splash").hidden = true;
-  $("app").hidden = false;
-  $("nav").hidden = false;
-  ligarEventos();
-  await carregarTudo();
-}
-
-async function carregarTudo(){
-  const [l,c,h,m,f,e] = await Promise.all([
-    sb.from("lancamentos").select("*").order("data",{ascending:false}),
-    sb.from("contas").select("*"),
-    sb.from("habitos").select("*").order("bloco").order("ordem"),
-    sb.from("habito_marcas").select("*"),
-    sb.from("dias_fechados").select("*"),
-    sb.from("eventos").select("*").order("data")
-  ]);
-  const err = [l,c,h,m,f,e].find(r=>r.error);
-  if(err) return falhou(err.error);
-  db.lancamentos = (l.data||[]).map(x=>({...x, valor:Number(x.valor)}));
-  db.contas      = (c.data||[]).map(x=>({...x, valor:Number(x.valor||0)}));
-  db.habitos     = h.data||[];
-  db.marcas      = m.data||[];
-  db.fechados    = (f.data||[]).map(x=>x.data);
-  db.eventos     = e.data||[];
-  render();
-}
-
-/* ================= cálculos ================= */
-const gastoDia = d => db.lancamentos.filter(x=>x.data===d).reduce((s,x)=>s+x.valor,0);
-const gastoMes = ym => db.lancamentos.filter(x=>mesDe(x.data)===ym).reduce((s,x)=>s+x.valor,0);
-function acumulado(ym, ate){
-  const a = +ym.slice(0,4), m = +ym.slice(5,7);
-  const lim = ate || ultimoDia(a,m), out = []; let soma = 0;
-  for(let d=1; d<=lim; d++){ soma += gastoDia(dataDoMes(a,m,d)); out.push(soma); }
-  return out;
-}
-function mesAnterior(ym){
-  const a = +ym.slice(0,4), m = +ym.slice(5,7);
-  return m===1 ? `${a-1}-12` : `${a}-${String(m-1).padStart(2,"0")}`;
-}
-function vencimento(c){
-  const h = hojeISO(), a = +h.slice(0,4), m = +h.slice(5,7);
-  if(c.ultimo_pago === mesDe(h)){
-    const mm = m===12?1:m+1, aa = m===12?a+1:a;
-    return dataDoMes(aa,mm,c.dia);
-  }
-  return dataDoMes(a,m,c.dia);
-}
-const contasOrd = () => [...db.contas].sort((x,y)=>vencimento(x).localeCompare(vencimento(y)));
-const marcasDe = id => db.marcas.filter(x=>x.habito_id===id).map(x=>x.data);
-const temMarca = (id,d) => db.marcas.some(x=>x.habito_id===id && x.data===d);
-function streakDe(lista){
-  const set = new Set(lista); let b = hojeISO();
-  if(!set.has(b)) b = somaDias(b,-1);
-  let n = 0; while(set.has(b)){ n++; b = somaDias(b,-1); }
-  return n;
-}
-const contasNoDia = d => { const a=+d.slice(0,4), m=+d.slice(5,7); return db.contas.filter(c=>dataDoMes(a,m,c.dia)===d); };
-const eventosNoDia = d => db.eventos.filter(e=>e.data===d).sort((x,y)=>(x.hora||"99").localeCompare(y.hora||"99"));
-function rankCategorias(ym){
-  const soma = {};
-  db.lancamentos.filter(x=>mesDe(x.data)===ym).forEach(x=>{ soma[x.categoria]=(soma[x.categoria]||0)+x.valor; });
-  return Object.entries(soma).sort((a,b)=>b[1]-a[1]);
-}
-function corDaCategoria(cat){
-  const i = rankCategorias(mesDe(hojeISO())).findIndex(([c])=>c===cat);
-  return i < 0 ? "var(--linha-f)" : RAMPA[Math.min(i, RAMPA.length-1)];
-}
-
-/* ================= navegação ================= */
-function irPara(nome){
-  if(nome === viewAtual) return;
-  const dir = ORDEM_VIEWS.indexOf(nome) > ORDEM_VIEWS.indexOf(viewAtual) ? "de-dir" : "de-esq";
-  document.querySelectorAll(".view").forEach(v=>v.classList.remove("ativa","de-dir","de-esq"));
-  $("v-"+nome).classList.add("ativa", dir);
-  document.querySelectorAll(".nav .aba").forEach(a=>a.classList.toggle("ativa", a.dataset.view===nome));
-  viewAtual = nome;
-  window.scrollTo({ top:0, behavior:"instant" });
-  tocar(6);
-}
-function abrirSheet(id){
-  $("veu").hidden = false; $(id).hidden = false;
-  requestAnimationFrame(()=>{ $("veu").classList.add("aberto"); $(id).classList.add("aberto"); });
-  document.body.style.overflow = "hidden";
-}
-function fecharSheets(){
-  document.querySelectorAll(".sheet").forEach(s=>s.classList.remove("aberto"));
-  $("veu").classList.remove("aberto");
-  document.body.style.overflow = "";
-  setTimeout(()=>{ document.querySelectorAll(".sheet").forEach(s=>s.hidden=true); $("veu").hidden = true; }, 300);
-}
-
-/* ================= teclado ================= */
-const valorAtual = () => digitos ? parseInt(digitos,10)/100 : 0;
-function pintarMostrador(){
-  const v = valorAtual(), el = $("mostrador");
-  el.innerHTML = `<small>R$</small>${brl(v)}`;
-  el.classList.toggle("zero", v<=0);
-  $("btn-lancar").disabled = v<=0 || !catSel;
-}
-function tecla(k){
-  if(k==="del") digitos = digitos.slice(0,-1);
-  else if(digitos.length < 9) digitos += k;
-  tocar(6); pintarMostrador();
-}
-function abrirLancamento(data){
-  digitos = ""; catSel = null; dataAlvo = data || hojeISO();
-  $("nota").value = ""; $("aviso").textContent = "";
-  pintarChipsData(); pintarChipsCat(); pintarMostrador();
-  abrirSheet("sheet-lanc");
-}
-function pintarChipsData(){
-  const h = hojeISO();
-  const op = [{d:h,r:"Hoje"},{d:somaDias(h,-1),r:"Ontem"},{d:somaDias(h,-2),r:curto(somaDias(h,-2))}];
-  if(!op.some(o=>o.d===dataAlvo)) op.push({ d:dataAlvo, r:curto(dataAlvo) });
-  $("chips-data").innerHTML = op.map(o=>`<button class="chip press ${o.d===dataAlvo?"sel":""}" data-d="${o.d}">${o.r}</button>`).join("");
-  $("chips-data").querySelectorAll("button").forEach(b=> b.onclick = ()=>{ dataAlvo = b.dataset.d; tocar(); pintarChipsData(); });
-}
-function pintarChipsCat(){
-  $("chips-cat").innerHTML = CATEGORIAS.map(c=>`<button class="chip press ${c===catSel?"sel":""}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
-  $("chips-cat").querySelectorAll("button").forEach(b=> b.onclick = ()=>{ catSel = b.dataset.c; tocar(); pintarChipsCat(); pintarMostrador(); });
-}
-
-/* ================= gráficos ================= */
-function svgRitmo(){
-  const h = hojeISO(), ym = mesDe(h), dia = +h.slice(8,10);
-  const atual = acumulado(ym, dia), ant = acumulado(mesAnterior(ym));
-  const W=100, H=46, pad=2;
-  const nMax = Math.max(atual.length, ant.length, 2);
-  const vMax = Math.max(...atual, ...ant, 1);
-  const px = i => pad + (i/(nMax-1))*(W-pad*2);
-  const py = v => H - pad - (v/vMax)*(H-pad*2);
-  const linha = arr => arr.map((v,i)=>`${px(i).toFixed(2)},${py(v).toFixed(2)}`).join(" ");
-  const temAnt = ant.some(v=>v>0);
-  if(!atual.some(v=>v>0) && !temAnt){ $("leg-ritmo").innerHTML=""; return '<div class="vazio">Sem gastos para desenhar ainda.</div>'; }
-  $("leg-ritmo").innerHTML = '<span style="color:var(--laranja)">■ este mês</span> &nbsp; <span style="color:#8A8A8A">■ anterior</span>';
-  return `<svg viewBox="0 0 ${W} ${H+9}" width="100%" height="170" preserveAspectRatio="none" role="img" aria-label="Gasto acumulado do mês">
-    ${[0.5,1].map(f=>`<line x1="${pad}" y1="${py(vMax*f).toFixed(2)}" x2="${W-pad}" y2="${py(vMax*f).toFixed(2)}" stroke="#2E2E2E" stroke-width=".35"/>`).join("")}
-    ${temAnt?`<polyline points="${linha(ant)}" fill="none" stroke="#8A8A8A" stroke-width=".7" stroke-dasharray="1.6 1.4" vector-effect="non-scaling-stroke"/>`:""}
-    <polygon points="${pad},${H-pad} ${linha(atual)} ${px(atual.length-1).toFixed(2)},${H-pad}" fill="${LARANJA}" fill-opacity=".16"/>
-    <polyline points="${linha(atual)}" fill="none" stroke="${LARANJA}" stroke-width="1.3" stroke-linejoin="miter" vector-effect="non-scaling-stroke"/>
-    <rect x="${(px(atual.length-1)-1).toFixed(2)}" y="${(py(atual[atual.length-1])-1).toFixed(2)}" width="2" height="2" fill="${LARANJA}"/>
-    <text class="eixo" x="${pad}" y="${H+6}">DIA 1</text>
-    <text class="eixo" x="${W-pad}" y="${H+6}" text-anchor="end">DIA ${nMax}</text>
-    <text class="eixo" x="${pad}" y="${(py(vMax)-1).toFixed(2)}">R$ ${brl0(vMax)}</text></svg>`;
-}
-
-function svgDonut(){
-  const pares = rankCategorias(mesDe(hojeISO()));
-  if(!pares.length){ $("leg-donut").innerHTML=""; return '<div class="vazio">Nenhum gasto categorizado este mês.</div>'; }
-  const total = pares.reduce((s,[,v])=>s+v,0), R=42, C=2*Math.PI*R;
-  let off = 0;
-  const arcos = pares.map(([c,v],i)=>{
-    const len = (v/total)*C;
-    const el = `<circle cx="60" cy="60" r="${R}" fill="none" stroke="${RAMPA[Math.min(i,RAMPA.length-1)]}" stroke-width="16"
-      stroke-dasharray="${Math.max(len-1.5,.5).toFixed(2)} ${(C-len+1.5).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 60 60)"/>`;
-    off += len; return el;
-  }).join("");
-  $("leg-donut").innerHTML = pares.slice(0,6).map(([c,v],i)=>
-    `<div><span class="b" style="background:${RAMPA[Math.min(i,RAMPA.length-1)]}"></span><span class="n">${esc(c)}</span><span class="v">${Math.round(v/total*100)}%</span></div>`).join("");
-  return `<svg viewBox="0 0 120 120" width="100%" height="152" role="img" aria-label="Gastos por categoria">${arcos}
-    <text x="60" y="56" text-anchor="middle" fill="#9A9A9A" style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:.16em">MÊS</text>
-    <text x="60" y="71" text-anchor="middle" fill="#F2F2F2" style="font-family:var(--disp);font-weight:900;font-size:16px">R$ ${brl0(total)}</text></svg>`;
-}
-
-/* ================= render ================= */
-function render(){
-  const h = hojeISO(), ym = mesDe(h), dia = +h.slice(8,10);
-
-  $("topo-data").textContent = extenso(h,{weekday:"short",day:"2-digit",month:"short"}).replace(/\./g,"");
-  const fechado = db.fechados.includes(h);
-  const bd = $("btn-dia");
-  bd.className = "chip press " + (fechado ? "on" : "acao");
-  bd.disabled = fechado;
-  bd.textContent = fechado ? `${streakDe(db.fechados)}d seguidos` : "Fechar o dia";
-
-  $("hero-val").innerHTML = `<small>R$</small>${brl(gastoDia(h))}`;
-  const totMes = gastoMes(ym);
-  $("hero-mes").textContent = `mês: R$ ${brl0(totMes)}`;
-
-  const antAcum = acumulado(mesAnterior(ym), dia);
-  const baseAnt = antAcum.length ? antAcum[antAcum.length-1] : 0;
-  const hr = $("hero-ritmo");
-  if(baseAnt<=0){ hr.textContent = "sem base anterior"; hr.style.color=""; hr.style.borderColor=""; }
-  else{
-    const p = Math.round((totMes/baseAnt-1)*100);
-    hr.textContent = `${p>0?"+":""}${p}% vs. mês passado`;
-    hr.style.color = p>0 ? "var(--laranja)" : "var(--fraco)";
-    hr.style.borderColor = p>0 ? "var(--laranja)" : "var(--linha-f)";
-  }
-
-  $("k-mes").textContent = "R$ " + brl(totMes);
-  $("k-mes-sub").textContent = `projeção: R$ ${brl0(totMes/dia*ultimoDia(+ym.slice(0,4),+ym.slice(5,7)))}`;
-  if(baseAnt<=0){ $("k-ritmo").textContent="—"; $("k-ritmo").style.color=""; $("k-ritmo-sub").textContent="sem base anterior"; }
-  else{
-    const p = Math.round((totMes/baseAnt-1)*100);
-    $("k-ritmo").textContent = (p>0?"+":"")+p+"%";
-    $("k-ritmo").style.color = p>0 ? "var(--laranja)" : "var(--fraco)";
-    $("k-ritmo-sub").textContent = `dia ${dia} do mês passado: R$ ${brl0(baseAnt)}`;
-  }
-
-  renderRotina(); renderContas(); renderLancamentos();
-  renderCalendario(); renderProximosEventos();
-  $("g-ritmo").innerHTML = svgRitmo();
-  $("g-donut").innerHTML = svgDonut();
-  if(!$("sheet-dia").hidden) renderDetalheDia();
-}
-
-/* ---- rotina com bloco concluído colapsado ---- */
-function renderRotina(){
-  const h = hojeISO(), box = $("rotina");
-  box.innerHTML = "";
-  $("h-seed").hidden = db.habitos.length > 0;
-  if(!db.habitos.length){
-    box.innerHTML = '<div class="vazio">Rotina vazia. Use a lista pronta e apague o que não servir — cortar é mais fácil que inventar.</div>';
-    $("rot-cont").textContent = ""; return;
-  }
-  $("rot-cont").textContent = `${db.habitos.filter(x=>temMarca(x.id,h)).length}/${db.habitos.length}`;
-
-  BLOCOS.forEach(bl=>{
-    const itens = db.habitos.filter(x=>x.bloco===bl.id);
-    if(!itens.length) return;
-    const feitos = itens.filter(x=>temMarca(x.id,h)).length;
-    const pronto = feitos === itens.length;
-    const expandido = !pronto || abertos.has(bl.id);
-
-    const sec = document.createElement("div");
-    sec.className = "bloco" + (pronto?" pronto":"");
-
-    const cab = document.createElement("button");
-    cab.className = "bloco-cab press";
-    cab.setAttribute("aria-expanded", String(expandido));
-    cab.innerHTML = `<span class="nome">${bl.nome}${pronto?" ✓":""}</span>
-      <span class="prog"><i style="width:${Math.round(feitos/itens.length*100)}%"></i></span>
-      <span class="prog-n">${feitos}/${itens.length}</span>
-      <span class="seta">${expandido?"▾":"▸"}</span>`;
-    cab.onclick = ()=>{
-      if(abertos.has(bl.id)) abertos.delete(bl.id); else abertos.add(bl.id);
-      tocar(); renderRotina();
-    };
-    sec.appendChild(cab);
-
-    if(expandido){
-      itens.forEach(hb=>{
-        const on = temMarca(hb.id,h);
-        const li = document.createElement("button");
-        li.className = "hab press" + (on?" on":"");
-        li.setAttribute("aria-pressed", String(on));
-        const ms = marcasDe(hb.id);
-        let fita = ""; for(let i=13;i>=0;i--) fita += `<i class="${ms.includes(somaDias(h,-i))?"on":""}"></i>`;
-        li.innerHTML = `<span class="marca">✓</span><span class="nome">${esc(hb.nome)}</span><span class="fita">${fita}</span>`;
-        li.onclick = ()=>alternarHabito(hb, on);
-        sec.appendChild(li);
-      });
-    }
-    box.appendChild(sec);
-  });
-}
-
-function renderContas(){
-  const h = hojeISO(), lc = $("lista-contas");
-  lc.innerHTML = "";
-  if(!db.contas.length){ lc.innerHTML = '<li class="vazio">Sem contas. Comece pelas fixas: aluguel, internet, cartão.</li>'; return; }
-  contasOrd().slice(0,6).forEach(c=>{
-    const d = diasEntre(h, vencimento(c));
-    const cls = d<0?"vencido":d<=3?"perto":"";
-    const li = document.createElement("li"); li.className = "item";
-    li.innerHTML = `<span class="tag ${cls}">${d<0?`${-d}d atrás`:d===0?"hoje":`${d}d`}</span>
-      <span class="nome">${esc(c.nome)}</span><span class="cifra">${c.valor?"R$ "+brl(c.valor):""}</span>`;
-    const pg = document.createElement("button"); pg.className = "mini press"; pg.textContent = "paguei";
-    pg.onclick = ()=>pagarConta(c);
-    const x = document.createElement("button"); x.className = "x press"; x.textContent = "✕";
-    x.onclick = ()=>apagar("contas", c.id, ()=>{ db.contas = db.contas.filter(z=>z.id!==c.id); });
-    li.append(pg,x); lc.appendChild(li);
-  });
-}
-
-function renderLancamentos(){
-  const h = hojeISO(), ll = $("lista-lanc");
-  ll.innerHTML = "";
-  $("cont-hoje").textContent = db.lancamentos.filter(x=>x.data===h).length + " hoje";
-  const ult = db.lancamentos.slice(0,7);
-  if(!ult.length){ ll.innerHTML = '<li class="vazio">Nada lançado. Toque no + e comece pelo último gasto que você lembra.</li>'; return; }
-  ult.forEach(l=>{
-    const li = document.createElement("li"); li.className = "item";
-    li.innerHTML = `<span class="barra-cat" style="background:${corDaCategoria(l.categoria)}"></span>
-      <span class="nome">${esc(l.categoria)}${l.nota?' <span style="color:var(--fraco)">· '+esc(l.nota)+'</span>':""}</span>
-      <span class="tag">${l.data===h?"hoje":curto(l.data)}</span>
-      <span class="cifra">R$ ${brl(l.valor)}</span>`;
-    const x = document.createElement("button"); x.className = "x press"; x.textContent = "✕";
-    x.onclick = ()=>apagar("lancamentos", l.id, ()=>{ db.lancamentos = db.lancamentos.filter(z=>z.id!==l.id); });
-    li.appendChild(x); ll.appendChild(li);
-  });
-}
-
-/* ---- calendário: forma em vez de cor ---- */
-function renderCalendario(){
-  const { a, m } = calRef, h = hojeISO(), ymCal = `${a}-${String(m).padStart(2,"0")}`;
-  $("cal-mes").textContent = new Date(a, m-1, 1).toLocaleDateString("pt-BR",{month:"short",year:"numeric"}).replace(/\./g,"");
-  const primeiro = new Date(a, m-1, 1);
-  const inicio = somaDias(isoDe(primeiro), -primeiro.getDay());
-  const dias = []; for(let i=0;i<42;i++) dias.push(somaDias(inicio,i));
-  const vals = dias.filter(d=>mesDe(d)===ymCal).map(gastoDia).filter(v=>v>0).sort((x,y)=>x-y);
-  const q = p => vals.length ? vals[Math.min(vals.length-1, Math.floor(vals.length*p))] : 0;
-  const q1=q(.33), q2=q(.66), q3=q(.9);
-  const cal = $("cal"); cal.innerHTML = "";
-  dias.forEach(d=>{
-    const fora = mesDe(d) !== ymCal, v = gastoDia(d);
-    const op = v<=0?0 : v<=q1?.22 : v<=q2?.4 : v<=q3?.62 : .85;
-    const b = document.createElement("button");
-    b.className = "dia press"
-      + (fora?" fora":"") + (d===h?" hoje":"") + (v>0?" gastou":"")
-      + (contasNoDia(d).length?" conta":"") + (eventosNoDia(d).length?" evento":"");
-    const marcas = [];
-    if(v>0) marcas.push(`gastou R$ ${brl(v)}`);
-    if(contasNoDia(d).length) marcas.push("conta vence");
-    if(eventosNoDia(d).length) marcas.push("compromisso");
-    if(db.fechados.includes(d)) marcas.push("dia fechado");
-    b.setAttribute("aria-label", `${extenso(d)}${marcas.length?" · "+marcas.join(", "):""}`);
-    b.innerHTML = `<span class="fundo" style="opacity:${op}"></span><span class="n">${+d.slice(8,10)}</span>`
-      + (db.fechados.includes(d) ? '<span class="sub"></span>' : "");
-    b.onclick = ()=>{ selDia = d; tocar(); renderDetalheDia(); abrirSheet("sheet-dia"); };
-    cal.appendChild(b);
-  });
-}
-
-function renderProximosEventos(){
-  const h = hojeISO(), le = $("lista-eventos");
-  le.innerHTML = "";
-  const prox = db.eventos.filter(e=>e.data>=h)
-    .sort((x,y)=>(x.data+(x.hora||"99")).localeCompare(y.data+(y.hora||"99"))).slice(0,8);
-  if(!prox.length){ le.innerHTML = '<li class="vazio">Nada marcado. Toque num dia do calendário para adicionar.</li>'; return; }
-  prox.forEach(ev=>{
-    const d = diasEntre(h, ev.data);
-    const li = document.createElement("li"); li.className = "item";
-    li.innerHTML = `<span class="tag ${d<=1?"perto":""}">${d===0?"hoje":d===1?"amanhã":curto(ev.data)}</span>
-      <span class="nome">${esc(ev.titulo)}</span><span class="cifra">${ev.hora?ev.hora.slice(0,5):""}</span>`;
-    const x = document.createElement("button"); x.className = "x press"; x.textContent = "✕";
-    x.onclick = ()=>apagar("eventos", ev.id, ()=>{ db.eventos = db.eventos.filter(z=>z.id!==ev.id); });
-    li.appendChild(x); le.appendChild(li);
-  });
-}
-
-function renderDetalheDia(){
-  const d = selDia, h = hojeISO();
-  $("dia-titulo").textContent = d===h ? "Hoje" : extenso(d,{weekday:"long",day:"2-digit",month:"long"});
-  $("dia-total").innerHTML = `<small>R$</small>${brl(gastoDia(d))}`;
-
-  const dl = $("dia-lanc"); dl.innerHTML = "";
-  const ls = db.lancamentos.filter(x=>x.data===d);
-  if(!ls.length) dl.innerHTML = '<li class="vazio">Nenhum gasto neste dia.</li>';
-  ls.forEach(l=>{
-    const li = document.createElement("li"); li.className = "item";
-    li.innerHTML = `<span class="barra-cat" style="background:${corDaCategoria(l.categoria)}"></span>
-      <span class="nome">${esc(l.categoria)}${l.nota?' <span style="color:var(--fraco)">· '+esc(l.nota)+'</span>':""}</span>
-      <span class="cifra">R$ ${brl(l.valor)}</span>`;
-    const x = document.createElement("button"); x.className = "x press"; x.textContent = "✕";
-    x.onclick = ()=>apagar("lancamentos", l.id, ()=>{ db.lancamentos = db.lancamentos.filter(z=>z.id!==l.id); });
-    li.appendChild(x); dl.appendChild(li);
-  });
-
-  const dc = $("dia-contas"); dc.innerHTML = "";
-  const cs = contasNoDia(d);
-  if(!cs.length) dc.innerHTML = '<li class="vazio">Nenhuma conta vence neste dia.</li>';
-  cs.forEach(c=>{
-    const li = document.createElement("li"); li.className = "item";
-    li.innerHTML = `<span class="barra-cat" style="background:var(--red)"></span><span class="nome">${esc(c.nome)}</span>
-      <span class="cifra">${c.valor?"R$ "+brl(c.valor):""}</span>
-      <span class="tag">${c.ultimo_pago===mesDe(d)?"pago":"aberto"}</span>`;
-    dc.appendChild(li);
-  });
-
-  const de = $("dia-eventos"); de.innerHTML = "";
-  const evs = eventosNoDia(d);
-  if(!evs.length) de.innerHTML = '<li class="vazio">Nada marcado neste dia.</li>';
-  evs.forEach(ev=>{
-    const li = document.createElement("li"); li.className = "item";
-    li.innerHTML = `<span class="tag">${ev.hora?ev.hora.slice(0,5):"dia todo"}</span><span class="nome">${esc(ev.titulo)}</span>`;
-    const x = document.createElement("button"); x.className = "x press"; x.textContent = "✕";
-    x.onclick = ()=>apagar("eventos", ev.id, ()=>{ db.eventos = db.eventos.filter(z=>z.id!==ev.id); });
-    li.appendChild(x); de.appendChild(li);
-  });
-}
-
-/* ================= mutações ================= */
-async function apagar(tabela, id, local){
-  const { error } = await sb.from(tabela).delete().eq("id", id);
-  if(error) return falhou(error);
-  local(); render(); toast("removido");
-}
-async function lancar(){
-  const v = valorAtual();
-  if(v<=0){ $("aviso").textContent = "digite um valor"; return; }
-  if(!catSel){ $("aviso").textContent = "escolha uma categoria"; return; }
-  $("aviso").textContent = "";
-  const { data, error } = await sb.from("lancamentos")
-    .insert({ user_id:usuario.id, data:dataAlvo, valor:v, categoria:catSel, nota:$("nota").value.trim() })
-    .select().single();
-  if(error) return falhou(error);
-  db.lancamentos.unshift({...data, valor:Number(data.valor)});
-  db.lancamentos.sort((a,b)=>b.data.localeCompare(a.data));
-  tocar(14); fecharSheets(); render();
-  toast(`R$ ${brl(v)} · ${dataAlvo===hojeISO()?"hoje":curto(dataAlvo)}`);
-}
-async function pagarConta(c){
-  const mes = mesDe(vencimento(c));
-  const { error } = await sb.from("contas").update({ ultimo_pago:mes }).eq("id", c.id);
-  if(error) return falhou(error);
-  c.ultimo_pago = mes;
-  if(c.valor > 0){
-    const { data, error:e2 } = await sb.from("lancamentos")
-      .insert({ user_id:usuario.id, data:hojeISO(), valor:c.valor, categoria:"Contas", nota:c.nome }).select().single();
-    if(e2) return falhou(e2);
-    db.lancamentos.unshift({...data, valor:Number(data.valor)});
-  }
-  tocar(14); render(); toast(`${c.nome} quitada`);
-}
-async function alternarHabito(hb, estavaOn){
-  tocar(estavaOn?6:12);
-  if(estavaOn){
-    const marca = db.marcas.find(x=>x.habito_id===hb.id && x.data===hojeISO());
-    if(!marca) return;
-    const { error } = await sb.from("habito_marcas").delete().eq("id", marca.id);
-    if(error) return falhou(error);
-    db.marcas = db.marcas.filter(x=>x.id!==marca.id);
-  }else{
-    const { data, error } = await sb.from("habito_marcas")
-      .insert({ user_id:usuario.id, habito_id:hb.id, data:hojeISO() }).select().single();
-    if(error) return falhou(error);
-    db.marcas.push(data);
-  }
-  render();
-}
-async function fecharDia(){
-  const h = hojeISO();
-  const { error } = await sb.from("dias_fechados").insert({ user_id:usuario.id, data:h });
-  if(error) return falhou(error);
-  db.fechados.push(h);
-  tocar(18); render(); toast(`dia fechado · ${streakDe(db.fechados)}d seguidos`);
-}
-async function semearRotina(){
-  const linhas = ROTINA_PRONTA.map((r,i)=>({ user_id:usuario.id, nome:r.nome, bloco:r.bloco, ordem:i }));
-  const { data, error } = await sb.from("habitos").insert(linhas).select();
-  if(error) return falhou(error);
-  db.habitos = data; render(); toast("rotina criada");
-}
-
-/* ================= eventos de UI ================= */
-function ligarEventos(){
-  document.querySelectorAll(".nav .aba").forEach(a=> a.onclick = ()=>irPara(a.dataset.view));
-  $("fab").onclick = ()=>{ tocar(10); abrirLancamento(hojeISO()); };
-  $("btn-dia").onclick = fecharDia;
-  $("h-seed").onclick = semearRotina;
-  $("cal-ant").onclick = ()=>{ calRef.m--; if(calRef.m<1){calRef.m=12;calRef.a--;} tocar(); renderCalendario(); };
-  $("cal-prox").onclick = ()=>{ calRef.m++; if(calRef.m>12){calRef.m=1;calRef.a++;} tocar(); renderCalendario(); };
-  $("veu").onclick = fecharSheets;
-  $("lanc-fechar").onclick = fecharSheets;
-  $("dia-fechar").onclick = fecharSheets;
-  document.addEventListener("keydown", e=>{ if(e.key==="Escape") fecharSheets(); });
-  document.querySelectorAll(".tecla").forEach(t=> t.onclick = ()=>tecla(t.dataset.k));
-  $("btn-lancar").onclick = lancar;
-  $("dia-lancar").onclick = ()=>{ fecharSheets(); setTimeout(()=>abrirLancamento(selDia), 260); };
-
-  $("c-add").onclick = async ()=>{
-    const nome = $("c-nome").value.trim(), dia = parseInt($("c-dia").value,10);
-    if(!nome || !dia) return toast("preencha nome e dia", true);
-    const { data, error } = await sb.from("contas")
-      .insert({ user_id:usuario.id, nome, dia:Math.min(Math.max(dia,1),31), valor:numBR($("c-valor").value) }).select().single();
-    if(error) return falhou(error);
-    db.contas.push({...data, valor:Number(data.valor||0)});
-    ["c-nome","c-dia","c-valor"].forEach(k=>$(k).value="");
-    render(); toast("conta cadastrada");
-  };
-
-  $("e-add").onclick = async ()=>{
-    const titulo = $("e-titulo").value.trim();
-    if(!titulo) return;
-    const { data, error } = await sb.from("eventos")
-      .insert({ user_id:usuario.id, data:selDia, hora:$("e-hora").value || null, titulo }).select().single();
-    if(error) return falhou(error);
-    db.eventos.push(data);
-    $("e-titulo").value = ""; $("e-hora").value = "";
-    render(); toast("compromisso marcado");
-  };
-
-  $("btn-export").onclick = ()=>{
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:"application/json"}));
-    a.download = `nexvot-backup-${hojeISO()}.json`; a.click();
-  };
-
-  let x0 = null, y0 = null;
-  document.addEventListener("touchstart", e=>{
-    if(!$("sheet-lanc").hidden || !$("sheet-dia").hidden) return;
-    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
-  }, { passive:true });
-  document.addEventListener("touchend", e=>{
-    if(x0===null) return;
-    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
-    x0 = null;
-    if(Math.abs(dx) < 62 || Math.abs(dy) > Math.abs(dx)*0.7) return;
-    const i = ORDEM_VIEWS.indexOf(viewAtual) + (dx < 0 ? 1 : -1);
-    if(i >= 0 && i < ORDEM_VIEWS.length) irPara(ORDEM_VIEWS[i]);
-  }, { passive:true });
-}
-
-window.addEventListener("unhandledrejection", e=>{
-  if(document.getElementById("splash").hidden) return;
-  erroFatal("Erro não tratado: " + ((e.reason && e.reason.message) || e.reason));
-});
-
-boot().catch(e => erroFatal("Falha ao iniciar: " + e.message));
+}, 10000);
+</script>
+<script src="./config.js"></script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
