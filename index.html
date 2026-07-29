@@ -1,569 +1,679 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-tema="claro">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<meta name="theme-color" content="#0A0A0A">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F4F5F3">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NexVot">
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230A0A0A'/><path d='M5 22h22M5 10h22M5 16h14' stroke='%23FF5E04' stroke-width='4'/></svg>">
-<title>NexVot - Gestão Inteligente</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231A1D1B'/><path d='M9 21h14M9 11h14M9 16h9' stroke='%23FF5E04' stroke-width='2.6' stroke-linecap='round'/></svg>">
+<title>NexVot — Gestão Inteligente</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{
-  --preto:#0A0A0A; --sup:#141414; --card:#1A1A1A; --card-2:#232323;
-  --linha:#2B2B2B; --linha-f:#3D3D3D;
-  --texto:#FAFAFA; --fraco:#9E9E9E; --apagado:#6B6B6B;
-  --laranja:#FF5E04; --laranja-f:#B34204;
-  --green:#22A268; --red:#E0402F;
-  --disp:"Archivo",system-ui,sans-serif;
-  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
-  --corpo:"Inter",system-ui,-apple-system,sans-serif;
-  --nav-h:calc(66px + env(safe-area-inset-bottom));
-  --mola:cubic-bezier(.22,1,.32,1);
-  --hachura:repeating-linear-gradient(45deg,transparent 0 5px,rgba(255,94,4,.055) 5px 6px);
+/* ============ tokens ============ */
+html[data-tema="claro"]{
+  --bg:#F4F5F3; --card:#FFFFFF; --card2:#FAFBFA; --barra:#1D211E;
+  --linha:#E7EAE7; --linha2:#F0F2F0;
+  --txt:#1A1D1B; --txt2:#5C6560; --txt3:#98A19C; --barra-txt:#FFFFFF;
+  --entra:#16A34A; --sai:#DC2626; --alerta:#EA7317; --laranja:#FF5E04;
+  --sombra:0 1px 2px rgba(20,30,25,.05), 0 6px 20px rgba(20,30,25,.06);
+  --sombra2:0 2px 4px rgba(20,30,25,.06), 0 12px 32px rgba(20,30,25,.10);
+  --campo:#FFFFFF;
 }
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;border-radius:0}
-html{background:var(--preto)}
-body{margin:0;background:var(--preto);color:var(--texto);font-family:var(--corpo);font-size:15px;line-height:1.45;
-  -webkit-font-smoothing:antialiased;padding:calc(12px + env(safe-area-inset-top)) 13px calc(var(--nav-h) + 26px);
-  max-width:840px;margin-inline:auto;overscroll-behavior-y:none}
+html[data-tema="escuro"]{
+  --bg:#101312; --card:#191D1B; --card2:#1F2422; --barra:#0A0C0B;
+  --linha:#272D2A; --linha2:#212724;
+  --txt:#EEF1EF; --txt2:#9AA5A0; --txt3:#6B7671; --barra-txt:#FFFFFF;
+  --entra:#34D399; --sai:#F87171; --alerta:#FBA94C; --laranja:#FF7A2E;
+  --sombra:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.28);
+  --sombra2:0 2px 6px rgba(0,0,0,.4), 0 14px 36px rgba(0,0,0,.4);
+  --campo:#141817;
+}
+:root{
+  --r:14px; --r2:10px;
+  --nav-h:calc(62px + env(safe-area-inset-bottom));
+  --mola:cubic-bezier(.22,1,.32,1);
+  --f:"Inter",-apple-system,system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--f);font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:-.015em}
 button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
 input,select{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--laranja);outline-offset:2px}
-::placeholder{color:#5C5C5C}
+::placeholder{color:var(--txt3)}
 [hidden]{display:none !important}
 ul{list-style:none;margin:0;padding:0}
-svg{display:block;overflow:visible}
-.eixo{font-family:var(--mono);font-size:9px;font-weight:700;fill:#757575}
+svg{display:block}
+@media (prefers-reduced-motion:no-preference){
+  html[data-tema]{transition:none}
+  body,.card,.kpi,.side{transition:background-color .25s ease,color .25s ease,border-color .25s ease}
+}
 
-/* ---- tipografia com peso ---- */
-.disp{font-family:var(--disp);font-weight:900;font-stretch:118%;letter-spacing:-.015em;text-transform:uppercase;line-height:1}
-.num{font-family:var(--disp);font-weight:900;font-stretch:112%;font-variant-numeric:tabular-nums;letter-spacing:-.035em;line-height:1}
-.rot{font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--fraco)}
-.rot.laranja{color:var(--laranja)}
-
-/* ---- estrutura ---- */
-.card{background:var(--card);border:1px solid var(--linha);padding:16px;margin-bottom:11px}
-.card.forte{border:2px solid var(--linha-f)}
-.cab{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
-.marcador{display:flex;align-items:center;gap:9px}
-.marcador::before{content:"";width:4px;height:15px;background:var(--laranja);flex:none}
-.vazio{color:var(--fraco);font-size:13.5px;padding:12px 0;line-height:1.6}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.02em;font-weight:700}
+.mut{color:var(--txt2)}
 .press:active{transform:scale(.975)}
 @media (prefers-reduced-motion:no-preference){ .press{transition:transform .12s var(--mola)} }
 
-.splash{display:grid;place-items:center;min-height:70vh;text-align:center;gap:16px;color:var(--fraco);font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase}
-.splash b{font-family:var(--disp);font-weight:900;font-stretch:125%;font-size:38px;color:var(--texto);letter-spacing:-.02em}
-.splash .erro{color:var(--red);max-width:320px;line-height:1.75;letter-spacing:0;font-size:12px;text-transform:none;font-weight:400}
+/* ============ splash / auth ============ */
+.splash{display:grid;place-items:center;min-height:100dvh;gap:14px;text-align:center;padding:24px}
+.splash .logo{font-size:26px;font-weight:700;letter-spacing:-.03em}
+.splash .st{color:var(--txt2);font-size:13.5px}
+.splash .st.erro{color:var(--sai);max-width:340px;line-height:1.65}
 
-/* ---- topo ---- */
-.topo{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:13px}
-.topo .data{font-family:var(--disp);font-weight:900;font-stretch:118%;font-size:22px;text-transform:uppercase;line-height:1.05;letter-spacing:-.02em;margin-top:3px}
-.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--linha-f);padding:9px 13px;
-  font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--fraco);white-space:nowrap}
-.chip.on{border-color:var(--green);color:var(--green)}
-.chip.acao{background:var(--laranja);border-color:var(--laranja);color:#140800;box-shadow:4px 4px 0 #000}
-.chip.acao:active{box-shadow:1px 1px 0 #000;transform:translate(3px,3px)}
+.auth{min-height:100dvh;display:grid;place-items:center;padding:24px}
+.auth-box{width:100%;max-width:380px}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:26px}
+.auth-logo .mk{width:34px;height:34px;border-radius:9px;background:var(--barra);display:grid;place-items:center}
+.auth-logo .mk i{display:block;width:16px;height:2.5px;background:var(--laranja);border-radius:2px;box-shadow:0 -5px 0 var(--laranja),0 5px 0 var(--laranja)}
+.auth-logo h1{font-size:19px}
+.auth-logo p{margin:1px 0 0;font-size:12.5px;color:var(--txt2)}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--card2);border:1px solid var(--linha);border-radius:var(--r2);padding:4px;margin-bottom:18px}
+.tabs button{padding:9px;border-radius:7px;font-size:13.5px;font-weight:600;color:var(--txt2)}
+.tabs button.on{background:var(--card);color:var(--txt);box-shadow:var(--sombra)}
+.campo{width:100%;background:var(--campo);border:1px solid var(--linha);border-radius:var(--r2);padding:13px 14px;margin-bottom:10px;font-size:15px}
+.campo:focus{border-color:var(--laranja);outline:none}
+.btn{width:100%;background:var(--laranja);color:#fff;border-radius:var(--r2);padding:14px;font-size:14.5px;font-weight:600}
+.btn.sec{background:transparent;border:1px solid var(--linha);color:var(--txt2)}
+.msg{font-size:12.5px;margin-top:12px;min-height:17px;line-height:1.55;text-align:center}
+.msg.erro{color:var(--sai)} .msg.ok{color:var(--entra)}
+.auth-pe{margin-top:18px;text-align:center;font-size:12px;color:var(--txt3);line-height:1.6}
 
-.seletor{position:relative;display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--linha-f);margin-bottom:14px;background:var(--sup)}
-.seletor .marca{position:absolute;top:0;bottom:0;left:0;width:50%;background:var(--laranja);z-index:0}
-.seletor.empresa .marca{transform:translateX(100%)}
-.seletor button{position:relative;z-index:1;padding:13px 8px;font-family:var(--mono);font-size:10.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--fraco)}
-.seletor button.ativo{color:#140800}
+/* ============ shell ============ */
+.shell{display:flex;min-height:100dvh}
+.side{display:none}
+.main{flex:1;min-width:0;padding:18px 16px calc(var(--nav-h) + 20px)}
+.wrap{max-width:1120px;margin-inline:auto}
+
+.topo{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.topo .hoje{font-size:19px;font-weight:700;letter-spacing:-.02em}
+.topo .sub{font-size:12.5px;color:var(--txt2);margin-top:1px}
+.acoes{display:flex;gap:8px;align-items:center}
+.ib{width:38px;height:38px;border-radius:var(--r2);border:1px solid var(--linha);background:var(--card);display:grid;place-items:center;box-shadow:var(--sombra)}
+.ib svg{width:17px;height:17px;stroke:var(--txt2);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.bt-dia{border-radius:var(--r2);padding:10px 15px;font-size:13px;font-weight:600;background:var(--laranja);color:#fff;box-shadow:var(--sombra)}
+.bt-dia.feito{background:var(--card);color:var(--entra);border:1px solid var(--linha)}
+
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--card2);border:1px solid var(--linha);border-radius:var(--r2);padding:4px;margin-bottom:16px;max-width:340px}
+.seg button{padding:9px;border-radius:7px;font-size:13.5px;font-weight:600;color:var(--txt2)}
+.seg button.on{background:var(--card);color:var(--txt);box-shadow:var(--sombra)}
+
+/* ============ cards ============ */
+.grade{display:grid;grid-template-columns:1fr;gap:13px}
+.card{background:var(--card);border:1px solid var(--linha);border-radius:var(--r);box-shadow:var(--sombra);overflow:hidden}
+.card-h{background:var(--barra);color:var(--barra-txt);padding:12px 15px;display:flex;align-items:center;gap:10px}
+.card-h .ic{width:16px;height:16px;flex:none;color:var(--laranja)}
+.card-h .ic svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.card-h h3{flex:1;min-width:0;font-size:13.5px;font-weight:600;letter-spacing:.005em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-h .meta{font-size:12px;opacity:.72;white-space:nowrap}
+.card-b{padding:15px}
+.card-b.plano{padding:0}
+
 @media (prefers-reduced-motion:no-preference){
-  .seletor .marca{transition:transform .34s var(--mola)}
-  .seletor button{transition:color .2s var(--mola)}
+  .card{animation:sobe .32s var(--mola) both;animation-delay:var(--d,0ms)}
+  @keyframes sobe{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 }
 
-/* ---- views ---- */
-.view{display:none}
-.view.ativa{display:block}
-@media (prefers-reduced-motion:no-preference){
-  .view.ativa{animation:entra .3s var(--mola) both}
-  .view.ativa.de-dir{animation-name:entraDir} .view.ativa.de-esq{animation-name:entraEsq}
-  @keyframes entra{from{opacity:0}to{opacity:1}}
-  @keyframes entraDir{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
-  @keyframes entraEsq{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
-  .card{animation:sobeCard .34s var(--mola) both;animation-delay:var(--d,0ms)}
-  @keyframes sobeCard{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
-}
+/* ============ destaque ============ */
+.saldo{text-align:left}
+.saldo .rot{font-size:12.5px;color:var(--txt2)}
+.saldo .v{font-size:38px;font-weight:700;letter-spacing:-.035em;margin:5px 0 12px;font-variant-numeric:tabular-nums}
+.saldo .v small{font-size:17px;color:var(--txt2);margin-right:5px;font-weight:600}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{border:1px solid var(--linha);border-radius:99px;padding:6px 12px;font-size:12.5px;color:var(--txt2);background:var(--card2)}
+.pill.up{color:var(--entra);border-color:color-mix(in srgb,var(--entra) 35%,transparent)}
+.pill.down{color:var(--sai);border-color:color-mix(in srgb,var(--sai) 35%,transparent)}
+.pill.warn{color:var(--alerta);border-color:color-mix(in srgb,var(--alerta) 40%,transparent)}
 
-/* ---- hero ---- */
-.hero{background:var(--sup);background-image:var(--hachura);border:2px solid var(--linha-f);
-  border-left:5px solid var(--laranja);padding:20px;margin-bottom:11px}
-.hero.lucro{border-left-color:var(--green)}
-.hero.prejuizo{border-left-color:var(--red)}
-.hero .val{font-family:var(--disp);font-weight:900;font-stretch:112%;font-size:56px;line-height:.92;margin:12px 0 14px;
-  font-variant-numeric:tabular-nums;letter-spacing:-.045em}
-.hero .val small{font-family:var(--mono);font-size:15px;font-weight:800;color:var(--fraco);margin-right:7px;letter-spacing:0;vertical-align:middle}
-.hero-linha{display:flex;gap:7px;flex-wrap:wrap}
-.hero-linha .chip{background:rgba(10,10,10,.55)}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:13px}
+.kpi{background:var(--card);border:1px solid var(--linha);border-radius:var(--r);padding:14px;box-shadow:var(--sombra)}
+.kpi .r{font-size:12px;color:var(--txt2)}
+.kpi .v{font-size:22px;font-weight:700;letter-spacing:-.03em;margin-top:5px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:11.5px;color:var(--txt3);margin-top:4px}
 
-/* ---- kpis ---- */
-.kpis{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px}
-.kpi{background:var(--card);border:1px solid var(--linha);border-left:4px solid var(--acento,var(--linha-f));padding:14px}
-.kpi .v{font-family:var(--disp);font-weight:900;font-stretch:112%;font-size:26px;margin-top:7px;font-variant-numeric:tabular-nums;letter-spacing:-.035em;line-height:1}
-.kpi .sub{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--fraco);margin-top:6px}
-
-/* ================= ROTINA ================= */
-.dia-nav{display:grid;grid-template-columns:44px 1fr 44px;gap:8px;align-items:stretch;margin-bottom:11px}
-.dia-nav button{border:2px solid var(--linha-f);color:var(--fraco);font-family:var(--mono);font-size:16px;font-weight:800}
-.dia-nav .centro{border:2px solid var(--linha-f);background:var(--sup);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px}
-.dia-nav .centro .d{font-family:var(--disp);font-weight:900;font-stretch:118%;font-size:17px;text-transform:uppercase;letter-spacing:-.01em}
-.dia-nav .centro .s{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--laranja);margin-top:3px}
-.barra-dia{height:6px;background:var(--sup);border:1px solid var(--linha);margin-bottom:12px}
-.barra-dia i{display:block;height:100%;background:var(--laranja)}
-@media (prefers-reduced-motion:no-preference){ .barra-dia i{transition:width .45s var(--mola)} }
-
-.blk{border:1px solid var(--linha);background:var(--card);margin-bottom:7px}
-.blk.pronto{border-color:#1E4536}
-.blk.agora{border-color:var(--laranja);box-shadow:3px 3px 0 rgba(255,94,4,.22)}
-.blk-cab{display:flex;align-items:center;gap:12px;width:100%;padding:14px;text-align:left}
-.blk-hora{font-family:var(--disp);font-weight:900;font-stretch:112%;font-size:17px;color:var(--laranja);width:56px;flex:none;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.blk.pronto .blk-hora{color:var(--green)}
-.blk-tit{flex:1;min-width:0;font-family:var(--disp);font-weight:900;font-stretch:105%;font-size:14px;text-transform:uppercase;letter-spacing:.005em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.blk.pronto .blk-tit{color:var(--fraco)}
-.blk-cnt{font-family:var(--mono);font-size:10px;font-weight:800;color:var(--apagado);flex:none}
-.blk-seta{font-family:var(--mono);font-size:12px;color:var(--apagado);flex:none;width:12px;text-align:right}
-.blk-corpo{padding:0 14px 12px;border-top:1px solid var(--linha)}
-.blk-nota{font-family:var(--mono);font-size:10.5px;color:var(--laranja);letter-spacing:.06em;text-transform:uppercase;padding:11px 0 3px}
-
-.tk{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--linha);width:100%;text-align:left}
-.tk:last-child{border-bottom:none}
-.tk .cx{width:24px;height:24px;flex:none;border:2px solid var(--linha-f);display:grid;place-items:center;
-  font-family:var(--mono);font-size:12px;font-weight:800;color:transparent}
-.tk.on .cx{background:var(--green);border-color:var(--green);color:#04170E}
-.tk .t{flex:1;min-width:0;font-size:14.5px;line-height:1.35}
-.tk.on .t{color:var(--fraco);text-decoration:line-through;text-decoration-color:var(--apagado)}
-.tk .h{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--apagado);flex:none}
-.selo{font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
-  border:1px solid var(--laranja);color:var(--laranja);padding:2px 5px;flex:none}
-
-/* ---- listas gerais ---- */
-.item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--linha)}
-.item:last-child{border-bottom:none}
-.item .nome{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14.5px}
-.item .cifra{font-family:var(--disp);font-weight:900;font-stretch:105%;font-size:15px;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.item .cifra.entrada{color:var(--green)}
-.tag{font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
-  padding:4px 7px;border:1px solid var(--linha-f);color:var(--fraco);white-space:nowrap}
-.tag.perto{border-color:var(--laranja);color:var(--laranja)}
-.tag.vencido{background:var(--red);border-color:var(--red);color:#180402}
-.tag.futil{border-color:var(--laranja);color:var(--laranja)}
-.barra-cat{width:4px;height:18px;flex:none;background:var(--linha-f)}
-.mini{border:1px solid var(--linha-f);color:var(--fraco);padding:8px 12px;font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+/* ============ listas ============ */
+.lin{display:flex;align-items:center;gap:11px;padding:13px 15px;border-bottom:1px solid var(--linha2)}
+.lin:last-child{border-bottom:none}
+.lin .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14.5px}
+.lin .n small{display:block;font-size:12px;color:var(--txt3);margin-top:1px}
+.lin .v{font-size:14.5px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.lin .v.entra{color:var(--entra)} .lin .v.sai{color:var(--sai)}
+.badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;background:var(--card2);border:1px solid var(--linha);color:var(--txt2);white-space:nowrap}
+.badge.perto{color:var(--alerta);border-color:color-mix(in srgb,var(--alerta) 40%,transparent)}
+.badge.venc{background:var(--sai);border-color:var(--sai);color:#fff}
+.badge.fut{color:var(--alerta);border-color:color-mix(in srgb,var(--alerta) 40%,transparent)}
+.dot{width:8px;height:8px;border-radius:99px;flex:none}
+.x{color:var(--txt3);padding:5px;font-size:15px;line-height:1;flex:none}
+.x:active{color:var(--sai)}
+.mini{border:1px solid var(--linha);border-radius:8px;padding:7px 11px;font-size:12.5px;font-weight:500;color:var(--txt2);background:var(--card)}
 .mini:active{border-color:var(--laranja);color:var(--laranja)}
-.mini.forte{border-color:var(--laranja);color:var(--laranja)}
-.x{color:var(--apagado);padding:6px 8px;font-family:var(--mono);font-size:14px;flex:none}
-.x:active{color:var(--red)}
+.mini.forte{color:var(--laranja);border-color:color-mix(in srgb,var(--laranja) 45%,transparent)}
+.vazio{color:var(--txt3);font-size:13.5px;padding:16px 15px;line-height:1.6}
 
-/* ---- barras ---- */
-.linha-barra{display:grid;grid-template-columns:88px 1fr 76px;align-items:center;gap:10px;padding:7px 0}
-.linha-barra .n{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--fraco);text-transform:uppercase;letter-spacing:.08em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.trilho{height:10px;background:var(--sup);border:1px solid var(--linha)}
-.trilho i{display:block;height:100%;background:var(--laranja)}
-.linha-barra .v{font-family:var(--disp);font-weight:900;font-stretch:105%;font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
-@media (prefers-reduced-motion:no-preference){ .trilho i{transition:width .5s var(--mola)} }
+.form{display:flex;gap:8px;flex-wrap:wrap;padding:13px 15px;border-top:1px solid var(--linha2);background:var(--card2)}
+.form input,.form select{border:1px solid var(--linha);border-radius:9px;background:var(--campo);padding:10px 11px;font-size:14px;min-width:0;color-scheme:light dark}
+.form .fn{flex:1 1 130px}
+.form .fx{width:78px}
+.form .fh{width:112px}
 
-.split{display:flex;height:30px;border:1px solid var(--linha-f);margin:6px 0 10px}
+/* ============ barras / split ============ */
+.bl{display:grid;grid-template-columns:92px 1fr 78px;align-items:center;gap:10px;padding:7px 0}
+.bl .n{font-size:12.5px;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr{height:9px;background:var(--card2);border:1px solid var(--linha);border-radius:99px;overflow:hidden}
+.tr i{display:block;height:100%;background:var(--laranja);border-radius:99px}
+.bl .v{font-size:13px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:no-preference){ .tr i{transition:width .5s var(--mola)} }
+.split{display:flex;height:30px;border-radius:99px;overflow:hidden;background:var(--card2);border:1px solid var(--linha);margin-bottom:9px}
 .split i{display:block;height:100%}
-.split .ess{background:#4E4E4E}
-.split .fut{background:var(--laranja)}
+.split .e{background:#94A3A0} .split .f{background:var(--alerta)}
 @media (prefers-reduced-motion:no-preference){ .split i{transition:width .5s var(--mola)} }
-.split-leg{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--fraco);letter-spacing:.06em;text-transform:uppercase}
+.split-l{display:flex;justify-content:space-between;font-size:12.5px;color:var(--txt2)}
 
-/* ---- calendário ---- */
-.cal-nav{display:flex;align-items:center;gap:6px}
-.cal-nav button{border:1px solid var(--linha-f);color:var(--fraco);width:34px;height:34px;font-family:var(--mono);font-size:15px;font-weight:800;line-height:1}
-.cal-mes{font-family:var(--disp);font-weight:900;font-stretch:112%;font-size:16px;text-transform:uppercase;min-width:112px;text-align:center;letter-spacing:-.01em}
-.cal-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
-.cal-sem b{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--apagado);text-align:center}
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.dia{aspect-ratio:1;border:1px solid var(--linha);position:relative;overflow:hidden;display:grid;place-items:center;background:var(--sup)}
-.dia .fundo{position:absolute;inset:0;background:var(--laranja);opacity:0}
-.dia .n{position:relative;font-family:var(--disp);font-weight:900;font-stretch:105%;font-size:15px;color:var(--fraco);font-variant-numeric:tabular-nums}
-.dia.gastou .n{color:#fff}
-.dia.fora{opacity:.24}
+/* ============ rotina ============ */
+.dnav{display:grid;grid-template-columns:42px 1fr 42px;gap:9px;margin-bottom:12px}
+.dnav button{border:1px solid var(--linha);border-radius:var(--r2);background:var(--card);box-shadow:var(--sombra);font-size:16px;color:var(--txt2)}
+.dnav .c{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px}
+.dnav .c .d{font-size:14.5px;font-weight:600}
+.dnav .c .s{font-size:11.5px;color:var(--laranja);margin-top:1px}
+.pbar{height:7px;border-radius:99px;background:var(--card2);border:1px solid var(--linha);overflow:hidden;margin-bottom:13px}
+.pbar i{display:block;height:100%;background:var(--entra);border-radius:99px}
+@media (prefers-reduced-motion:no-preference){ .pbar i{transition:width .45s var(--mola)} }
+
+.blk{background:var(--card);border:1px solid var(--linha);border-radius:var(--r);box-shadow:var(--sombra);margin-bottom:9px;overflow:hidden}
+.blk.agora{border-color:color-mix(in srgb,var(--laranja) 55%,transparent)}
+.blk-c{display:flex;align-items:center;gap:12px;width:100%;padding:14px 15px;text-align:left}
+.blk-h{font-size:14px;font-weight:700;color:var(--laranja);width:48px;flex:none;font-variant-numeric:tabular-nums}
+.blk.ok .blk-h{color:var(--entra)}
+.blk-t{flex:1;min-width:0;font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.blk.ok .blk-t{color:var(--txt2)}
+.blk-n{font-size:12px;color:var(--txt3);flex:none}
+.blk-s{font-size:12px;color:var(--txt3);width:12px;text-align:right;flex:none}
+.blk-b{border-top:1px solid var(--linha2);padding:4px 15px 12px}
+.blk-nota{font-size:12.5px;color:var(--alerta);padding:10px 0 2px}
+
+.tk{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--linha2);width:100%;text-align:left}
+.tk:last-child{border-bottom:none}
+.cx{width:22px;height:22px;flex:none;border:1.8px solid var(--linha);border-radius:7px;display:grid;place-items:center;font-size:12px;color:transparent;background:var(--card2)}
+.tk.on .cx{background:var(--entra);border-color:var(--entra);color:#fff}
+.tk .t{flex:1;min-width:0;font-size:14.5px}
+.tk.on .t{color:var(--txt3);text-decoration:line-through}
+.tk .h{font-size:11.5px;color:var(--txt3);flex:none}
+.selo{font-size:11px;font-weight:600;color:var(--laranja);border:1px solid color-mix(in srgb,var(--laranja) 40%,transparent);border-radius:99px;padding:2px 8px;flex:none}
+
+/* ============ calendário ============ */
+.cnav{display:flex;align-items:center;gap:8px}
+.cnav button{width:28px;height:28px;border-radius:8px;color:var(--barra-txt);opacity:.75;font-size:14px}
+.cnav .m{font-size:13px;font-weight:600;min-width:104px;text-align:center}
+.sem{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:6px}
+.sem b{font-size:11px;color:var(--txt3);text-align:center;font-weight:500}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.dia{aspect-ratio:1;border:1px solid var(--linha);border-radius:9px;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:var(--card2)}
+.dia .n{font-size:13.5px;font-weight:600;color:var(--txt2);position:relative;z-index:1;font-variant-numeric:tabular-nums}
+.dia .f{position:absolute;inset:0;background:var(--sai);opacity:0}
+.dia .m{display:flex;gap:3px;height:5px;position:relative;z-index:1}
+.dia .m i{width:5px;height:5px;border-radius:99px;display:block}
+.dia.fora{opacity:.32}
 .dia.hoje{border-color:var(--laranja);border-width:2px}
 .dia.hoje .n{color:var(--laranja)}
-.dia.conta::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--red);z-index:1}
-.dia.evento::after{content:"";position:absolute;top:0;right:0;border-top:12px solid var(--texto);border-left:12px solid transparent;z-index:1}
-.dia .sub{position:absolute;left:0;right:0;bottom:0;height:5px;background:var(--green);z-index:1}
-.cal-leg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}
-.cal-leg span{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--fraco)}
-.amostra{width:22px;height:22px;flex:none;border:1px solid var(--linha);position:relative;background:var(--sup)}
+.dia.gastou .n{color:var(--txt)}
+.dia.fech{box-shadow:inset 0 -3px 0 var(--entra)}
+.cleg{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px;font-size:12px;color:var(--txt2)}
+.cleg span{display:flex;align-items:center;gap:8px}
 
-/* ---- nav ---- */
-.nav{position:fixed;left:0;right:0;bottom:0;z-index:40;height:var(--nav-h);
-  padding:0 6px env(safe-area-inset-bottom);display:flex;align-items:center;justify-content:space-around;
-  background:rgba(10,10,10,.97);border-top:2px solid var(--linha-f)}
-.nav .aba{flex:1;max-width:76px;height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--apagado)}
-.nav .aba svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:square}
-.nav .aba span{font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
-.nav .aba.ativa{color:var(--laranja)}
-@media (prefers-reduced-motion:no-preference){ .nav .aba{transition:color .16s var(--mola)} }
-.fab{width:54px;height:54px;flex:none;background:var(--laranja);color:#140800;display:grid;place-items:center;
-  font-family:var(--disp);font-weight:900;font-size:28px;line-height:0;box-shadow:4px 4px 0 #000;margin-top:-14px}
-.fab:active{box-shadow:1px 1px 0 #000;transform:translate(3px,3px)}
+/* ============ nav ============ */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:40;height:var(--nav-h);padding:0 6px env(safe-area-inset-bottom);
+  display:flex;align-items:center;justify-content:space-around;
+  background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-top:1px solid var(--linha)}
+.nav .ab{flex:1;max-width:72px;height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--txt3)}
+.nav .ab svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.nav .ab span{font-size:10px;font-weight:500}
+.nav .ab.on{color:var(--laranja)}
+.fab{width:50px;height:50px;flex:none;border-radius:99px;background:var(--laranja);color:#fff;display:grid;place-items:center;
+  font-size:25px;line-height:0;box-shadow:0 6px 18px color-mix(in srgb,var(--laranja) 42%,transparent);margin-top:-10px}
+@media (prefers-reduced-motion:no-preference){ .nav .ab{transition:color .16s var(--mola)} }
 
-/* ---- sheets ---- */
-.veu{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:50;opacity:0}
-.veu.aberto{opacity:1}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--sup);border-top:3px solid var(--laranja);
-  padding:8px 16px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow-y:auto;
-  transform:translateY(100%);max-width:840px;margin-inline:auto}
-.sheet.aberto{transform:none}
+/* ============ sheets ============ */
+.veu{position:fixed;inset:0;background:rgba(15,20,18,.5);backdrop-filter:blur(2px);z-index:50;opacity:0}
+.veu.on{opacity:1}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--card);border-radius:20px 20px 0 0;
+  padding:8px 16px calc(18px + env(safe-area-inset-bottom));max-height:92dvh;overflow-y:auto;
+  transform:translateY(100%);max-width:520px;margin-inline:auto;box-shadow:var(--sombra2)}
+.sheet.on{transform:none}
 @media (prefers-reduced-motion:no-preference){ .veu{transition:opacity .24s var(--mola)} .sheet{transition:transform .3s var(--mola)} }
-.puxador{width:38px;height:4px;background:var(--linha-f);margin:7px auto 15px}
-.sheet-cab{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:15px}
-.sheet-cab h3{margin:0;font-family:var(--disp);font-weight:900;font-stretch:118%;font-size:19px;text-transform:uppercase;letter-spacing:-.01em}
+.puxa{width:36px;height:4px;border-radius:99px;background:var(--linha);margin:7px auto 14px}
+.sh-c{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.sh-c h3{font-size:17px}
 
-/* ---- lançamento ---- */
-.mostrador{text-align:center;padding:6px 0 14px}
-.mostrador .v{font-family:var(--disp);font-weight:900;font-stretch:112%;font-size:54px;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.045em}
-.mostrador .v.zero{color:var(--apagado)}
-.mostrador .v.entrada{color:var(--green)}
-.mostrador .v small{font-family:var(--mono);font-size:17px;font-weight:800;color:var(--fraco);margin-right:6px;letter-spacing:0;vertical-align:middle}
-.duplo{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--linha-f);margin-bottom:11px}
-.duplo button{padding:12px;font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--fraco)}
-.duplo button.sel{background:var(--laranja);color:#140800}
-.duplo button.sel.verde{background:var(--green);color:#04170E}
-.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:3px;margin-bottom:11px;scrollbar-width:none}
-.chips::-webkit-scrollbar{display:none}
-.chips .chip{flex:none}
-.chips .chip.sel{background:var(--laranja);border-color:var(--laranja);color:#140800}
-.teclado{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
-.tecla{height:56px;background:var(--card);border:1px solid var(--linha);font-family:var(--disp);font-weight:900;font-stretch:112%;font-size:23px;display:grid;place-items:center}
-.tecla:active{background:var(--card-2);border-color:var(--laranja)}
-.tecla.aux{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--fraco)}
-.btn-ok{width:100%;background:var(--laranja);color:#140800;padding:17px;box-shadow:5px 5px 0 #000;
-  font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase}
-.btn-ok:active{box-shadow:1px 1px 0 #000;transform:translate(4px,4px)}
-.btn-ok[disabled]{background:var(--card);color:var(--apagado);box-shadow:none;transform:none}
-.aviso{font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--red);min-height:15px;text-align:center;margin-bottom:8px}
-.sub-secao{font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--apagado);margin:18px 0 3px}
+.mostra{text-align:center;padding:4px 0 14px}
+.mostra .v{font-size:44px;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.mostra .v.zero{color:var(--txt3)}
+.mostra .v.e{color:var(--entra)} .mostra .v.s{color:var(--sai)}
+.mostra .v small{font-size:17px;color:var(--txt2);margin-right:5px;font-weight:600}
+.dup{display:grid;grid-template-columns:1fr 1fr;background:var(--card2);border:1px solid var(--linha);border-radius:var(--r2);padding:4px;margin-bottom:12px}
+.dup button{padding:10px;border-radius:7px;font-size:13.5px;font-weight:600;color:var(--txt2)}
+.dup button.on{background:var(--card);color:var(--txt);box-shadow:var(--sombra)}
+.dup button.on.e{color:var(--entra)} .dup button.on.s{color:var(--sai)}
+.rolo{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none}
+.rolo::-webkit-scrollbar{display:none}
+.rolo .pill{flex:none;cursor:pointer}
+.rolo .pill.on{background:var(--laranja);border-color:var(--laranja);color:#fff}
+.tec{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:13px}
+.tec button{height:52px;border-radius:var(--r2);background:var(--card2);border:1px solid var(--linha);font-size:20px;font-weight:600}
+.tec button:active{background:var(--linha2)}
+.tec button.aux{font-size:13px;color:var(--txt2);font-weight:500}
+.sec{font-size:12px;font-weight:600;color:var(--txt3);margin:18px 0 4px}
 
-.add{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
-.add input,.add select{border:1px solid var(--linha);background:var(--preto);padding:12px;font-size:15px;min-width:0;color-scheme:dark}
-.add .f-nome{flex:1 1 120px}
-.add .f-num{width:76px;font-family:var(--mono);font-size:13.5px}
-.add .f-hora{width:102px;font-family:var(--mono);font-size:13px}
+.toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 14px);transform:translateX(-50%);z-index:70;
+  background:var(--barra);color:#fff;border-radius:99px;padding:11px 20px;font-size:13px;font-weight:500;
+  box-shadow:var(--sombra2);max-width:88vw;text-align:center}
 
-.leg{display:flex;flex-direction:column;gap:10px;margin-top:13px}
-.leg div{display:flex;align-items:center;gap:11px;font-family:var(--mono);font-size:11px;font-weight:700}
-.leg .b{width:4px;height:15px;flex:none}
-.leg .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fraco);text-transform:uppercase;letter-spacing:.08em}
-.leg .v{font-family:var(--disp);font-weight:900;font-stretch:105%;font-variant-numeric:tabular-nums}
-
-.alerta{border:1px solid var(--laranja);border-left-width:5px;background:rgba(255,94,4,.08);padding:13px 15px;margin-bottom:11px;display:flex;align-items:center;gap:11px}
-.alerta .t{flex:1;font-size:13.5px}
-.toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 12px);transform:translateX(-50%);z-index:70;
-  background:var(--card);border:2px solid var(--laranja);padding:12px 20px;
-  font-family:var(--mono);font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;max-width:88vw;text-align:center}
-
-@media (min-width:720px){ .kpis{grid-template-columns:repeat(4,1fr)} .hero .val{font-size:68px} }
+/* ============ desktop ============ */
+@media (min-width:900px){
+  .nav{display:none}
+  .main{padding:26px 30px 40px}
+  .side{display:flex;flex-direction:column;width:236px;flex:none;padding:22px 16px;
+    background:var(--card);border-right:1px solid var(--linha);min-height:100dvh;position:sticky;top:0}
+  .side .lg{display:flex;align-items:center;gap:10px;margin-bottom:24px;padding:0 6px}
+  .side .lg .mk{width:32px;height:32px;border-radius:9px;background:var(--barra);display:grid;place-items:center;flex:none}
+  .side .lg .mk i{display:block;width:15px;height:2.4px;background:var(--laranja);border-radius:2px;box-shadow:0 -4.5px 0 var(--laranja),0 4.5px 0 var(--laranja)}
+  .side .lg h1{font-size:15px}
+  .side .lg p{margin:0;font-size:11.5px;color:var(--txt2)}
+  .side nav{display:flex;flex-direction:column;gap:3px}
+  .side nav button{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:var(--r2);
+    font-size:14px;font-weight:500;color:var(--txt2);text-align:left}
+  .side nav button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .side nav button:hover{background:var(--card2)}
+  .side nav button.on{background:color-mix(in srgb,var(--laranja) 12%,transparent);color:var(--laranja);font-weight:600}
+  .side .fim{margin-top:auto;padding-top:18px;border-top:1px solid var(--linha)}
+  .side .fim .em{font-size:12px;color:var(--txt3);padding:0 6px 10px;overflow:hidden;text-overflow:ellipsis}
+  .grade.duas{grid-template-columns:1fr 1fr;align-items:start}
+  .grade.tres{grid-template-columns:1.4fr 1fr}
+  .kpis{grid-template-columns:repeat(4,1fr)}
+  .saldo .v{font-size:46px}
+  .sheet{border-radius:16px;top:50%;bottom:auto;left:50%;right:auto;transform:translate(-50%,-46%) scale(.97);opacity:0;
+    max-width:460px;width:calc(100% - 48px);max-height:86dvh;padding-bottom:20px}
+  .sheet.on{transform:translate(-50%,-50%) scale(1);opacity:1}
+  .puxa{display:none}
+  .toast{bottom:26px}
+}
 </style>
 </head>
 <body>
 
-<div id="splash" class="splash"><b>NEXVOT</b><span id="splash-txt">abrindo</span></div>
+<div id="splash" class="splash">
+  <div class="logo">NexVot</div>
+  <div id="splash-txt" class="st">abrindo…</div>
+</div>
 
-<main id="app" hidden>
-
-  <header class="topo">
-    <div>
-      <div class="rot laranja">NexVot · Gestão Inteligente</div>
-      <div id="topo-data" class="data"></div>
+<!-- ================= LOGIN / REGISTRO ================= -->
+<section id="auth" class="auth" hidden>
+  <div class="auth-box">
+    <div class="auth-logo">
+      <span class="mk"><i></i></span>
+      <div><h1>NexVot</h1><p>Gestão Inteligente</p></div>
     </div>
-    <button id="btn-dia" class="chip acao press">Fechar o dia</button>
-  </header>
-
-  <div id="seletor" class="seletor">
-    <span class="marca"></span>
-    <button data-esp="pessoal" class="ativo">Pessoal</button>
-    <button data-esp="empresa">Empresa</button>
+    <div class="tabs" id="auth-tabs">
+      <button data-m="entrar" class="on">Entrar</button>
+      <button data-m="criar">Criar conta</button>
+    </div>
+    <input id="a-email" class="campo" type="email" placeholder="seu e-mail" autocomplete="email" inputmode="email">
+    <input id="a-senha" class="campo" type="password" placeholder="senha" autocomplete="current-password">
+    <button id="a-ok" class="btn press">Entrar</button>
+    <div id="a-msg" class="msg" role="status"></div>
+    <div class="auth-pe">Uma conta, os mesmos dados no celular e no computador.</div>
   </div>
+</section>
 
-  <!-- ================= PAINEL ================= -->
-  <section id="v-painel" class="view ativa">
-    <div id="alertas"></div>
+<!-- ================= APP ================= -->
+<div id="shell" class="shell" hidden>
 
-    <div id="p-pessoal">
-      <div class="hero">
-        <div class="rot">Saldo de hoje</div>
-        <div id="p-hero" class="val"><small>R$</small>0,00</div>
-        <div class="hero-linha">
-          <span id="p-entrou" class="chip"></span>
-          <span id="p-saiu" class="chip"></span>
-          <span id="p-ritmo" class="chip"></span>
-        </div>
+  <aside class="side">
+    <div class="lg">
+      <span class="mk"><i></i></span>
+      <div><h1>NexVot</h1><p>Gestão Inteligente</p></div>
+    </div>
+    <nav id="side-nav">
+      <button data-v="painel" class="on"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/></svg>Painel</button>
+      <button data-v="rotina"><svg viewBox="0 0 24 24"><path d="M4 7h3M4 12h3M4 17h3"/><path d="M10 7h10M10 12h10M10 17h10"/></svg>Rotina</button>
+      <button data-v="agenda"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Agenda</button>
+      <button data-v="numeros"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 15v-3M13 15V8M18 15v-5"/></svg>Números</button>
+    </nav>
+    <div class="fim">
+      <div id="side-email" class="em"></div>
+      <button id="side-tema" class="mini press" style="width:100%;margin-bottom:7px">Tema escuro</button>
+      <button id="side-sair" class="mini press" style="width:100%">Sair</button>
+    </div>
+  </aside>
+
+  <main class="main"><div class="wrap">
+
+    <header class="topo">
+      <div>
+        <div id="topo-hoje" class="hoje"></div>
+        <div id="topo-sub" class="sub"></div>
       </div>
-      <div class="card" style="--d:40ms">
-        <div class="cab"><div class="marcador rot">Essencial × fútil no mês</div><span id="futil-pct" class="rot"></span></div>
-        <div class="split"><i id="sp-ess" class="ess"></i><i id="sp-fut" class="fut"></i></div>
-        <div class="split-leg"><span id="lg-ess"></span><span id="lg-fut"></span></div>
+      <div class="acoes">
+        <button id="bt-tema" class="ib press" aria-label="Trocar tema">
+          <svg id="ic-tema" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+        </button>
+        <button id="bt-dia" class="bt-dia press">Fechar o dia</button>
       </div>
+    </header>
+
+    <div class="seg" id="seg">
+      <button data-e="pessoal" class="on">Pessoal</button>
+      <button data-e="empresa">Empresa</button>
     </div>
 
-    <div id="p-empresa" hidden>
-      <div id="e-hero" class="hero">
-        <div class="rot">Lucro do mês</div>
-        <div id="e-lucro" class="val"><small>R$</small>0,00</div>
-        <div class="hero-linha">
-          <span id="e-roi" class="chip"></span>
-          <span id="e-margem" class="chip"></span>
+    <!-- ============ PAINEL ============ -->
+    <section id="v-painel">
+      <div id="kp-pessoal">
+        <div class="card" style="--d:0ms">
+          <div class="card-b">
+            <div class="saldo">
+              <div class="rot">Saldo de hoje</div>
+              <div id="p-saldo" class="v"><small>R$</small>0,00</div>
+              <div class="pills">
+                <span id="p-in" class="pill up"></span>
+                <span id="p-out" class="pill down"></span>
+                <span id="p-ritmo" class="pill"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="--d:50ms">
+          <div class="card-h">
+            <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
+            <h3>Essencial × fútil no mês</h3><span id="fut-pct" class="meta"></span>
+          </div>
+          <div class="card-b">
+            <div class="split"><i id="sp-e" class="e"></i><i id="sp-f" class="f"></i></div>
+            <div class="split-l"><span id="lg-e"></span><span id="lg-f"></span></div>
+          </div>
         </div>
       </div>
-      <div class="kpis">
-        <div class="kpi" style="--acento:var(--green)"><div class="rot">Entradas</div><div id="e-in" class="v"></div><div id="e-in-sub" class="sub"></div></div>
-        <div class="kpi" style="--acento:var(--laranja)"><div class="rot">Saídas</div><div id="e-out" class="v"></div><div id="e-out-sub" class="sub"></div></div>
+
+      <div id="kp-empresa" hidden>
+        <div class="card" style="--d:0ms">
+          <div class="card-b">
+            <div class="saldo">
+              <div class="rot">Lucro do mês</div>
+              <div id="e-lucro" class="v"><small>R$</small>0,00</div>
+              <div class="pills">
+                <span id="e-roi" class="pill"></span>
+                <span id="e-margem" class="pill"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="kpis">
+          <div class="kpi"><div class="r">Entradas</div><div id="e-in" class="v" style="color:var(--entra)"></div><div id="e-in-s" class="s"></div></div>
+          <div class="kpi"><div class="r">Saídas</div><div id="e-out" class="v" style="color:var(--sai)"></div><div id="e-out-s" class="s"></div></div>
+        </div>
+        <div class="card" style="--d:50ms">
+          <div class="card-h">
+            <span class="ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0112 0"/><path d="M16 6.5a3 3 0 010 5.5M18 20a5.5 5.5 0 00-3-4.6"/></svg></span>
+            <h3>Gasto por sócio no mês</h3><span id="e-soc-t" class="meta"></span>
+          </div>
+          <div class="card-b"><div id="e-socios"></div></div>
+          <div class="form">
+            <input id="m-nome" class="fn" placeholder="nome do sócio" aria-label="Nome do sócio">
+            <button id="m-add" class="mini press">Adicionar</button>
+          </div>
+        </div>
       </div>
+
+      <div class="grade duas">
+        <div class="card" style="--d:100ms">
+          <div class="card-h">
+            <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 16v-4M13 16V7M18 16v-6"/></svg></span>
+            <h3>Entra × sai — 14 dias</h3><span class="meta">verde entra · vermelho sai</span>
+          </div>
+          <div class="card-b"><div id="g-fluxo"></div></div>
+        </div>
+
+        <div class="card" style="--d:140ms">
+          <div class="card-h">
+            <span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 2.5v3M16 2.5v3"/></svg></span>
+            <h3>Contas a vencer</h3>
+          </div>
+          <div class="card-b plano"><ul id="l-contas"></ul></div>
+          <div class="form">
+            <input id="c-nome" class="fn" placeholder="conta" aria-label="Nome da conta">
+            <input id="c-dia" class="fx" inputmode="numeric" placeholder="dia" aria-label="Dia">
+            <input id="c-valor" class="fx" inputmode="decimal" placeholder="valor" aria-label="Valor">
+            <button id="c-add" class="mini press">Add</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="--d:180ms;margin-top:13px">
+        <div class="card-h">
+          <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>
+          <h3>Últimos lançamentos</h3><span id="cnt-hoje" class="meta"></span>
+        </div>
+        <div class="card-b plano"><ul id="l-lanc"></ul></div>
+      </div>
+    </section>
+
+    <!-- ============ ROTINA ============ -->
+    <section id="v-rotina" hidden>
+      <div class="dnav">
+        <button id="rt-ant" class="press" aria-label="Dia anterior">‹</button>
+        <button id="rt-hoje" class="c press"><span id="rt-data" class="d"></span><span id="rt-rel" class="s"></span></button>
+        <button id="rt-prox" class="press" aria-label="Próximo dia">›</button>
+      </div>
+      <div class="pbar"><i id="rt-barra"></i></div>
+      <div id="rt-blocos"></div>
+
       <div class="card" style="--d:60ms">
-        <div class="cab"><div class="marcador rot">Gasto por sócio no mês</div><span id="e-socios-tot" class="rot"></span></div>
-        <div id="e-socios"></div>
-        <div class="add">
-          <input id="m-nome" class="f-nome" placeholder="nome do sócio" aria-label="Nome do sócio">
-          <button id="m-add" class="mini press">Add</button>
+        <div class="card-h">
+          <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></span>
+          <h3>Só neste dia</h3><span id="rt-tc" class="meta"></span>
+        </div>
+        <div class="card-b plano"><ul id="rt-tarefas"></ul></div>
+        <div class="form">
+          <input id="t-tit" class="fn" placeholder="lembrete deste dia" aria-label="Lembrete">
+          <input id="t-hora" class="fh" type="time" aria-label="Hora">
+          <button id="t-add" class="mini press">Add</button>
         </div>
       </div>
-    </div>
 
-    <div class="card forte" style="--d:80ms">
-      <div class="cab"><div class="marcador rot">Entra × sai — 14 dias</div>
-        <div class="rot"><span style="color:var(--green)">■</span> entra &nbsp; <span style="color:var(--laranja)">■</span> sai</div></div>
-      <div id="g-fluxo-topo"></div>
-    </div>
-
-    <div class="card" style="--d:120ms">
-      <div class="cab"><div class="marcador rot">Contas a vencer</div></div>
-      <ul id="lista-contas"></ul>
-      <div class="add">
-        <input id="c-nome" class="f-nome" placeholder="conta" aria-label="Nome da conta">
-        <input id="c-dia" class="f-num" inputmode="numeric" placeholder="dia" aria-label="Dia">
-        <input id="c-valor" class="f-num" inputmode="decimal" placeholder="valor" aria-label="Valor">
-        <button id="c-add" class="mini press">Add</button>
-      </div>
-    </div>
-
-    <div class="card" style="--d:160ms">
-      <div class="cab"><div class="marcador rot">Últimos lançamentos</div><span id="cont-hoje" class="rot"></span></div>
-      <ul id="lista-lanc"></ul>
-    </div>
-  </section>
-
-  <!-- ================= ROTINA ================= -->
-  <section id="v-rotina" class="view">
-    <div class="dia-nav">
-      <button id="rt-ant" class="press" aria-label="Dia anterior">&lsaquo;</button>
-      <button id="rt-hoje" class="centro press">
-        <span id="rt-data" class="d"></span>
-        <span id="rt-rel" class="s"></span>
-      </button>
-      <button id="rt-prox" class="press" aria-label="Próximo dia">&rsaquo;</button>
-    </div>
-    <div class="barra-dia"><i id="rt-barra"></i></div>
-
-    <div id="rt-blocos"></div>
-
-    <div class="card" style="--d:60ms">
-      <div class="cab"><div class="marcador rot">Só neste dia</div><span id="rt-tar-cnt" class="rot"></span></div>
-      <ul id="rt-tarefas"></ul>
-      <div class="add">
-        <input id="t-titulo" class="f-nome" placeholder="lembrete deste dia" aria-label="Lembrete">
-        <input id="t-hora" class="f-hora" type="time" aria-label="Hora">
-        <button id="t-add" class="mini press">Add</button>
-      </div>
-    </div>
-
-    <div class="card" style="--d:100ms">
-      <div class="cab"><div class="marcador rot">Editar a rotina</div></div>
-      <button id="rt-seed" class="mini forte press" style="width:100%;margin-bottom:10px" hidden>Instalar minha rotina padrão</button>
-      <div class="add">
-        <input id="b-hora" class="f-hora" type="time" aria-label="Hora do bloco">
-        <input id="b-titulo" class="f-nome" placeholder="novo bloco (ex.: Deep Work)" aria-label="Título do bloco">
-        <button id="b-add" class="mini press">Add bloco</button>
-      </div>
-      <div class="vazio" style="font-size:12px">Blocos valem todo dia. Para algo de um dia só, use "Só neste dia" acima.</div>
-    </div>
-  </section>
-
-  <!-- ================= AGENDA ================= -->
-  <section id="v-agenda" class="view">
-    <div class="card">
-      <div class="cab">
-        <div class="marcador rot">Calendário</div>
-        <div class="cal-nav">
-          <button id="cal-ant" class="press" aria-label="Mês anterior">&lsaquo;</button>
-          <span id="cal-mes" class="cal-mes"></span>
-          <button id="cal-prox" class="press" aria-label="Próximo mês">&rsaquo;</button>
+      <div class="card" style="--d:100ms">
+        <div class="card-h">
+          <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></span>
+          <h3>Editar a rotina</h3>
+        </div>
+        <div class="card-b">
+          <button id="rt-seed" class="mini forte press" style="width:100%;margin-bottom:11px" hidden>Instalar minha rotina padrão</button>
+          <div class="vazio" style="padding:0;font-size:12.5px">Blocos valem todo dia. Para algo de um dia só, use “Só neste dia”.</div>
+        </div>
+        <div class="form">
+          <input id="b-hora" class="fh" type="time" aria-label="Hora do bloco">
+          <input id="b-tit" class="fn" placeholder="novo bloco" aria-label="Título">
+          <button id="b-add" class="mini press">Add</button>
         </div>
       </div>
-      <div class="cal-sem"><b>D</b><b>S</b><b>T</b><b>Q</b><b>Q</b><b>S</b><b>S</b></div>
-      <div id="cal" class="cal"></div>
-      <div class="cal-leg">
-        <span><i class="amostra"><i style="position:absolute;inset:0;background:var(--laranja);opacity:.55"></i></i>gastou</span>
-        <span><i class="amostra"><i style="position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--red)"></i></i>conta vence</span>
-        <span><i class="amostra"><i style="position:absolute;top:0;right:0;border-top:12px solid var(--texto);border-left:12px solid transparent"></i></i>compromisso</span>
-        <span><i class="amostra"><i style="position:absolute;left:0;right:0;bottom:0;height:5px;background:var(--green)"></i></i>dia fechado</span>
+    </section>
+
+    <!-- ============ AGENDA ============ -->
+    <section id="v-agenda" hidden>
+      <div class="grade tres">
+        <div class="card">
+          <div class="card-h">
+            <span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
+            <h3>Calendário</h3>
+            <div class="cnav">
+              <button id="cal-ant" class="press" aria-label="Mês anterior">‹</button>
+              <span id="cal-mes" class="m"></span>
+              <button id="cal-prox" class="press" aria-label="Próximo mês">›</button>
+            </div>
+          </div>
+          <div class="card-b">
+            <div class="sem"><b>D</b><b>S</b><b>T</b><b>Q</b><b>Q</b><b>S</b><b>S</b></div>
+            <div id="cal" class="cal"></div>
+            <div class="cleg">
+              <span><i class="dot" style="background:var(--sai)"></i>gastou</span>
+              <span><i class="dot" style="background:var(--alerta)"></i>conta vence</span>
+              <span><i class="dot" style="background:var(--laranja)"></i>compromisso</span>
+              <span><i class="dot" style="background:var(--entra)"></i>dia fechado</span>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="--d:60ms">
+          <div class="card-h">
+            <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></span>
+            <h3>Próximos compromissos</h3>
+          </div>
+          <div class="card-b plano"><ul id="l-eventos"></ul></div>
+          <div class="form"><button id="bt-notif" class="mini press" style="width:100%">Ativar avisos no navegador</button></div>
+        </div>
       </div>
-    </div>
-    <div class="card" style="--d:60ms">
-      <div class="cab"><div class="marcador rot">Próximos compromissos</div><button id="btn-notif" class="mini press">Ativar avisos</button></div>
-      <ul id="lista-eventos"></ul>
-    </div>
-  </section>
+    </section>
 
-  <!-- ================= NÚMEROS ================= -->
-  <section id="v-numeros" class="view">
-    <div class="kpis">
-      <div class="kpi" style="--acento:var(--green)"><div class="rot">Entradas no mês</div><div id="k-in" class="v"></div><div id="k-in-sub" class="sub"></div></div>
-      <div class="kpi" style="--acento:var(--laranja)"><div class="rot">Saídas no mês</div><div id="k-out" class="v"></div><div id="k-out-sub" class="sub"></div></div>
-      <div class="kpi"><div class="rot">Saldo</div><div id="k-saldo" class="v"></div><div id="k-saldo-sub" class="sub"></div></div>
-      <div class="kpi"><div class="rot">Vs. mês passado</div><div id="k-ritmo" class="v"></div><div id="k-ritmo-sub" class="sub"></div></div>
-    </div>
-    <div class="card forte">
-      <div class="cab"><div class="marcador rot">Entra × sai — 14 dias</div>
-        <div class="rot"><span style="color:var(--green)">■</span> entra &nbsp; <span style="color:var(--laranja)">■</span> sai</div></div>
-      <div id="g-fluxo"></div>
-    </div>
-    <div class="card" style="--d:60ms">
-      <div class="cab"><div class="marcador rot">Acumulado do mês</div><div id="leg-ritmo" class="rot"></div></div>
-      <div id="g-ritmo"></div>
-    </div>
-    <div class="card" style="--d:100ms">
-      <div class="cab"><div class="marcador rot">Para onde foi</div></div>
-      <div id="g-donut"></div>
-      <div id="leg-donut" class="leg"></div>
-    </div>
-    <div class="card" style="--d:140ms">
-      <div class="cab"><div class="marcador rot">Dados</div></div>
-      <button id="btn-export" class="mini press" style="width:100%">Baixar backup</button>
-      <div class="vazio" style="font-size:12px">Sessão anônima: os dados ficam presos a este navegador.</div>
-    </div>
-  </section>
+    <!-- ============ NÚMEROS ============ -->
+    <section id="v-numeros" hidden>
+      <div class="kpis">
+        <div class="kpi"><div class="r">Entradas no mês</div><div id="k-in" class="v" style="color:var(--entra)"></div><div id="k-in-s" class="s"></div></div>
+        <div class="kpi"><div class="r">Saídas no mês</div><div id="k-out" class="v" style="color:var(--sai)"></div><div id="k-out-s" class="s"></div></div>
+        <div class="kpi"><div class="r">Saldo</div><div id="k-sal" class="v"></div><div id="k-sal-s" class="s"></div></div>
+        <div class="kpi"><div class="r">Vs. mês passado</div><div id="k-rit" class="v"></div><div id="k-rit-s" class="s"></div></div>
+      </div>
+      <div class="grade duas">
+        <div class="card">
+          <div class="card-h">
+            <span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6 3"/></svg></span>
+            <h3>Para onde foi</h3>
+          </div>
+          <div class="card-b"><div id="g-donut"></div><div id="leg-donut" style="margin-top:12px"></div></div>
+        </div>
+        <div class="card" style="--d:60ms">
+          <div class="card-h">
+            <span class="ic"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-7 4 4"/></svg></span>
+            <h3>Acumulado do mês</h3><span id="leg-rit" class="meta"></span>
+          </div>
+          <div class="card-b"><div id="g-ritmo"></div></div>
+        </div>
+      </div>
+      <div class="card" style="--d:110ms;margin-top:13px">
+        <div class="card-h">
+          <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg></span>
+          <h3>Dados e conta</h3>
+        </div>
+        <div class="card-b">
+          <button id="bt-export" class="mini press" style="width:100%;margin-bottom:9px">Baixar backup em JSON</button>
+          <button id="bt-sair" class="mini press" style="width:100%">Sair da conta</button>
+        </div>
+      </div>
+    </section>
 
-</main>
+  </div></main>
+</div>
 
 <nav id="nav" class="nav" hidden>
-  <button class="aba ativa" data-view="painel">
-    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="9"/><rect x="13" y="3" width="8" height="5"/><rect x="3" y="14" width="8" height="7"/><rect x="13" y="10" width="8" height="11"/></svg><span>Painel</span>
-  </button>
-  <button class="aba" data-view="rotina">
-    <svg viewBox="0 0 24 24"><path d="M4 6h4M4 12h4M4 18h4"/><path d="M11 6h9M11 12h9M11 18h9"/></svg><span>Rotina</span>
-  </button>
+  <button class="ab on" data-v="painel"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/></svg><span>Painel</span></button>
+  <button class="ab" data-v="rotina"><svg viewBox="0 0 24 24"><path d="M4 7h3M4 12h3M4 17h3"/><path d="M10 7h10M10 12h10M10 17h10"/></svg><span>Rotina</span></button>
   <button id="fab" class="fab press" aria-label="Novo lançamento">+</button>
-  <button class="aba" data-view="agenda">
-    <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Agenda</span>
-  </button>
-  <button class="aba" data-view="numeros">
-    <svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 15v-4M13 15V8M18 15v-6"/></svg><span>Números</span>
-  </button>
+  <button class="ab" data-v="agenda"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Agenda</span></button>
+  <button class="ab" data-v="numeros"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 15v-3M13 15V8M18 15v-5"/></svg><span>Números</span></button>
 </nav>
 
 <div id="veu" class="veu" hidden></div>
 
-<section id="sheet-lanc" class="sheet" hidden aria-label="Novo lançamento">
-  <div class="puxador"></div>
-  <div class="sheet-cab"><h3 id="lanc-titulo">Lançar</h3><button id="lanc-fechar" class="mini press">Fechar</button></div>
-  <div class="duplo" id="dp-tipo">
-    <button data-t="saida" class="sel">Saída</button>
-    <button data-t="entrada">Entrada</button>
+<section id="sh-lanc" class="sheet" hidden aria-label="Novo lançamento">
+  <div class="puxa"></div>
+  <div class="sh-c"><h3 id="lanc-tit">Lançar</h3><button id="lanc-fech" class="mini press">Fechar</button></div>
+  <div class="dup" id="dp-tipo"><button data-t="saida" class="on s">Saída</button><button data-t="entrada">Entrada</button></div>
+  <div class="mostra"><div id="mostra" class="v zero"><small>R$</small>0,00</div></div>
+  <div id="rl-data" class="rolo"></div>
+  <div id="rl-cat" class="rolo"></div>
+  <div class="dup" id="dp-nat" hidden><button data-n="essencial" class="on">Essencial</button><button data-n="futil">Fútil</button></div>
+  <div id="rl-membro" class="rolo" hidden></div>
+  <div class="tec">
+    <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+    <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+    <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+    <button data-k="00" class="aux">00</button><button data-k="0">0</button><button data-k="del" class="aux">apagar</button>
   </div>
-  <div class="mostrador"><div id="mostrador" class="v zero"><small>R$</small>0,00</div></div>
-  <div id="chips-data" class="chips"></div>
-  <div id="chips-cat" class="chips"></div>
-  <div class="duplo" id="dp-natureza" hidden>
-    <button data-n="essencial" class="sel">Essencial</button>
-    <button data-n="futil">Fútil</button>
-  </div>
-  <div id="chips-membro" class="chips" hidden></div>
-  <div class="teclado">
-    <button class="tecla press" data-k="1">1</button><button class="tecla press" data-k="2">2</button><button class="tecla press" data-k="3">3</button>
-    <button class="tecla press" data-k="4">4</button><button class="tecla press" data-k="5">5</button><button class="tecla press" data-k="6">6</button>
-    <button class="tecla press" data-k="7">7</button><button class="tecla press" data-k="8">8</button><button class="tecla press" data-k="9">9</button>
-    <button class="tecla aux press" data-k="00">00</button><button class="tecla press" data-k="0">0</button><button class="tecla aux press" data-k="del">apagar</button>
-  </div>
-  <input id="nota" placeholder="nota (opcional)" style="width:100%;border:1px solid var(--linha);background:var(--preto);padding:12px;margin-bottom:10px" aria-label="Nota">
-  <div id="aviso" class="aviso" role="status"></div>
-  <button id="btn-lancar" class="btn-ok press">Lançar</button>
+  <input id="nota" class="campo" placeholder="nota (opcional)" aria-label="Nota">
+  <div id="lanc-msg" class="msg erro"></div>
+  <button id="bt-lancar" class="btn press">Lançar</button>
 </section>
 
-<section id="sheet-dia" class="sheet" hidden aria-label="Detalhe do dia">
-  <div class="puxador"></div>
-  <div class="sheet-cab"><h3 id="dia-titulo"></h3><button id="dia-fechar" class="mini press">Fechar</button></div>
-  <div class="hero" style="margin-bottom:8px">
+<section id="sh-dia" class="sheet" hidden aria-label="Detalhe do dia">
+  <div class="puxa"></div>
+  <div class="sh-c"><h3 id="dia-tit"></h3><button id="dia-fech" class="mini press">Fechar</button></div>
+  <div class="saldo" style="margin-bottom:6px">
     <div class="rot">Saldo do dia</div>
-    <div id="dia-total" class="val" style="font-size:38px;margin-bottom:0"></div>
+    <div id="dia-saldo" class="v" style="font-size:32px"></div>
   </div>
-  <div class="sub-secao">Lançamentos</div>
+  <div class="sec">Lançamentos</div>
   <ul id="dia-lanc"></ul>
-  <div class="sub-secao">Contas com vencimento</div>
+  <div class="sec">Contas com vencimento</div>
   <ul id="dia-contas"></ul>
-  <div class="sub-secao">Compromissos</div>
+  <div class="sec">Compromissos</div>
   <ul id="dia-eventos"></ul>
-  <div class="add">
-    <input id="e-titulo" class="f-nome" placeholder="compromisso" aria-label="Compromisso">
-    <input id="e-hora" class="f-hora" type="time" aria-label="Hora">
-    <select id="e-lembrete" aria-label="Lembrete">
-      <option value="">sem aviso</option>
-      <option value="10">10 min antes</option>
-      <option value="30">30 min antes</option>
-      <option value="60">1 h antes</option>
+  <div class="form" style="border:none;background:none;padding:12px 0 0">
+    <input id="e-tit" class="fn" placeholder="compromisso" aria-label="Compromisso">
+    <input id="e-hora" class="fh" type="time" aria-label="Hora">
+    <select id="e-lem" aria-label="Lembrete">
+      <option value="">sem aviso</option><option value="10">10 min antes</option>
+      <option value="30">30 min antes</option><option value="60">1 h antes</option>
     </select>
     <button id="e-add" class="mini press">Add</button>
   </div>
-  <div style="display:flex;gap:8px;margin-top:16px">
-    <button id="dia-rotina" class="mini press" style="flex:1;padding:15px">Ver rotina do dia</button>
-    <button id="dia-lancar" class="btn-ok press" style="flex:1">Lançar</button>
+  <div style="display:flex;gap:9px;margin-top:16px">
+    <button id="dia-rot" class="mini press" style="flex:1;padding:13px">Rotina do dia</button>
+    <button id="dia-lanc-bt" class="btn press" style="flex:1">Lançar</button>
   </div>
 </section>
 
-<section id="sheet-bloco" class="sheet" hidden aria-label="Editar bloco">
-  <div class="puxador"></div>
-  <div class="sheet-cab"><h3 id="bl-titulo">Bloco</h3><button id="bl-fechar" class="mini press">Fechar</button></div>
-  <div class="sub-secao">Itens do bloco</div>
+<section id="sh-bloco" class="sheet" hidden aria-label="Editar bloco">
+  <div class="puxa"></div>
+  <div class="sh-c"><h3 id="bl-tit">Bloco</h3><button id="bl-fech" class="mini press">Fechar</button></div>
+  <div class="sec">Itens</div>
   <ul id="bl-itens"></ul>
-  <div class="add">
-    <input id="bl-novo" class="f-nome" placeholder="novo item" aria-label="Novo item">
+  <div class="form" style="border:none;background:none;padding:12px 0 0">
+    <input id="bl-novo" class="fn" placeholder="novo item" aria-label="Novo item">
     <select id="bl-dia" aria-label="Dia da semana">
-      <option value="">todo dia</option>
-      <option value="1">só segunda</option><option value="2">só terça</option>
-      <option value="3">só quarta</option><option value="4">só quinta</option>
-      <option value="5">só sexta</option><option value="6">só sábado</option>
-      <option value="0">só domingo</option>
+      <option value="">todo dia</option><option value="1">só segunda</option><option value="2">só terça</option>
+      <option value="3">só quarta</option><option value="4">só quinta</option><option value="5">só sexta</option>
+      <option value="6">só sábado</option><option value="0">só domingo</option>
     </select>
     <button id="bl-add" class="mini press">Add</button>
   </div>
-  <div class="sub-secao">Bloco</div>
-  <div class="add">
-    <input id="bl-hora" class="f-hora" type="time" aria-label="Hora do bloco">
-    <input id="bl-nome" class="f-nome" placeholder="título" aria-label="Título do bloco">
+  <div class="sec">Bloco</div>
+  <div class="form" style="border:none;background:none;padding:0">
+    <input id="bl-hora" class="fh" type="time" aria-label="Hora">
+    <input id="bl-nome" class="fn" placeholder="título" aria-label="Título">
     <button id="bl-salvar" class="mini press">Salvar</button>
   </div>
-  <button id="bl-apagar" class="mini press" style="width:100%;margin-top:14px;border-color:var(--red);color:var(--red)">Apagar este bloco</button>
+  <button id="bl-apagar" class="mini press" style="width:100%;margin-top:16px;color:var(--sai);border-color:color-mix(in srgb,var(--sai) 40%,transparent)">Apagar este bloco</button>
 </section>
 
 <script>
 window.addEventListener("error", function(e){
   var el = document.getElementById("splash-txt");
   if(el && !document.getElementById("splash").hidden){
-    el.className = "erro";
-    el.textContent = "Erro ao carregar: " + (e.message || "arquivo não encontrado") +
-      (e.filename ? "  ·  em " + e.filename.split("/").pop() : "");
+    el.className = "st erro";
+    el.textContent = "Erro ao carregar: " + (e.message||"arquivo não encontrado") + (e.filename?" · "+e.filename.split("/").pop():"");
   }
 }, true);
 setTimeout(function(){
   var el = document.getElementById("splash-txt");
-  if(!window.__APP_CARREGOU__ && el && !document.getElementById("splash").hidden){
-    el.className = "erro";
+  if(!window.__OK__ && el && !document.getElementById("splash").hidden){
+    el.className = "st erro";
     el.textContent = "O app.js não carregou em 10 segundos. Abra o console e leia a primeira linha vermelha.";
   }
 }, 10000);
+try{ var t = localStorage.getItem("nexvot:tema"); if(t) document.documentElement.dataset.tema = t; }catch(e){}
 </script>
 <script src="./config.js"></script>
 <script type="module" src="./app.js"></script>
