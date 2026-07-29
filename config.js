@@ -7,6 +7,6 @@
 // ============================================================
 
 window.CONFIG = {
-  SUPABASE_URL: "https://SEU-PROJETO.supabase.co",
-  SUPABASE_ANON_KEY: "COLE-AQUI-A-CHAVE-ANON"
+  SUPABASE_URL:sb_publishable_qfb7C2oC_6SMPgm4lJ4G-A_zy79akIf ,
+  SUPABASE_ANON_KEY: sb_secret_eNdnzXSqtGHzOSHjyOe_6Q_1ULxXlZQ
 };
