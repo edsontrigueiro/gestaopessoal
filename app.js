@@ -9,7 +9,19 @@
 // ============================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const sb = createClient(window.CONFIG.SUPABASE_URL, window.CONFIG.SUPABASE_ANON_KEY);
+// Sinaliza que o módulo carregou (o watchdog do index.html olha isto).
+window.__APP_CARREGOU__ = true;
+
+// O cliente é criado dentro do boot(), depois de validar a config.
+// Criar aqui em cima faria o módulo estourar antes de qualquer mensagem
+// chegar na tela — que foi exatamente o bug da primeira versão.
+let sb = null;
+
+function erroFatal(msg){
+  const el = document.getElementById("splash-txt");
+  if(el){ el.className = "erro"; el.textContent = msg; }
+  console.error("[NexVot]", msg);
+}
 
 const CATEGORIAS = ["Mercado","Comer fora","Transporte","Casa","Contas","Saúde","Lazer","Outros"];
 // LARANJA é o único ponto de verdade da cor no JS. Trocou aqui, trocou em tudo
@@ -73,20 +85,44 @@ const falhou = e => { console.error(e); toast((e && e.message) || "falha ao salv
 
 /* ================= abertura ================= */
 async function boot(){
-  if(!window.CONFIG || window.CONFIG.SUPABASE_URL.includes("SEU-PROJETO")){
-    $("splash-txt").className = "erro";
-    $("splash-txt").textContent = "O config.js ainda está com os valores de exemplo. Cole a URL e a chave anon do seu projeto.";
-    return;
+  // ---- validação da config, com mensagem visível para cada caso ----
+  if(!window.CONFIG)
+    return erroFatal("O config.js não carregou. Confira se o arquivo existe na raiz do repo e se não tem erro de digitação — um erro de sintaxe impede o arquivo inteiro de rodar.");
+
+  const url = String(window.CONFIG.SUPABASE_URL || "").trim();
+  const chave = String(window.CONFIG.SUPABASE_ANON_KEY || "").trim();
+
+  if(!url || url.includes("SEU-PROJETO") || url.includes("COLE-AQUI"))
+    return erroFatal("A SUPABASE_URL ainda é o valor de exemplo. Cole a URL do seu projeto (Supabase → Settings → API → Data API).");
+  if(!/^https:\/\/[a-z0-9-]+\.supabase\.(co|in)\/?$/i.test(url))
+    return erroFatal("A SUPABASE_URL está malformada: \"" + url + "\". Ela precisa ser exatamente https://xxxxxxxx.supabase.co — sem barra extra no fim, sem espaço, e não é o Project ID sozinho.");
+  if(!chave || chave.includes("COLE-AQUI"))
+    return erroFatal("A chave ainda é o valor de exemplo. Cole a publishable (sb_publishable_...) ou a anon (eyJ...).");
+  if(chave.startsWith("sb_secret_") || chave.includes("service_role"))
+    return erroFatal("Essa é a chave SECRET. Ela ignora o RLS e não pode ficar num app de navegador. Use a publishable (sb_publishable_...).");
+
+  try{
+    sb = createClient(url, chave);
+  }catch(e){
+    return erroFatal("Não consegui criar o cliente do Supabase: " + e.message);
   }
-  let { data } = await sb.auth.getSession();
+
+  // ---- sessão, com prazo: sem isso um erro de rede trava a tela para sempre ----
+  let data;
+  try{
+    const r = await Promise.race([
+      sb.auth.getSession(),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error("tempo esgotado")), 12000))
+    ]);
+    data = r.data;
+  }catch(e){
+    return erroFatal("Não consegui falar com o Supabase (" + e.message + "). Confira se a URL do projeto está certa e se o projeto não está pausado por inatividade.");
+  }
   if(!data.session){
     $("splash-txt").textContent = "criando sua sessão";
     const r = await sb.auth.signInAnonymously();
-    if(r.error){
-      $("splash-txt").className = "erro";
-      $("splash-txt").textContent = "Não consegui abrir a sessão anônima. No Supabase: Authentication → Sign In / Providers → ligue \"Allow anonymous sign-ins\". Detalhe: " + r.error.message;
-      return;
-    }
+    if(r.error)
+      return erroFatal("Não consegui abrir a sessão anônima. No Supabase: Authentication → Sign In / Providers → ligue \"Allow anonymous sign-ins\". Detalhe: " + r.error.message);
     data = { session:r.data.session };
   }
   usuario = data.session.user;
@@ -599,4 +635,9 @@ function ligarEventos(){
   }, { passive:true });
 }
 
-boot();
+window.addEventListener("unhandledrejection", e=>{
+  if(document.getElementById("splash").hidden) return;
+  erroFatal("Erro não tratado: " + ((e.reason && e.reason.message) || e.reason));
+});
+
+boot().catch(e => erroFatal("Falha ao iniciar: " + e.message));
