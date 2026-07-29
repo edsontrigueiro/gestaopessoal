@@ -1,13 +1,7 @@
 // ============================================================
-//  NEXVOT — Gestão Inteligente — app.js (v6)
-//
-//  Dois espaços: PESSOAL e EMPRESA. Tudo (lançamentos, contas,
-//  compromissos) carrega a coluna `espaco` e o app filtra por ela.
-//  A rotina existe só no pessoal; os sócios, só na empresa.
-//
-//  Requer: schema.sql + schema2.sql rodados, e
-//  Project Settings → Authentication → User Signups →
-//  Anonymous Sign-Ins LIGADO.
+//  NEXVOT — Gestão Inteligente — app.js (v7)
+//  Requer schema.sql + schema2.sql + schema3.sql rodados e
+//  Anonymous Sign-Ins ligado no Supabase.
 // ============================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -22,7 +16,7 @@ function erroFatal(msg){
 
 /* ================= constantes ================= */
 const LARANJA = "#FF5E04";
-const VERDE   = "#1F8A5A";
+const VERDE   = "#22A268";
 const RAMPA = [LARANJA,"#B34204","#8A8A8A","#6E6E6E","#585858","#474747","#3A3A3A","#2E2E2E"];
 
 const CATS = {
@@ -35,41 +29,63 @@ const CATS = {
     entrada: ["Vendas","Serviços","Outros"]
   }
 };
-// natureza sugerida por categoria pessoal — o usuário pode trocar no lançamento
 const NATUREZA_PADRAO = {
   "Mercado":"essencial","Transporte":"essencial","Casa":"essencial",
   "Contas":"essencial","Saúde":"essencial",
   "Comer fora":"futil","Lazer":"futil","Outros":"essencial"
 };
 
-const BLOCOS = [
-  { id:"manha", nome:"Manhã" },
-  { id:"trabalho", nome:"Trabalho" },
-  { id:"noite", nome:"Noite" }
+// Rotina do Edson, na ordem e com as notas que ele mandou.
+// dia: 0=dom 1=seg ... 6=sáb — null vale todo dia.
+const ROTINA = [
+  { hora:"07:30", titulo:"Acordar", itens:[
+    "Arrumar a cama","Água","Higiene","Sem celular por 20 minutos"] },
+  { hora:"08:00", titulo:"Café da manhã", nota:"Sem responder mensagens ainda", itens:[
+    "Olhar a agenda do dia","Conferir o calendário","Revisar as tarefas"] },
+  { hora:"08:30", titulo:"Organização", nota:"Antes do trabalho começar", itens:[
+    "Abrir Notion / Trello","Abrir WhatsApp","Abrir a agenda",
+    "O Lucas grava hoje?","Existe algum prazo?","Alguma entrega atrasada?","Algum conteúdo para aprovar?"] },
+  { hora:"09:00", titulo:"Deep Work — 1º bloco", nota:"Sem interrupções", itens:[
+    "Planejamento de conteúdo","Organização dos stories","Ideias de reels","Roteiros",
+    "Branding","Análise dos concorrentes","Organização da semana"] },
+  { hora:"11:00", titulo:"Operacional", itens:[
+    "Responder a equipe","Resolver pendências","Enviar materiais","Organizar demandas"] },
+  { hora:"12:00", titulo:"Almoço", nota:"Nada de computador", itens:[
+    "Almoçar longe da tela"] },
+  { hora:"13:00", titulo:"Planejamento do Lucas", nota:"Quando ele começar a gravar, tudo já está pronto", itens:[
+    "Stories do dia","Reels","Roteiro","Horários","Ideias","Referências"] },
+  { hora:"14:00", titulo:"Gravações", itens:[
+    "Acompanhar","Anotar cortes","Anotar ideias que surgirem","Pensar em conteúdos futuros"] },
+  { hora:"16:00", titulo:"Deep Work — 2º bloco", nota:"Sem interrupção", itens:[
+    "Branding da Oris","Documentos","Planejamento semanal","Campanhas",
+    "Calendário editorial","Melhorias de processos"] },
+  { hora:"17:30", titulo:"Revisão", itens:[
+    "O que ficou pendente?","O que precisa ser feito amanhã?","O que pode ser delegado?"] },
+  { hora:"18:00", titulo:"Encerrar o operacional", itens:[
+    "Encerrar o operacional"] },
+  { hora:"19:00", titulo:"Estudo — 40 minutos", nota:"Aprender mais que a média é o diferencial", itens:[
+    { nome:"Branding", dia:1 }, { nome:"Marketing", dia:2 }, { nome:"Copywriting", dia:3 },
+    { nome:"Storytelling", dia:4 }, { nome:"Gestão", dia:5 },
+    { nome:"IA e automação", dia:6 }, { nome:"Tendências", dia:0 }] },
+  { hora:"20:00", titulo:"Tempo livre", itens:[
+    "Assistir algo","Conversar","Descansar"] },
+  { hora:"21:30", titulo:"Preparar o dia seguinte", itens:[
+    "Separar as roupas","Conferir a agenda","Separar as tarefas","Escrever as 3 prioridades"] },
+  { hora:"22:30", titulo:"Desligar telas", itens:["Desligar as telas"] },
+  { hora:"00:00", titulo:"Dormir", itens:["Dormir"] }
 ];
-const ROTINA_PRONTA = [
-  { bloco:"manha",    nome:"Levantar sem soneca",              hora:"06:30" },
-  { bloco:"manha",    nome:"Beber água antes do café",         hora:"06:45" },
-  { bloco:"manha",    nome:"Mover o corpo 20 min",             hora:"07:00" },
-  { bloco:"manha",    nome:"Escrever as 3 prioridades do dia", hora:"08:00" },
-  { bloco:"trabalho", nome:"Bloco de 90 min sem celular",      hora:"09:00" },
-  { bloco:"trabalho", nome:"Zerar a caixa de entrada",         hora:"12:00" },
-  { bloco:"trabalho", nome:"Lançar os gastos do dia",          hora:"18:00" },
-  { bloco:"noite",    nome:"Deixar o dia seguinte planejado",  hora:"21:00" },
-  { bloco:"noite",    nome:"Sem tela 30 min antes de dormir",  hora:"22:30" },
-  { bloco:"noite",    nome:"Fechar o dia no painel",           hora:"23:00" }
-];
-const VIEWS = ["painel","agenda","numeros"];
+
+const VIEWS = ["painel","rotina","agenda","numeros"];
+const DIAS_SEM = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
 
 /* ================= estado ================= */
 let usuario = null;
 let espaco = "pessoal";
 let viewAtual = "painel";
-let calRef = null, selDia = null, dataAlvo = null;
+let calRef = null, selDia = null, dataAlvo = null, rtDia = null, blocoAberto = null, blocoEdit = null;
 let tipoSel = "saida", catSel = null, natSel = "essencial", membroSel = null, digitos = "";
-const abertos = new Set();
 const avisados = new Set();
-const db = { lancamentos:[], contas:[], habitos:[], marcas:[], fechados:[], eventos:[], membros:[] };
+const db = { lancamentos:[], contas:[], habitos:[], marcas:[], fechados:[], eventos:[], membros:[], blocos:[], tarefas:[] };
 
 /* ================= utilidades ================= */
 const $ = id => document.getElementById(id);
@@ -80,8 +96,9 @@ const ultimoDia = (a,m) => new Date(a,m,0).getDate();
 const dataDoMes = (a,m,d) => `${a}-${String(m).padStart(2,"0")}-${String(Math.min(Math.max(d,1),ultimoDia(a,m))).padStart(2,"0")}`;
 const diasEntre = (a,b) => Math.round((new Date(b+"T00:00:00") - new Date(a+"T00:00:00"))/86400000);
 const somaDias = (s,n) => { const d = new Date(s+"T00:00:00"); d.setDate(d.getDate()+n); return isoDe(d); };
+const diaSemana = s => new Date(s+"T00:00:00").getDay();
 const brl  = n => Number(n).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
-const brl0 = n => { const a = Math.abs(n); const s = a>=1000 ? (a/1000).toFixed(a>=10000?0:1).replace(".",",")+"k" : String(Math.round(a)); return (n<0?"-":"")+s; };
+const brl0 = n => { const a=Math.abs(n); const s = a>=1000 ? (a/1000).toFixed(a>=10000?0:1).replace(".",",")+"k" : String(Math.round(a)); return (n<0?"-":"")+s; };
 const esc  = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const numBR = s => { const n = parseFloat(String(s).replace(/\./g,"").replace(",",".")); return isFinite(n)?n:0; };
 const extenso = (s,op) => new Date(s+"T00:00:00").toLocaleDateString("pt-BR", op||{weekday:"long",day:"2-digit",month:"long"});
@@ -102,14 +119,12 @@ function toast(txt, erro){
 }
 const falhou = e => { console.error(e); toast((e && e.message) || "falha ao salvar", true); };
 
-// contador que sobe até o valor — o único "efeito" que carrega informação
 function anima(el, alvo, prefixo){
   const fim = Number(alvo) || 0;
   if(semMovimento()){ el.innerHTML = `<small>${prefixo}</small>${brl(fim)}`; return; }
   const ini = performance.now(), dur = 520;
   const passo = t => {
-    const p = Math.min((t-ini)/dur, 1);
-    const e = 1 - Math.pow(1-p, 3);
+    const p = Math.min((t-ini)/dur, 1), e = 1 - Math.pow(1-p, 3);
     el.innerHTML = `<small>${prefixo}</small>${brl(fim*e)}`;
     if(p < 1) requestAnimationFrame(passo);
   };
@@ -118,20 +133,14 @@ function anima(el, alvo, prefixo){
 
 /* ================= abertura ================= */
 async function boot(){
-  if(!window.CONFIG)
-    return erroFatal("O config.js não carregou. Confira se o arquivo existe na raiz do repo e se não tem erro de digitação.");
-
+  if(!window.CONFIG) return erroFatal("O config.js não carregou.");
   const url = String(window.CONFIG.SUPABASE_URL || "").trim();
   const chave = String(window.CONFIG.SUPABASE_ANON_KEY || "").trim();
-
-  if(!url || url.includes("SEU-PROJETO") || url.includes("COLE-AQUI"))
-    return erroFatal("A SUPABASE_URL ainda é o valor de exemplo.");
+  if(!url || url.includes("SEU-PROJETO")) return erroFatal("A SUPABASE_URL ainda é o valor de exemplo.");
   if(!/^https:\/\/[a-z0-9-]+\.supabase\.(co|in)\/?$/i.test(url))
-    return erroFatal("A SUPABASE_URL está malformada: \"" + url + "\". Precisa ser https://xxxxxxxx.supabase.co");
-  if(!chave || chave.includes("COLE-AQUI"))
-    return erroFatal("A chave ainda é o valor de exemplo.");
-  if(chave.startsWith("sb_secret_") || chave.includes("service_role"))
-    return erroFatal("Essa é a chave SECRET. Use a publishable (sb_publishable_...).");
+    return erroFatal("A SUPABASE_URL está malformada: \"" + url + "\".");
+  if(!chave || chave.includes("COLE-AQUI")) return erroFatal("A chave ainda é o valor de exemplo.");
+  if(chave.startsWith("sb_secret_")) return erroFatal("Essa é a chave SECRET. Use a publishable.");
 
   try{ sb = createClient(url, chave); }
   catch(e){ return erroFatal("Não consegui criar o cliente do Supabase: " + e.message); }
@@ -143,21 +152,18 @@ async function boot(){
       new Promise((_,rej)=>setTimeout(()=>rej(new Error("tempo esgotado")), 12000))
     ]);
     data = r.data;
-  }catch(e){
-    return erroFatal("Não consegui falar com o Supabase (" + e.message + "). Confira a URL e se o projeto não está pausado.");
-  }
+  }catch(e){ return erroFatal("Não consegui falar com o Supabase (" + e.message + ")."); }
 
   if(!data.session){
     $("splash-txt").textContent = "criando sua sessão";
     const r = await sb.auth.signInAnonymously();
-    if(r.error)
-      return erroFatal("Não consegui abrir a sessão anônima. No Supabase: Project Settings → Authentication → User Signups → ligue Anonymous Sign-Ins. Detalhe: " + r.error.message);
+    if(r.error) return erroFatal("Sessão anônima desligada. Project Settings → Authentication → User Signups → Anonymous Sign-Ins. Detalhe: " + r.error.message);
     data = { session:r.data.session };
   }
   usuario = data.session.user;
 
   try{ espaco = localStorage.getItem("nexvot:espaco") || "pessoal"; }catch(e){}
-  selDia = hojeISO();
+  selDia = hojeISO(); rtDia = hojeISO();
   calRef = { a:+selDia.slice(0,4), m:+selDia.slice(5,7) };
   dataAlvo = selDia;
 
@@ -171,17 +177,20 @@ async function boot(){
 }
 
 async function carregarTudo(){
-  const [l,c,h,m,f,e,mb] = await Promise.all([
+  const r = await Promise.all([
     sb.from("lancamentos").select("*").order("data",{ascending:false}),
     sb.from("contas").select("*"),
-    sb.from("habitos").select("*").order("bloco").order("ordem"),
+    sb.from("habitos").select("*").order("ordem"),
     sb.from("habito_marcas").select("*"),
     sb.from("dias_fechados").select("*"),
     sb.from("eventos").select("*").order("data"),
-    sb.from("membros").select("*").order("criado_em")
+    sb.from("membros").select("*").order("criado_em"),
+    sb.from("blocos_rotina").select("*").order("hora"),
+    sb.from("tarefas").select("*").order("hora")
   ]);
-  const err = [l,c,h,m,f,e,mb].find(r=>r.error);
+  const err = r.find(x=>x.error);
   if(err) return falhou(err.error);
+  const [l,c,h,m,f,e,mb,bl,tf] = r;
   db.lancamentos = (l.data||[]).map(x=>({...x, valor:Number(x.valor)}));
   db.contas      = (c.data||[]).map(x=>({...x, valor:Number(x.valor||0)}));
   db.habitos     = h.data||[];
@@ -189,6 +198,8 @@ async function carregarTudo(){
   db.fechados    = (f.data||[]).map(x=>x.data);
   db.eventos     = e.data||[];
   db.membros     = mb.data||[];
+  db.blocos      = bl.data||[];
+  db.tarefas     = tf.data||[];
 
   if(!db.membros.length){
     const { data:novo } = await sb.from("membros")
@@ -198,29 +209,28 @@ async function carregarTudo(){
   render();
 }
 
-/* ================= seleções por espaço ================= */
+/* ================= seleções ================= */
 const lancs   = () => db.lancamentos.filter(x=>x.espaco===espaco);
 const contas  = () => db.contas.filter(x=>x.espaco===espaco);
 const eventos = () => db.eventos.filter(x=>x.espaco===espaco);
-
 const soma = arr => arr.reduce((s,x)=>s+x.valor,0);
-const noDia   = (d,t) => lancs().filter(x=>x.data===d && (!t||x.tipo===t));
-const noMes   = (ym,t) => lancs().filter(x=>mesDe(x.data)===ym && (!t||x.tipo===t));
+const noDia = (d,t) => lancs().filter(x=>x.data===d && (!t||x.tipo===t));
+const noMes = (ym,t) => lancs().filter(x=>mesDe(x.data)===ym && (!t||x.tipo===t));
 const saidaDia = d => soma(noDia(d,"saida"));
 const entraDia = d => soma(noDia(d,"entrada"));
 
 function acumulado(ym, ate){
-  const a = +ym.slice(0,4), m = +ym.slice(5,7);
-  const lim = ate || ultimoDia(a,m), out = []; let s = 0;
+  const a=+ym.slice(0,4), m=+ym.slice(5,7);
+  const lim = ate || ultimoDia(a,m), out=[]; let s=0;
   for(let d=1; d<=lim; d++){ s += saidaDia(dataDoMes(a,m,d)); out.push(s); }
   return out;
 }
 function mesAnterior(ym){
-  const a = +ym.slice(0,4), m = +ym.slice(5,7);
+  const a=+ym.slice(0,4), m=+ym.slice(5,7);
   return m===1 ? `${a-1}-12` : `${a}-${String(m-1).padStart(2,"0")}`;
 }
 function vencimento(c){
-  const h = hojeISO(), a = +h.slice(0,4), m = +h.slice(5,7);
+  const h = hojeISO(), a=+h.slice(0,4), m=+h.slice(5,7);
   if(c.ultimo_pago === mesDe(h)){
     const mm = m===12?1:m+1, aa = m===12?a+1:a;
     return dataDoMes(aa,mm,c.dia);
@@ -230,12 +240,11 @@ function vencimento(c){
 const contasOrd = () => [...contas()].sort((x,y)=>vencimento(x).localeCompare(vencimento(y)));
 const contasNoDia = d => { const a=+d.slice(0,4), m=+d.slice(5,7); return contas().filter(c=>dataDoMes(a,m,c.dia)===d); };
 const eventosNoDia = d => eventos().filter(e=>e.data===d).sort((x,y)=>(x.hora||"99").localeCompare(y.hora||"99"));
-const marcasDe = id => db.marcas.filter(x=>x.habito_id===id).map(x=>x.data);
 const temMarca = (id,d) => db.marcas.some(x=>x.habito_id===id && x.data===d);
 function streakDe(lista){
   const set = new Set(lista); let b = hojeISO();
   if(!set.has(b)) b = somaDias(b,-1);
-  let n = 0; while(set.has(b)){ n++; b = somaDias(b,-1); }
+  let n=0; while(set.has(b)){ n++; b = somaDias(b,-1); }
   return n;
 }
 function rankCategorias(ym){
@@ -244,6 +253,11 @@ function rankCategorias(ym){
   return Object.entries(s).sort((a,b)=>b[1]-a[1]);
 }
 const nomeMembro = id => (db.membros.find(m=>m.id===id)||{}).nome || "—";
+// itens de um bloco válidos para a data
+const itensDoBloco = (blocoId, data) => db.habitos
+  .filter(x=>x.bloco_id===blocoId && (x.dia_semana===null || x.dia_semana===undefined || x.dia_semana===diaSemana(data)))
+  .sort((a,b)=>(a.ordem||0)-(b.ordem||0));
+const tarefasDoDia = d => db.tarefas.filter(t=>t.data===d).sort((a,b)=>(a.hora||"99").localeCompare(b.hora||"99"));
 
 /* ================= gráficos ================= */
 function svgFluxo(){
@@ -252,26 +266,26 @@ function svgFluxo(){
   const ins = dias.map(entraDia), outs = dias.map(saidaDia);
   const max = Math.max(...ins, ...outs, 1);
   if(!ins.some(v=>v>0) && !outs.some(v=>v>0))
-    return '<div class="vazio">Sem movimento nos últimos 14 dias.</div>';
-  const W = 100, H = 44, larg = W/dias.length;
+    return '<div class="vazio">Sem movimento nos últimos 14 dias. Lance um gasto no + para o gráfico ganhar forma.</div>';
+  const W=100, H=46, larg=W/dias.length;
   const barras = dias.map((d,i)=>{
-    const x = i*larg, mI = larg*.30, mO = larg*.30;
+    const x = i*larg;
     const hi = (ins[i]/max)*(H/2-2), ho = (outs[i]/max)*(H/2-2);
-    return (ins[i]>0 ? `<rect x="${(x+larg*.12).toFixed(2)}" y="${(H/2-hi).toFixed(2)}" width="${mI.toFixed(2)}" height="${hi.toFixed(2)}" fill="${VERDE}"/>` : "")
-         + (outs[i]>0 ? `<rect x="${(x+larg*.50).toFixed(2)}" y="${(H/2).toFixed(2)}" width="${mO.toFixed(2)}" height="${ho.toFixed(2)}" fill="${LARANJA}"/>` : "");
+    return (ins[i]>0 ? `<rect x="${(x+larg*.10).toFixed(2)}" y="${(H/2-hi).toFixed(2)}" width="${(larg*.34).toFixed(2)}" height="${hi.toFixed(2)}" fill="${VERDE}"/>` : "")
+         + (outs[i]>0 ? `<rect x="${(x+larg*.52).toFixed(2)}" y="${(H/2).toFixed(2)}" width="${(larg*.34).toFixed(2)}" height="${ho.toFixed(2)}" fill="${LARANJA}"/>` : "");
   }).join("");
-  return `<svg viewBox="0 0 ${W} ${H+8}" width="100%" height="160" preserveAspectRatio="none" role="img" aria-label="Entradas e saídas dos últimos 14 dias">
-    <line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="#3A3A3A" stroke-width=".3"/>
+  return `<svg viewBox="0 0 ${W} ${H+9}" width="100%" height="170" preserveAspectRatio="none" role="img" aria-label="Entradas e saídas dos últimos 14 dias">
+    <line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="#3D3D3D" stroke-width=".35"/>
     ${barras}
-    <text class="eixo" x="0" y="${H+6}">${curto(dias[0])}</text>
-    <text class="eixo" x="${W}" y="${H+6}" text-anchor="end">hoje</text>
-  </svg>`;
+    <text class="eixo" x="0" y="${H+7}">${curto(dias[0])}</text>
+    <text class="eixo" x="${W}" y="${H+7}" text-anchor="end">HOJE</text>
+    <text class="eixo" x="0" y="4">R$ ${brl0(max)}</text></svg>`;
 }
 
 function svgRitmo(){
   const h = hojeISO(), ym = mesDe(h), dia = +h.slice(8,10);
   const atual = acumulado(ym, dia), ant = acumulado(mesAnterior(ym));
-  const W=100, H=44, pad=2;
+  const W=100,H=44,pad=2;
   const nMax = Math.max(atual.length, ant.length, 2);
   const vMax = Math.max(...atual, ...ant, 1);
   const px = i => pad + (i/(nMax-1))*(W-pad*2);
@@ -280,14 +294,14 @@ function svgRitmo(){
   const temAnt = ant.some(v=>v>0);
   if(!atual.some(v=>v>0) && !temAnt){ $("leg-ritmo").innerHTML=""; return '<div class="vazio">Sem saídas para desenhar ainda.</div>'; }
   $("leg-ritmo").innerHTML = '<span style="color:var(--laranja)">■ este mês</span> &nbsp; <span style="color:#8A8A8A">■ anterior</span>';
-  return `<svg viewBox="0 0 ${W} ${H+9}" width="100%" height="160" preserveAspectRatio="none" role="img" aria-label="Saídas acumuladas do mês">
+  return `<svg viewBox="0 0 ${W} ${H+9}" width="100%" height="165" preserveAspectRatio="none" role="img" aria-label="Saídas acumuladas do mês">
     ${[0.5,1].map(f=>`<line x1="${pad}" y1="${py(vMax*f).toFixed(2)}" x2="${W-pad}" y2="${py(vMax*f).toFixed(2)}" stroke="#2B2B2B" stroke-width=".35"/>`).join("")}
-    ${temAnt?`<polyline points="${linha(ant)}" fill="none" stroke="#8A8A8A" stroke-width=".7" stroke-dasharray="1.6 1.4" vector-effect="non-scaling-stroke"/>`:""}
+    ${temAnt?`<polyline points="${linha(ant)}" fill="none" stroke="#8A8A8A" stroke-width=".8" stroke-dasharray="1.6 1.4" vector-effect="non-scaling-stroke"/>`:""}
     <polygon points="${pad},${H-pad} ${linha(atual)} ${px(atual.length-1).toFixed(2)},${H-pad}" fill="${LARANJA}" fill-opacity=".15"/>
-    <polyline points="${linha(atual)}" fill="none" stroke="${LARANJA}" stroke-width="1.3" vector-effect="non-scaling-stroke"/>
-    <text class="eixo" x="${pad}" y="${H+6}">DIA 1</text>
-    <text class="eixo" x="${W-pad}" y="${H+6}" text-anchor="end">DIA ${nMax}</text>
-    <text class="eixo" x="${pad}" y="${(py(vMax)-1).toFixed(2)}">R$ ${brl0(vMax)}</text></svg>`;
+    <polyline points="${linha(atual)}" fill="none" stroke="${LARANJA}" stroke-width="1.6" vector-effect="non-scaling-stroke"/>
+    <text class="eixo" x="${pad}" y="${H+7}">DIA 1</text>
+    <text class="eixo" x="${W-pad}" y="${H+7}" text-anchor="end">DIA ${nMax}</text>
+    <text class="eixo" x="${pad}" y="${(py(vMax)-1.5).toFixed(2)}">R$ ${brl0(vMax)}</text></svg>`;
 }
 
 function svgDonut(){
@@ -297,21 +311,20 @@ function svgDonut(){
   let off = 0;
   const arcos = pares.map(([c,v],i)=>{
     const len = (v/total)*C;
-    const el = `<circle cx="60" cy="60" r="${R}" fill="none" stroke="${RAMPA[Math.min(i,RAMPA.length-1)]}" stroke-width="16"
+    const el = `<circle cx="60" cy="60" r="${R}" fill="none" stroke="${RAMPA[Math.min(i,RAMPA.length-1)]}" stroke-width="17"
       stroke-dasharray="${Math.max(len-1.5,.5).toFixed(2)} ${(C-len+1.5).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 60 60)"/>`;
     off += len; return el;
   }).join("");
   $("leg-donut").innerHTML = pares.slice(0,7).map(([c,v],i)=>
     `<div><span class="b" style="background:${RAMPA[Math.min(i,RAMPA.length-1)]}"></span><span class="n">${esc(c)}</span><span class="v">${Math.round(v/total*100)}%</span></div>`).join("");
-  return `<svg viewBox="0 0 120 120" width="100%" height="150" role="img" aria-label="Saídas por categoria">${arcos}
-    <text x="60" y="56" text-anchor="middle" fill="#9A9A9A" style="font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:.16em">SAÍDAS</text>
-    <text x="60" y="72" text-anchor="middle" fill="#F2F2F2" style="font-family:var(--disp);font-weight:900;font-size:16px">R$ ${brl0(total)}</text></svg>`;
+  return `<svg viewBox="0 0 120 120" width="100%" height="155" role="img" aria-label="Saídas por categoria">${arcos}
+    <text x="60" y="55" text-anchor="middle" fill="#9E9E9E" style="font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:.2em">SAÍDAS</text>
+    <text x="60" y="73" text-anchor="middle" fill="#FAFAFA" style="font-family:var(--disp);font-weight:900;font-size:18px">R$ ${brl0(total)}</text></svg>`;
 }
 
 /* ================= render ================= */
 function render(){
   const h = hojeISO(), ym = mesDe(h), dia = +h.slice(8,10);
-
   $("topo-data").textContent = extenso(h,{weekday:"short",day:"2-digit",month:"short"}).replace(/\./g,"");
   const fechado = db.fechados.includes(h);
   const bd = $("btn-dia");
@@ -322,18 +335,16 @@ function render(){
   const inMes = soma(noMes(ym,"entrada")), outMes = soma(noMes(ym,"saida"));
   const saldoMes = inMes - outMes;
 
-  if(espaco === "pessoal") renderPessoal(h, ym, dia, inMes, outMes);
+  if(espaco === "pessoal") renderPessoal(h, ym, dia, outMes);
   else renderEmpresa(ym, inMes, outMes, saldoMes);
 
-  renderAlertas();
-  renderContas();
-  renderLancamentos();
-  renderCalendario();
-  renderProximosEventos();
+  $("g-fluxo-topo").innerHTML = svgFluxo();
+  renderAlertas(); renderContas(); renderLancamentos();
+  renderRotinaDia(); renderCalendario(); renderProximosEventos();
   renderNumeros(h, ym, dia, inMes, outMes, saldoMes);
 }
 
-function renderPessoal(h, ym, dia, inMes, outMes){
+function renderPessoal(h, ym, dia, outMes){
   const ent = entraDia(h), sai = saidaDia(h);
   anima($("p-hero"), ent - sai, "R$");
   $("p-hero").style.color = (ent-sai) < 0 ? "var(--texto)" : "var(--green)";
@@ -351,12 +362,10 @@ function renderPessoal(h, ym, dia, inMes, outMes){
     hr.style.borderColor = p>0 ? "var(--laranja)" : "var(--linha-f)";
   }
 
-  // essencial × fútil
   const saidas = noMes(ym,"saida");
   const ess = soma(saidas.filter(x=>x.natureza!=="futil"));
   const fut = soma(saidas.filter(x=>x.natureza==="futil"));
-  const tot = ess + fut;
-  const pf = tot>0 ? Math.round(fut/tot*100) : 0;
+  const tot = ess + fut, pf = tot>0 ? Math.round(fut/tot*100) : 0;
   $("sp-ess").style.width = tot>0 ? (100-pf)+"%" : "100%";
   $("sp-fut").style.width = tot>0 ? pf+"%" : "0%";
   $("lg-ess").textContent = `essencial R$ ${brl0(ess)}`;
@@ -364,22 +373,19 @@ function renderPessoal(h, ym, dia, inMes, outMes){
   const fp = $("futil-pct");
   fp.textContent = tot>0 ? pf + "% fútil" : "sem dados";
   fp.style.color = pf >= 30 ? "var(--laranja)" : "var(--fraco)";
-
-  renderRotina();
 }
 
 function renderEmpresa(ym, inMes, outMes, lucro){
-  const hero = $("e-hero");
-  hero.className = "hero " + (lucro >= 0 ? "lucro" : "prejuizo");
+  $("e-hero").className = "hero " + (lucro >= 0 ? "lucro" : "prejuizo");
   anima($("e-lucro"), lucro, "R$");
   $("e-lucro").style.color = lucro < 0 ? "var(--red)" : "var(--texto)";
 
-  const roi = outMes > 0 ? ((inMes - outMes) / outMes) * 100 : null;
+  const roi = outMes > 0 ? ((inMes - outMes)/outMes)*100 : null;
   const er = $("e-roi");
   er.textContent = roi === null ? "ROI sem base" : `ROI ${roi>0?"+":""}${roi.toFixed(0)}%`;
   er.style.color = roi === null ? "" : (roi >= 0 ? "var(--green)" : "var(--red)");
   er.style.borderColor = roi === null ? "" : (roi >= 0 ? "var(--green)" : "var(--red)");
-  const margem = inMes > 0 ? (lucro / inMes) * 100 : null;
+  const margem = inMes > 0 ? (lucro/inMes)*100 : null;
   $("e-margem").textContent = margem === null ? "sem receita" : `margem ${margem.toFixed(0)}%`;
 
   $("e-in").textContent  = "R$ " + brl(inMes);
@@ -387,19 +393,14 @@ function renderEmpresa(ym, inMes, outMes, lucro){
   $("e-in-sub").textContent  = noMes(ym,"entrada").length + " lançamentos";
   $("e-out-sub").textContent = noMes(ym,"saida").length + " lançamentos";
 
-  // gasto por sócio
-  const gastos = {};
-  noMes(ym,"saida").forEach(x=>{
-    const k = x.membro_id || "sem";
-    gastos[k] = (gastos[k]||0) + x.valor;
-  });
-  const pares = Object.entries(gastos).sort((a,b)=>b[1]-a[1]);
+  const g = {};
+  noMes(ym,"saida").forEach(x=>{ const k = x.membro_id || "sem"; g[k] = (g[k]||0)+x.valor; });
+  const pares = Object.entries(g).sort((a,b)=>b[1]-a[1]);
   const total = pares.reduce((s,[,v])=>s+v,0);
-  $("e-socios-tot").textContent = total > 0 ? "R$ " + brl0(total) : "";
+  $("e-socios-tot").textContent = total>0 ? "R$ " + brl0(total) : "";
   const box = $("e-socios");
-  if(!pares.length){
-    box.innerHTML = '<div class="vazio">Nenhuma saída este mês. Ao lançar, escolha de quem foi o gasto.</div>';
-  }else{
+  if(!pares.length){ box.innerHTML = '<div class="vazio">Nenhuma saída este mês. Ao lançar, escolha de quem foi o gasto.</div>'; }
+  else{
     const max = pares[0][1];
     box.innerHTML = pares.map(([k,v])=>
       `<div class="linha-barra"><span class="n">${esc(k==="sem"?"não atribuído":nomeMembro(k))}</span>
@@ -409,86 +410,150 @@ function renderEmpresa(ym, inMes, outMes, lucro){
 }
 
 function renderAlertas(){
-  const box = $("alertas");
-  box.innerHTML = "";
+  const box = $("alertas"); box.innerHTML = "";
   const h = hojeISO();
-  const vencidas = contasOrd().filter(c=>diasEntre(h, vencimento(c)) < 0);
-  const hojeEv = eventosNoDia(h).filter(e=>e.hora);
-  const partes = [];
-  if(vencidas.length) partes.push(`${vencidas.length} conta${vencidas.length>1?"s":""} vencida${vencidas.length>1?"s":""}`);
-  if(hojeEv.length)   partes.push(`${hojeEv.length} compromisso${hojeEv.length>1?"s":""} hoje`);
-  if(!partes.length) return;
+  const venc = contasOrd().filter(c=>diasEntre(h, vencimento(c)) < 0);
+  const ev = eventosNoDia(h).filter(e=>e.hora);
+  const p = [];
+  if(venc.length) p.push(`${venc.length} conta${venc.length>1?"s":""} vencida${venc.length>1?"s":""}`);
+  if(ev.length)   p.push(`${ev.length} compromisso${ev.length>1?"s":""} hoje`);
+  if(!p.length) return;
   const el = document.createElement("div");
   el.className = "alerta";
-  el.innerHTML = `<span class="rot laranja">Atenção</span><span class="t">${partes.join(" · ")}</span>`;
+  el.innerHTML = `<span class="rot laranja">Atenção</span><span class="t">${p.join(" · ")}</span>`;
   box.appendChild(el);
 }
 
-function renderRotina(){
-  const h = hojeISO(), box = $("rotina");
-  const agora = new Date().toTimeString().slice(0,5);
-  box.innerHTML = "";
-  $("h-seed").hidden = db.habitos.length > 0;
-  if(!db.habitos.length){
-    box.innerHTML = '<div class="vazio">Rotina vazia. Use a lista pronta ou adicione seus próprios pontos do dia abaixo.</div>';
-    $("rot-cont").textContent = ""; return;
-  }
-  $("rot-cont").textContent = `${db.habitos.filter(x=>temMarca(x.id,h)).length}/${db.habitos.length}`;
+/* ================= ROTINA ================= */
+function renderRotinaDia(){
+  const d = rtDia, h = hojeISO();
+  const rel = d===h ? "hoje" : d===somaDias(h,-1) ? "ontem" : d===somaDias(h,1) ? "amanhã"
+            : (diasEntre(h,d) > 0 ? `em ${diasEntre(h,d)} dias` : `${-diasEntre(h,d)} dias atrás`);
+  $("rt-data").textContent = extenso(d,{weekday:"long",day:"2-digit",month:"short"}).replace(/\./g,"");
+  $("rt-rel").textContent = rel;
 
-  BLOCOS.forEach(bl=>{
-    const itens = db.habitos.filter(x=>x.bloco===bl.id)
-      .sort((a,b)=> (a.hora||"99:99").localeCompare(b.hora||"99:99"));
-    if(!itens.length) return;
-    const feitos = itens.filter(x=>temMarca(x.id,h)).length;
-    const pronto = feitos === itens.length;
-    const expandido = !pronto || abertos.has(bl.id);
+  const box = $("rt-blocos"); box.innerHTML = "";
+  $("rt-seed").hidden = db.blocos.length > 0;
 
-    const sec = document.createElement("div");
-    sec.className = "bloco" + (pronto?" pronto":"");
-    const cab = document.createElement("button");
-    cab.className = "bloco-cab press";
-    cab.setAttribute("aria-expanded", String(expandido));
-    cab.innerHTML = `<span class="nome">${bl.nome}${pronto?" ✓":""}</span>
-      <span class="prog"><i style="width:${Math.round(feitos/itens.length*100)}%"></i></span>
-      <span class="prog-n">${feitos}/${itens.length}</span>
-      <span class="seta">${expandido?"▾":"▸"}</span>`;
-    cab.onclick = ()=>{ abertos.has(bl.id) ? abertos.delete(bl.id) : abertos.add(bl.id); tocar(); renderRotina(); };
-    sec.appendChild(cab);
+  if(!db.blocos.length){
+    box.innerHTML = '<div class="card"><div class="vazio">Nenhum bloco ainda. Use o botão abaixo para instalar sua rotina de 07:30 às 00:00 — depois é só editar o que não bater.</div></div>';
+    $("rt-barra").style.width = "0%";
+  }else{
+    let totI = 0, totF = 0;
+    const agora = new Date().toTimeString().slice(0,5);
+    const blocos = [...db.blocos].sort((a,b)=>a.hora.localeCompare(b.hora));
 
-    if(expandido) itens.forEach(hb=>{
-      const on = temMarca(hb.id,h);
-      const proximo = !on && hb.hora && hhmm(hb.hora) <= agora;
-      const li = document.createElement("div");
-      li.className = "hab" + (on?" on":"") + (proximo?" agora":"");
-      const ms = marcasDe(hb.id);
-      let fita = ""; for(let i=13;i>=0;i--) fita += `<i class="${ms.includes(somaDias(h,-i))?"on":""}"></i>`;
-      const bt = document.createElement("button");
-      bt.className = "marca press"; bt.textContent = "✓";
-      bt.setAttribute("aria-pressed", String(on)); bt.setAttribute("aria-label", hb.nome);
-      bt.onclick = ()=>alternarHabito(hb, on);
-      const hora = document.createElement("span");
-      hora.className = "hora" + (hb.hora?"":" vazia");
-      hora.textContent = hb.hora ? hhmm(hb.hora) : "—";
-      const nome = document.createElement("span");
-      nome.className = "nome"; nome.textContent = hb.nome;
-      const fitaEl = document.createElement("span");
-      fitaEl.className = "fita"; fitaEl.innerHTML = fita;
-      const x = document.createElement("button");
-      x.className = "x press"; x.textContent = "✕"; x.title = "remover";
-      x.onclick = ()=>apagar("habitos", hb.id, ()=>{
-        db.habitos = db.habitos.filter(z=>z.id!==hb.id);
-        db.marcas = db.marcas.filter(z=>z.habito_id!==hb.id);
-      });
-      li.append(bt,hora,nome,fitaEl,x);
-      sec.appendChild(li);
+    blocos.forEach((bl,idx)=>{
+      const itens = itensDoBloco(bl.id, d);
+      const feitos = itens.filter(i=>temMarca(i.id, d)).length;
+      totI += itens.length; totF += feitos;
+      const pronto = itens.length > 0 && feitos === itens.length;
+      const prox = blocos[idx+1];
+      const agoraNesse = d===h && hhmm(bl.hora) <= agora && (!prox || agora < hhmm(prox.hora));
+      const aberto = blocoAberto === bl.id;
+
+      const el = document.createElement("div");
+      el.className = "blk" + (pronto?" pronto":"") + (agoraNesse && !pronto?" agora":"");
+      const cab = document.createElement("button");
+      cab.className = "blk-cab press";
+      cab.setAttribute("aria-expanded", String(aberto));
+      cab.innerHTML = `<span class="blk-hora">${hhmm(bl.hora)}</span>
+        <span class="blk-tit">${esc(bl.titulo)}</span>
+        ${agoraNesse && !pronto ? '<span class="selo">agora</span>' : ""}
+        <span class="blk-cnt">${feitos}/${itens.length}</span>
+        <span class="blk-seta">${aberto?"▾":"▸"}</span>`;
+      cab.onclick = ()=>{ blocoAberto = aberto ? null : bl.id; tocar(); renderRotinaDia(); };
+      el.appendChild(cab);
+
+      if(aberto){
+        const corpo = document.createElement("div");
+        corpo.className = "blk-corpo";
+        if(bl.nota){
+          const n = document.createElement("div");
+          n.className = "blk-nota"; n.textContent = bl.nota;
+          corpo.appendChild(n);
+        }
+        if(!itens.length){
+          const v = document.createElement("div");
+          v.className = "vazio"; v.style.fontSize = "13px";
+          v.textContent = "Nenhum item para " + DIAS_SEM[diaSemana(d)] + ".";
+          corpo.appendChild(v);
+        }
+        itens.forEach(it=>{
+          const on = temMarca(it.id, d);
+          const li = document.createElement("button");
+          li.className = "tk press" + (on?" on":"");
+          li.setAttribute("aria-pressed", String(on));
+          li.innerHTML = `<span class="cx">✓</span><span class="t">${esc(it.nome)}</span>`
+            + (it.dia_semana !== null && it.dia_semana !== undefined ? `<span class="h">${DIAS_SEM[it.dia_semana].slice(0,3)}</span>` : "");
+          li.onclick = ()=>alternarItem(it, on, d);
+          corpo.appendChild(li);
+        });
+        const ed = document.createElement("button");
+        ed.className = "mini press";
+        ed.style.cssText = "width:100%;margin-top:12px";
+        ed.textContent = "Editar este bloco";
+        ed.onclick = ()=>abrirBloco(bl);
+        corpo.appendChild(ed);
+        el.appendChild(corpo);
+      }
+      box.appendChild(el);
     });
-    box.appendChild(sec);
+    $("rt-barra").style.width = totI ? Math.round(totF/totI*100)+"%" : "0%";
+  }
+
+  // tarefas avulsas
+  const lt = $("rt-tarefas"); lt.innerHTML = "";
+  const ts = tarefasDoDia(d);
+  $("rt-tar-cnt").textContent = ts.length ? ts.filter(t=>t.feita).length + "/" + ts.length : "";
+  if(!ts.length) lt.innerHTML = '<li class="vazio">Nada só para este dia.</li>';
+  ts.forEach(t=>{
+    const li = document.createElement("li");
+    li.className = "tk" + (t.feita?" on":"");
+    const bt = document.createElement("button");
+    bt.className = "cx press"; bt.textContent = "✓";
+    bt.setAttribute("aria-pressed", String(t.feita));
+    bt.onclick = ()=>alternarTarefa(t);
+    const tx = document.createElement("span");
+    tx.className = "t"; tx.textContent = t.titulo;
+    const hr = document.createElement("span");
+    hr.className = "h"; hr.textContent = hhmm(t.hora);
+    const x = document.createElement("button");
+    x.className = "x press"; x.textContent = "✕";
+    x.onclick = ()=>apagar("tarefas", t.id, ()=>{ db.tarefas = db.tarefas.filter(z=>z.id!==t.id); });
+    li.append(bt,tx,hr,x); lt.appendChild(li);
   });
 }
 
+function abrirBloco(bl){
+  blocoEdit = bl;
+  $("bl-titulo").textContent = hhmm(bl.hora) + " — " + bl.titulo;
+  $("bl-hora").value = hhmm(bl.hora);
+  $("bl-nome").value = bl.titulo;
+  const ul = $("bl-itens"); ul.innerHTML = "";
+  const todos = db.habitos.filter(x=>x.bloco_id===bl.id).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
+  if(!todos.length) ul.innerHTML = '<li class="vazio">Bloco sem itens.</li>';
+  todos.forEach(it=>{
+    const li = document.createElement("li"); li.className = "item";
+    li.innerHTML = `<span class="nome">${esc(it.nome)}</span>`
+      + (it.dia_semana !== null && it.dia_semana !== undefined ? `<span class="tag">só ${DIAS_SEM[it.dia_semana]}</span>` : "");
+    const x = document.createElement("button");
+    x.className = "x press"; x.textContent = "✕";
+    x.onclick = async ()=>{
+      const { error } = await sb.from("habitos").delete().eq("id", it.id);
+      if(error) return falhou(error);
+      db.habitos = db.habitos.filter(z=>z.id!==it.id);
+      db.marcas  = db.marcas.filter(z=>z.habito_id!==it.id);
+      abrirBloco(bl); renderRotinaDia(); toast("item removido");
+    };
+    li.appendChild(x); ul.appendChild(li);
+  });
+  abrirSheet("sheet-bloco");
+}
+
+/* ================= listas ================= */
 function renderContas(){
-  const h = hojeISO(), lc = $("lista-contas");
-  lc.innerHTML = "";
+  const h = hojeISO(), lc = $("lista-contas"); lc.innerHTML = "";
   if(!contas().length){ lc.innerHTML = '<li class="vazio">Sem contas neste espaço.</li>'; return; }
   contasOrd().slice(0,7).forEach(c=>{
     const d = diasEntre(h, vencimento(c));
@@ -505,17 +570,16 @@ function renderContas(){
 }
 
 function renderLancamentos(){
-  const h = hojeISO(), ll = $("lista-lanc");
-  ll.innerHTML = "";
+  const h = hojeISO(), ll = $("lista-lanc"); ll.innerHTML = "";
   $("cont-hoje").textContent = noDia(h).length + " hoje";
   const ult = lancs().slice(0,8);
   if(!ult.length){ ll.innerHTML = '<li class="vazio">Nada lançado neste espaço. Toque no + para começar.</li>'; return; }
+  const rank = rankCategorias(mesDe(h));
   ult.forEach(l=>{
-    const i = rankCategorias(mesDe(hojeISO())).findIndex(([c])=>c===l.categoria);
+    const i = rank.findIndex(([c])=>c===l.categoria);
     const cor = l.tipo==="entrada" ? VERDE : (i<0 ? "var(--linha-f)" : RAMPA[Math.min(i,RAMPA.length-1)]);
+    const extra = espaco==="empresa" && l.membro_id ? " · " + esc(nomeMembro(l.membro_id)) : "";
     const li = document.createElement("li"); li.className = "item";
-    const extra = espaco==="empresa" && l.membro_id ? " · " + esc(nomeMembro(l.membro_id))
-                : (espaco==="pessoal" && l.natureza==="futil" ? "" : "");
     li.innerHTML = `<span class="barra-cat" style="background:${cor}"></span>
       <span class="nome">${esc(l.categoria)}${l.nota?' <span style="color:var(--fraco)">· '+esc(l.nota)+'</span>':""}<span style="color:var(--fraco)">${extra}</span></span>
       ${l.natureza==="futil"?'<span class="tag futil">fútil</span>':""}
@@ -542,13 +606,8 @@ function renderCalendario(){
     const op = v<=0?0 : v<=q1?.20 : v<=q2?.36 : v<=q3?.55 : .78;
     const b = document.createElement("button");
     b.className = "dia press" + (fora?" fora":"") + (d===h?" hoje":"") + (v>0?" gastou":"")
-      + (contasNoDia(d).length?" conta":"") + (eventosNoDia(d).length?" evento":"");
-    const marcas = [];
-    if(v>0) marcas.push(`saiu R$ ${brl(v)}`);
-    if(entraDia(d)>0) marcas.push(`entrou R$ ${brl(entraDia(d))}`);
-    if(contasNoDia(d).length) marcas.push("conta vence");
-    if(eventosNoDia(d).length) marcas.push("compromisso");
-    b.setAttribute("aria-label", `${extenso(d)}${marcas.length?" · "+marcas.join(", "):""}`);
+      + (contasNoDia(d).length?" conta":"") + ((eventosNoDia(d).length||tarefasDoDia(d).length)?" evento":"");
+    b.setAttribute("aria-label", extenso(d));
     b.innerHTML = `<span class="fundo" style="opacity:${op}"></span><span class="n">${+d.slice(8,10)}</span>`
       + (db.fechados.includes(d) ? '<span class="sub"></span>' : "");
     b.onclick = ()=>{ selDia = d; tocar(); renderDetalheDia(); abrirSheet("sheet-dia"); };
@@ -557,8 +616,7 @@ function renderCalendario(){
 }
 
 function renderProximosEventos(){
-  const h = hojeISO(), le = $("lista-eventos");
-  le.innerHTML = "";
+  const h = hojeISO(), le = $("lista-eventos"); le.innerHTML = "";
   const prox = eventos().filter(e=>e.data>=h)
     .sort((x,y)=>(x.data+(x.hora||"99")).localeCompare(y.data+(y.hora||"99"))).slice(0,10);
   if(!prox.length){ le.innerHTML = '<li class="vazio">Nada marcado. Toque num dia do calendário para adicionar.</li>'; return; }
@@ -592,7 +650,6 @@ function renderNumeros(h, ym, dia, inMes, outMes, saldoMes){
     $("k-ritmo").style.color = p>0 ? "var(--laranja)" : "var(--green)";
     $("k-ritmo-sub").textContent = `dia ${dia} do mês passado: R$ ${brl0(base)}`;
   }
-
   $("g-fluxo").innerHTML = svgFluxo();
   $("g-ritmo").innerHTML = svgRitmo();
   $("g-donut").innerHTML = svgDonut();
@@ -647,8 +704,8 @@ function checarLembretes(){
   db.eventos.filter(e=>e.data===h && e.hora && e.lembrete_min).forEach(e=>{
     if(avisados.has(e.id)) return;
     const [hh,mm] = hhmm(e.hora).split(":").map(Number);
-    const quando = new Date(agora); quando.setHours(hh, mm, 0, 0);
-    const faltam = (quando - agora) / 60000;
+    const q = new Date(agora); q.setHours(hh, mm, 0, 0);
+    const faltam = (q - agora)/60000;
     if(faltam <= e.lembrete_min && faltam > -2){
       avisados.add(e.id);
       toast(`${e.titulo} · ${hhmm(e.hora)}`);
@@ -661,7 +718,7 @@ function checarLembretes(){
   });
 }
 
-/* ================= navegação e sheets ================= */
+/* ================= navegação ================= */
 function aplicarEspaco(rerender){
   const pessoal = espaco === "pessoal";
   $("seletor").className = "seletor" + (pessoal ? "" : " empresa");
@@ -707,7 +764,8 @@ function tecla(k){
   tocar(6); pintarMostrador();
 }
 function abrirLancamento(data){
-  digitos = ""; catSel = null; membroSel = (db.membros.find(m=>m.eh_voce)||db.membros[0]||{}).id || null;
+  digitos = ""; catSel = null;
+  membroSel = (db.membros.find(m=>m.eh_voce)||db.membros[0]||{}).id || null;
   tipoSel = "saida"; natSel = "essencial";
   dataAlvo = data || hojeISO();
   $("nota").value = ""; $("aviso").textContent = "";
@@ -764,13 +822,12 @@ async function lancar(){
   if(v<=0){ $("aviso").textContent = "digite um valor"; return; }
   if(!catSel){ $("aviso").textContent = "escolha uma categoria"; return; }
   $("aviso").textContent = "";
-  const linha = {
+  const { data, error } = await sb.from("lancamentos").insert({
     user_id:usuario.id, espaco, tipo:tipoSel, data:dataAlvo, valor:v,
     categoria:catSel, nota:$("nota").value.trim(),
     natureza: (espaco==="pessoal" && tipoSel==="saida") ? natSel : null,
     membro_id: (espaco==="empresa" && tipoSel==="saida") ? membroSel : null
-  };
-  const { data, error } = await sb.from("lancamentos").insert(linha).select().single();
+  }).select().single();
   if(error) return falhou(error);
   db.lancamentos.unshift({...data, valor:Number(data.valor)});
   db.lancamentos.sort((a,b)=>b.data.localeCompare(a.data));
@@ -792,21 +849,28 @@ async function pagarConta(c){
   }
   tocar(14); render(); toast(`${c.nome} quitada`);
 }
-async function alternarHabito(hb, estavaOn){
+async function alternarItem(it, estavaOn, data){
   tocar(estavaOn?6:12);
   if(estavaOn){
-    const marca = db.marcas.find(x=>x.habito_id===hb.id && x.data===hojeISO());
+    const marca = db.marcas.find(x=>x.habito_id===it.id && x.data===data);
     if(!marca) return;
     const { error } = await sb.from("habito_marcas").delete().eq("id", marca.id);
     if(error) return falhou(error);
     db.marcas = db.marcas.filter(x=>x.id!==marca.id);
   }else{
-    const { data, error } = await sb.from("habito_marcas")
-      .insert({ user_id:usuario.id, habito_id:hb.id, data:hojeISO() }).select().single();
+    const { data:novo, error } = await sb.from("habito_marcas")
+      .insert({ user_id:usuario.id, habito_id:it.id, data }).select().single();
     if(error) return falhou(error);
-    db.marcas.push(data);
+    db.marcas.push(novo);
   }
-  render();
+  renderRotinaDia();
+}
+async function alternarTarefa(t){
+  tocar(t.feita?6:12);
+  const { error } = await sb.from("tarefas").update({ feita: !t.feita }).eq("id", t.id);
+  if(error) return falhou(error);
+  t.feita = !t.feita;
+  renderRotinaDia();
 }
 async function fecharDia(){
   const h = hojeISO();
@@ -815,23 +879,101 @@ async function fecharDia(){
   db.fechados.push(h);
   tocar(18); render(); toast(`dia fechado · ${streakDe(db.fechados)}d seguidos`);
 }
-async function semearRotina(){
-  const linhas = ROTINA_PRONTA.map((r,i)=>({ user_id:usuario.id, nome:r.nome, bloco:r.bloco, hora:r.hora, ordem:i }));
-  const { data, error } = await sb.from("habitos").insert(linhas).select();
-  if(error) return falhou(error);
-  db.habitos = data; render(); toast("rotina criada");
+async function instalarRotina(){
+  toast("instalando…");
+  for(let i=0;i<ROTINA.length;i++){
+    const b = ROTINA[i];
+    const { data:bloco, error } = await sb.from("blocos_rotina")
+      .insert({ user_id:usuario.id, hora:b.hora, titulo:b.titulo, nota:b.nota || null, ordem:i })
+      .select().single();
+    if(error) return falhou(error);
+    db.blocos.push(bloco);
+    const itens = b.itens.map((it,j)=>{
+      const obj = typeof it === "string" ? { nome:it, dia:null } : it;
+      return { user_id:usuario.id, bloco_id:bloco.id, nome:obj.nome,
+               dia_semana: obj.dia === null || obj.dia === undefined ? null : obj.dia, ordem:j };
+    });
+    const { data:novos, error:e2 } = await sb.from("habitos").insert(itens).select();
+    if(e2) return falhou(e2);
+    db.habitos.push(...novos);
+  }
+  renderRotinaDia();
+  toast("rotina instalada");
 }
 
 /* ================= eventos de UI ================= */
 function ligarEventos(){
   $("seletor").querySelectorAll("button").forEach(b=>
     b.onclick = ()=>{ if(espaco===b.dataset.esp) return; espaco = b.dataset.esp; tocar(10); aplicarEspaco(true); });
-
   document.querySelectorAll(".nav .aba").forEach(a=> a.onclick = ()=>irPara(a.dataset.view));
   $("fab").onclick = ()=>{ tocar(10); abrirLancamento(hojeISO()); };
   $("btn-dia").onclick = fecharDia;
-  $("h-seed").onclick = semearRotina;
-  $("cal-ant").onclick = ()=>{ calRef.m--; if(calRef.m<1){calRef.m=12;calRef.a--;} tocar(); renderCalendario(); };
+
+  $("rt-ant").onclick  = ()=>{ rtDia = somaDias(rtDia,-1); blocoAberto = null; tocar(); renderRotinaDia(); };
+  $("rt-prox").onclick = ()=>{ rtDia = somaDias(rtDia, 1); blocoAberto = null; tocar(); renderRotinaDia(); };
+  $("rt-hoje").onclick = ()=>{ rtDia = hojeISO(); blocoAberto = null; tocar(); renderRotinaDia(); };
+  $("rt-seed").onclick = instalarRotina;
+
+  $("t-add").onclick = async ()=>{
+    const titulo = $("t-titulo").value.trim();
+    if(!titulo) return;
+    const { data, error } = await sb.from("tarefas").insert({
+      user_id:usuario.id, data:rtDia, hora:$("t-hora").value || null, titulo
+    }).select().single();
+    if(error) return falhou(error);
+    db.tarefas.push(data);
+    $("t-titulo").value = ""; $("t-hora").value = "";
+    renderRotinaDia(); renderCalendario(); toast("adicionado a este dia");
+  };
+
+  $("b-add").onclick = async ()=>{
+    const hora = $("b-hora").value, titulo = $("b-titulo").value.trim();
+    if(!hora || !titulo) return toast("preencha hora e título", true);
+    const { data, error } = await sb.from("blocos_rotina")
+      .insert({ user_id:usuario.id, hora, titulo, ordem:db.blocos.length }).select().single();
+    if(error) return falhou(error);
+    db.blocos.push(data);
+    $("b-hora").value = ""; $("b-titulo").value = "";
+    blocoAberto = data.id; renderRotinaDia(); toast("bloco criado");
+  };
+
+  $("bl-fechar").onclick = fecharSheets;
+  $("bl-add").onclick = async ()=>{
+    if(!blocoEdit) return;
+    const nome = $("bl-novo").value.trim();
+    if(!nome) return;
+    const dv = $("bl-dia").value;
+    const { data, error } = await sb.from("habitos").insert({
+      user_id:usuario.id, bloco_id:blocoEdit.id, nome,
+      dia_semana: dv === "" ? null : parseInt(dv,10),
+      ordem: db.habitos.filter(x=>x.bloco_id===blocoEdit.id).length
+    }).select().single();
+    if(error) return falhou(error);
+    db.habitos.push(data);
+    $("bl-novo").value = "";
+    abrirBloco(blocoEdit); renderRotinaDia(); toast("item adicionado");
+  };
+  $("bl-salvar").onclick = async ()=>{
+    if(!blocoEdit) return;
+    const hora = $("bl-hora").value, titulo = $("bl-nome").value.trim();
+    if(!hora || !titulo) return toast("preencha hora e título", true);
+    const { error } = await sb.from("blocos_rotina").update({ hora, titulo }).eq("id", blocoEdit.id);
+    if(error) return falhou(error);
+    blocoEdit.hora = hora; blocoEdit.titulo = titulo;
+    fecharSheets(); renderRotinaDia(); toast("bloco salvo");
+  };
+  $("bl-apagar").onclick = async ()=>{
+    if(!blocoEdit) return;
+    if(!confirm("Apagar o bloco e todos os itens dele?")) return;
+    const { error } = await sb.from("blocos_rotina").delete().eq("id", blocoEdit.id);
+    if(error) return falhou(error);
+    db.blocos  = db.blocos.filter(z=>z.id!==blocoEdit.id);
+    db.habitos = db.habitos.filter(z=>z.bloco_id!==blocoEdit.id);
+    blocoEdit = null; blocoAberto = null;
+    fecharSheets(); renderRotinaDia(); toast("bloco apagado");
+  };
+
+  $("cal-ant").onclick  = ()=>{ calRef.m--; if(calRef.m<1){calRef.m=12;calRef.a--;} tocar(); renderCalendario(); };
   $("cal-prox").onclick = ()=>{ calRef.m++; if(calRef.m>12){calRef.m=1;calRef.a++;} tocar(); renderCalendario(); };
   $("veu").onclick = fecharSheets;
   $("lanc-fechar").onclick = fecharSheets;
@@ -839,7 +981,8 @@ function ligarEventos(){
   document.addEventListener("keydown", e=>{ if(e.key==="Escape") fecharSheets(); });
   document.querySelectorAll(".tecla").forEach(t=> t.onclick = ()=>tecla(t.dataset.k));
   $("btn-lancar").onclick = lancar;
-  $("dia-lancar").onclick = ()=>{ fecharSheets(); setTimeout(()=>abrirLancamento(selDia), 260); };
+  $("dia-lancar").onclick = ()=>{ const d = selDia; fecharSheets(); setTimeout(()=>abrirLancamento(d), 260); };
+  $("dia-rotina").onclick = ()=>{ rtDia = selDia; blocoAberto = null; fecharSheets(); setTimeout(()=>{ irPara("rotina"); renderRotinaDia(); }, 260); };
 
   $("dp-tipo").querySelectorAll("button").forEach(b=> b.onclick = ()=>{
     tipoSel = b.dataset.t; tocar();
@@ -865,18 +1008,6 @@ function ligarEventos(){
     db.contas.push({...data, valor:Number(data.valor||0)});
     ["c-nome","c-dia","c-valor"].forEach(k=>$(k).value="");
     render(); toast("conta cadastrada");
-  };
-
-  $("h-add").onclick = async ()=>{
-    const nome = $("h-nome").value.trim();
-    if(!nome) return;
-    const { data, error } = await sb.from("habitos").insert({
-      user_id:usuario.id, nome, bloco:$("h-bloco").value, hora:$("h-hora").value || null, ordem:db.habitos.length
-    }).select().single();
-    if(error) return falhou(error);
-    db.habitos.push(data);
-    $("h-nome").value = ""; $("h-hora").value = "";
-    render(); toast("ponto do dia adicionado");
   };
 
   $("m-add").onclick = async ()=>{
@@ -912,7 +1043,7 @@ function ligarEventos(){
 
   let x0 = null, y0 = null;
   document.addEventListener("touchstart", e=>{
-    if(!$("sheet-lanc").hidden || !$("sheet-dia").hidden) return;
+    if(!$("sheet-lanc").hidden || !$("sheet-dia").hidden || !$("sheet-bloco").hidden) return;
     x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
   }, { passive:true });
   document.addEventListener("touchend", e=>{
