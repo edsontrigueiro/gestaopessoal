@@ -33,7 +33,7 @@ html[data-tema="escuro"]{
   --campo:#141817;
 }
 :root{
-  --r:14px; --r2:10px;
+  --r:18px; --r2:11px;
   --nav-h:calc(62px + env(safe-area-inset-bottom));
   --mola:cubic-bezier(.22,1,.32,1);
   --f:"Inter",-apple-system,system-ui,sans-serif;
@@ -104,16 +104,16 @@ svg{display:block}
 .seg button.on{background:var(--card);color:var(--txt);box-shadow:var(--sombra)}
 
 /* ============ cards ============ */
-.grade{display:grid;grid-template-columns:1fr;gap:13px}
+.grade{display:grid;grid-template-columns:1fr;gap:14px}
 .card{background:var(--card);border:1px solid var(--linha);border-radius:var(--r);box-shadow:var(--sombra);overflow:hidden}
-.card-h{background:var(--barra);color:var(--barra-txt);padding:10px 14px;display:flex;align-items:center;gap:9px}
-.card-h.ouro{background:linear-gradient(90deg,#B45309,#D97706)}
-.card-h.ouro .ic{color:#FDE68A}
-.card-h .ic{width:16px;height:16px;flex:none;color:var(--laranja)}
-.card-h .ic svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.card-h h3{flex:1;min-width:0;font-size:13px;font-weight:600;letter-spacing:.005em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card-h .meta{font-size:12px;opacity:.72;white-space:nowrap}
-.card-b{padding:15px}
+.card-h{padding:17px 17px 0;display:flex;align-items:center;gap:11px}
+.card-h.ouro .ic{background:color-mix(in srgb,var(--ouro) 15%,transparent) !important;color:var(--ouro) !important}
+.card-h .ic{width:32px;height:32px;flex:none;border-radius:10px;display:grid;place-items:center;
+  background:color-mix(in srgb,var(--laranja) 13%,transparent);color:var(--laranja)}
+.card-h .ic svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.card-h h3{flex:1;min-width:0;font-size:15.5px;font-weight:700;letter-spacing:-.015em;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-h .meta{font-size:12px;color:var(--txt3);white-space:nowrap;font-weight:500}
+.card-b{padding:15px 17px 17px}
 .card-b.plano{padding:0}
 
 @media (prefers-reduced-motion:no-preference){
@@ -139,7 +139,7 @@ svg{display:block}
 .kpi .s{font-size:11.5px;color:var(--txt3);margin-top:4px}
 
 /* ============ listas ============ */
-.lin{display:flex;align-items:center;gap:11px;padding:13px 15px;border-bottom:1px solid var(--linha2)}
+.lin{display:flex;align-items:center;gap:11px;padding:13px 17px;border-bottom:1px solid var(--linha2)}
 .lin:last-child{border-bottom:none}
 .lin .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14.5px}
 .lin .n small{display:block;font-size:12px;color:var(--txt3);margin-top:1px}
@@ -155,9 +155,9 @@ svg{display:block}
 .mini{border:1px solid var(--linha);border-radius:8px;padding:7px 11px;font-size:12.5px;font-weight:500;color:var(--txt2);background:var(--card)}
 .mini:active{border-color:var(--laranja);color:var(--laranja)}
 .mini.forte{color:var(--laranja);border-color:color-mix(in srgb,var(--laranja) 45%,transparent)}
-.vazio{color:var(--txt3);font-size:13.5px;padding:16px 15px;line-height:1.6}
+.vazio{color:var(--txt3);font-size:13.5px;padding:6px 17px 17px;line-height:1.6}
 
-.form{display:flex;gap:8px;flex-wrap:wrap;padding:13px 15px;border-top:1px solid var(--linha2);background:var(--card2)}
+.form{display:flex;gap:8px;flex-wrap:wrap;padding:13px 17px;border-top:1px solid var(--linha2);background:var(--card2)}
 .form input,.form select{border:1px solid var(--linha);border-radius:9px;background:var(--campo);padding:10px 11px;font-size:14px;min-width:0;color-scheme:light dark}
 .form .fn{flex:1 1 130px}
 .form .fx{width:78px}
@@ -177,19 +177,40 @@ svg{display:block}
 .split-l{display:flex;justify-content:space-between;font-size:12.5px;color:var(--txt2)}
 
 
+
+/* ---- vazio que convida ---- */
+.zero-box{margin:13px 17px 17px;border:1.5px dashed var(--linha);border-radius:var(--r2);
+  padding:22px 18px;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;
+  background:color-mix(in srgb,var(--card2) 60%,transparent);width:calc(100% - 34px)}
+.zero-box .mais{width:40px;height:40px;border-radius:99px;background:var(--card);border:1px solid var(--linha);
+  display:grid;place-items:center;font-size:22px;color:var(--laranja);line-height:0;box-shadow:var(--sombra)}
+.zero-box .tt{font-size:14.5px;font-weight:600}
+.zero-box .ss{font-size:12.5px;color:var(--txt3);max-width:290px;line-height:1.5}
+.zero-box:active{border-color:var(--laranja)}
+@media (prefers-reduced-motion:no-preference){ .zero-box{transition:border-color .16s var(--mola)} }
+
+/* ---- status: o app falando com você ---- */
+.status{display:flex;align-items:center;gap:14px;padding:17px}
+.status .txt{flex:1;min-width:0}
+.status .tt{font-size:16px;font-weight:700;letter-spacing:-.015em}
+.status .ss{font-size:13px;color:var(--txt2);margin-top:3px;line-height:1.45}
+.status .cta{flex:none;border-radius:99px;padding:11px 17px;font-size:13px;font-weight:600;
+  background:var(--txt);color:var(--card);white-space:nowrap}
+@media (max-width:520px){ .status{flex-direction:column;align-items:stretch} .status .cta{width:100%} }
+
 /* ---- hero disponível ---- */
 .hero{display:grid;grid-template-columns:1fr;gap:16px;align-items:center;padding:18px 15px}
 .hero-anel{display:grid;place-items:center}
 .hero-tot{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
-.tot{border:1px solid var(--linha);border-radius:var(--r2);padding:10px 11px;background:var(--card2)}
+.tot{border:1px solid var(--linha);border-radius:var(--r2);padding:12px 13px;background:var(--card2)}
 .tot .r{font-size:11px;color:var(--txt2);display:flex;align-items:center;gap:6px}
-.tot .v{font-size:16px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.tot .v{font-size:17px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .tot.e .v{color:var(--entra)} .tot.i .v{color:var(--ouro)} .tot.s .v{color:var(--sai)}
 
 /* ---- tabela ---- */
-.thead{display:grid;grid-template-columns:34px 1fr 92px 74px;gap:8px;padding:9px 14px;background:var(--card2);
+.thead{display:grid;grid-template-columns:34px 1fr 92px 74px;gap:8px;padding:10px 17px;margin-top:13px;background:var(--card2);
   border-bottom:1px solid var(--linha);font-size:11px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em}
-.trow{display:grid;grid-template-columns:34px 1fr 92px 74px;gap:8px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--linha2)}
+.trow{display:grid;grid-template-columns:34px 1fr 92px 74px;gap:8px;align-items:center;padding:12px 17px;border-bottom:1px solid var(--linha2)}
 .trow:last-child{border-bottom:none}
 .trow .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14.5px}
 .trow .n small{display:block;font-size:12px;color:var(--txt3)}
@@ -274,14 +295,18 @@ svg{display:block}
 /* ============ sheets ============ */
 .veu{position:fixed;inset:0;background:rgba(15,20,18,.5);backdrop-filter:blur(2px);z-index:50;opacity:0}
 .veu.on{opacity:1}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--card);border-radius:20px 20px 0 0;
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--card);border-radius:24px 24px 0 0;
   padding:8px 16px calc(18px + env(safe-area-inset-bottom));max-height:92dvh;overflow-y:auto;
   transform:translateY(100%);max-width:520px;margin-inline:auto;box-shadow:var(--sombra2)}
 .sheet.on{transform:none}
 @media (prefers-reduced-motion:no-preference){ .veu{transition:opacity .24s var(--mola)} .sheet{transition:transform .3s var(--mola)} }
 .puxa{width:36px;height:4px;border-radius:99px;background:var(--linha);margin:7px auto 14px}
-.sh-c{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
-.sh-c h3{font-size:17px}
+.sh-c{display:flex;align-items:center;gap:11px;margin-bottom:16px}
+.sh-c .ic{width:32px;height:32px;flex:none;border-radius:10px;display:grid;place-items:center;
+  background:color-mix(in srgb,var(--laranja) 13%,transparent);color:var(--laranja);font-size:16px;font-weight:600}
+.sh-c h3{flex:1;min-width:0;font-size:18px;letter-spacing:-.02em}
+.sh-c .fech{flex:none;width:32px;height:32px;border-radius:99px;background:var(--card2);border:1px solid var(--linha);
+  display:grid;place-items:center;font-size:14px;color:var(--txt2);line-height:0}
 
 .mostra{text-align:center;padding:4px 0 14px}
 .mostra .v{font-size:44px;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
@@ -330,7 +355,7 @@ svg{display:block}
   .grade.tres{grid-template-columns:1.4fr 1fr}
   .kpis{grid-template-columns:repeat(4,1fr)}
   .saldo .v{font-size:46px}
-  .sheet{border-radius:16px;top:50%;bottom:auto;left:50%;right:auto;transform:translate(-50%,-46%) scale(.97);opacity:0;
+  .sheet{border-radius:20px;top:50%;bottom:auto;left:50%;right:auto;transform:translate(-50%,-46%) scale(.97);opacity:0;
     max-width:460px;width:calc(100% - 48px);max-height:86dvh;padding-bottom:20px}
   .sheet.on{transform:translate(-50%,-50%) scale(1);opacity:1}
   .puxa{display:none}
@@ -409,6 +434,13 @@ svg{display:block}
     <section id="v-painel">
 
       <div class="card" style="--d:0ms">
+        <div class="status">
+          <div class="txt"><div id="st-tt" class="tt"></div><div id="st-ss" class="ss"></div></div>
+          <button id="st-cta" class="cta press"></button>
+        </div>
+      </div>
+
+      <div class="card" style="--d:40ms">
         <div class="card-h">
           <span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h5M9.5 14.5h5"/></svg></span>
           <h3 id="disp-tit">Disponível para gastar</h3><span id="disp-mes" class="meta"></span>
@@ -639,7 +671,7 @@ svg{display:block}
 
 <section id="sh-lanc" class="sheet" hidden aria-label="Novo lançamento">
   <div class="puxa"></div>
-  <div class="sh-c"><h3 id="lanc-tit">Lançar</h3><button id="lanc-fech" class="mini press">Fechar</button></div>
+  <div class="sh-c"><span class="ic">+</span><h3 id="lanc-tit">Lançar</h3><button id="lanc-fech" class="fech press" aria-label="Fechar">✕</button></div>
   <div class="trio" id="dp-tipo"><button data-t="saida" class="on s">Saída</button><button data-t="entrada">Entrada</button><button data-t="investimento">Investir</button></div>
   <div class="mostra"><div id="mostra" class="v zero"><small>R$</small>0,00</div></div>
   <div id="rl-data" class="rolo"></div>
@@ -659,7 +691,7 @@ svg{display:block}
 
 <section id="sh-dia" class="sheet" hidden aria-label="Detalhe do dia">
   <div class="puxa"></div>
-  <div class="sh-c"><h3 id="dia-tit"></h3><button id="dia-fech" class="mini press">Fechar</button></div>
+  <div class="sh-c"><span class="ic">◷</span><h3 id="dia-tit"></h3><button id="dia-fech" class="fech press" aria-label="Fechar">✕</button></div>
   <div class="saldo" style="margin-bottom:6px">
     <div class="rot">Saldo do dia</div>
     <div id="dia-saldo" class="v" style="font-size:32px"></div>
@@ -687,7 +719,7 @@ svg{display:block}
 
 <section id="sh-bloco" class="sheet" hidden aria-label="Editar bloco">
   <div class="puxa"></div>
-  <div class="sh-c"><h3 id="bl-tit">Bloco</h3><button id="bl-fech" class="mini press">Fechar</button></div>
+  <div class="sh-c"><span class="ic">≡</span><h3 id="bl-tit">Bloco</h3><button id="bl-fech" class="fech press" aria-label="Fechar">✕</button></div>
   <div class="sec">Itens</div>
   <ul id="bl-itens"></ul>
   <div class="form" style="border:none;background:none;padding:12px 0 0">
