@@ -51,7 +51,8 @@ const ROTINA = [
   { hora:"22:30", titulo:"Desligar telas", itens:["Desligar as telas"] },
   { hora:"23:59", titulo:"Dormir", itens:["Dormir"] }
 ];
-const VIEWS = ["painel","rotina","agenda","numeros"];
+const VIEWS = ["painel","dinheiro","rotina","agenda","numeros"];
+const TITULOS = { painel:"Início", dinheiro:"Dinheiro", rotina:"Rotina", agenda:"Agenda", numeros:"Números" };
 const DIAS = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
 const cor = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
@@ -176,7 +177,7 @@ async function autenticar(){
 async function entrar(){
   $("auth").hidden = true;
   $("shell").hidden = false;
-  $("nav").hidden = false;
+  $("fab").hidden = false;
   $("side-email").textContent = user.email || "";
   selDia = hoje(); rtDia = hoje(); dataAlvo = hoje();
   calRef = { a:+selDia.slice(0,4), m:+selDia.slice(5,7) };
@@ -254,16 +255,19 @@ function gFluxo(){
   const mx = Math.max(...ins, ...outs, 1);
   const vazio = !ins.some(v=>v>0) && !outs.some(v=>v>0);
   const W=100,H=44,l=W/dias.length, cE=cor("--entra"), cS=cor("--sai");
+  const eixo = `<div class="graf-x"><span>${curto(dias[0])}</span><span>hoje</span></div>`;
+  const legenda = `<div class="graf-leg"><span><i class="dot" style="background:${cE}"></i>entra</span><span><i class="dot" style="background:${cS}"></i>sai</span></div>`;
   const b = dias.map((d,i)=>{
     const x=i*l, hi=(ins[i]/mx)*(H/2-2), ho=(outs[i]/mx)*(H/2-2);
     return (ins[i]>0?`<rect x="${(x+l*.12).toFixed(2)}" y="${(H/2-hi).toFixed(2)}" width="${(l*.32).toFixed(2)}" height="${hi.toFixed(2)}" rx=".5" fill="${cE}"/>`:"")
          + (outs[i]>0?`<rect x="${(x+l*.54).toFixed(2)}" y="${(H/2).toFixed(2)}" width="${(l*.32).toFixed(2)}" height="${ho.toFixed(2)}" rx=".5" fill="${cS}"/>`:"");
   }).join("");
-  return `<svg viewBox="0 0 ${W} ${H+8}" width="100%" height="150" preserveAspectRatio="none" role="img" aria-label="Entradas e saídas dos últimos 14 dias">
-    <line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="${cor("--linha")}" stroke-width=".5" stroke-dasharray="${vazio?"2 2":"0"}"/>${b}
-    ${vazio?`<text x="${W/2}" y="${H/2-3}" font-size="4" text-anchor="middle" fill="${cor("--txt3")}">nenhum movimento em 14 dias</text>`:""}
-    <text x="0" y="${H+6}" font-size="3.4" fill="${cor("--txt3")}">${curto(dias[0])}</text>
-    <text x="${W}" y="${H+6}" font-size="3.4" text-anchor="end" fill="${cor("--txt3")}">hoje</text></svg>`;
+  return `<div class="graf">
+    <svg viewBox="0 0 ${W} ${H}" height="150" preserveAspectRatio="none" role="img" aria-label="Entradas e saídas dos últimos 14 dias">
+      <line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="${cor("--linha")}" stroke-width=".5" stroke-dasharray="${vazio?"2 2":"0"}"/>${b}
+    </svg>
+    ${vazio?'<div class="graf-vazio">Nenhum movimento nos últimos 14 dias.</div>':""}
+  </div>${eixo}${legenda}`;
 }
 
 /* anel "disponível para gastar": o que entrou menos o que saiu e o que foi investido */
@@ -310,18 +314,16 @@ function gEvo(){
   const ln = serie.map((v,i)=>`${px(i).toFixed(2)},${py(v).toFixed(2)}`).join(" ");
   const cLinha = serie.length && serie[serie.length-1] < 0 ? cor("--sai") : cor("--entra");
   $("evo-meta").textContent = temDado ? `hoje: R$ ${brl0(serie[serie.length-1])}` : "sem lançamentos ainda";
-  return `<svg viewBox="0 0 ${W} ${H+8}" width="100%" height="150" preserveAspectRatio="none" role="img"
-      aria-label="Evolução do saldo acumulado no mês">
-    <line x1="${p}" y1="${zero.toFixed(2)}" x2="${W-p}" y2="${zero.toFixed(2)}"
-      stroke="${cor("--linha")}" stroke-width=".5" stroke-dasharray="${temDado?"0":"2 2"}"/>
-    ${temDado?`<polygon points="${px(0).toFixed(2)},${zero.toFixed(2)} ${ln} ${px(serie.length-1).toFixed(2)},${zero.toFixed(2)}"
-      fill="${cLinha}" fill-opacity=".12"/>
-    <polyline points="${ln}" fill="none" stroke="${cLinha}" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
-    <circle cx="${px(serie.length-1).toFixed(2)}" cy="${py(serie[serie.length-1]).toFixed(2)}" r="1.6" fill="${cLinha}"/>`:""}
-    <text x="${p}" y="${H+6}" font-size="3.4" fill="${cor("--txt3")}">dia 1</text>
-    <text x="${W-p}" y="${H+6}" font-size="3.4" text-anchor="end" fill="${cor("--txt3")}">dia ${n}</text>
-    ${!temDado?`<text x="${W/2}" y="${(zero-4).toFixed(2)}" font-size="4" text-anchor="middle" fill="${cor("--txt3")}">a linha começa no primeiro lançamento</text>`:""}
-  </svg>`;
+  return `<div class="graf">
+    <svg viewBox="0 0 ${W} ${H}" height="150" preserveAspectRatio="none" role="img" aria-label="Evolução do saldo acumulado no mês">
+      <line x1="${p}" y1="${zero.toFixed(2)}" x2="${W-p}" y2="${zero.toFixed(2)}"
+        stroke="${cor("--linha")}" stroke-width=".5" stroke-dasharray="${temDado?"0":"2 2"}"/>
+      ${temDado?`<polygon points="${px(0).toFixed(2)},${zero.toFixed(2)} ${ln} ${px(serie.length-1).toFixed(2)},${zero.toFixed(2)}"
+        fill="${cLinha}" fill-opacity=".12"/>
+      <polyline points="${ln}" fill="none" stroke="${cLinha}" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`:""}
+    </svg>
+    ${!temDado?'<div class="graf-vazio">A linha começa no seu primeiro lançamento do mês.</div>':""}
+  </div><div class="graf-x"><span>dia 1</span><span>dia ${n}</span></div>`;
 }
 
 function gRitmo(){
@@ -331,21 +333,23 @@ function gRitmo(){
   const px=i=>p+(i/(n-1))*(W-p*2), py=v=>H-p-(v/mx)*(H-p*2);
   const ln=a=>a.map((v,i)=>`${px(i).toFixed(2)},${py(v).toFixed(2)}`).join(" ");
   const tA=an.some(v=>v>0);
-  if(!at.some(v=>v>0) && !tA){ $("leg-rit").textContent=""; return '<div class="vazio" style="padding:14px 0">Sem saídas para desenhar.</div>'; }
-  $("leg-rit").textContent = "laranja: este mês · cinza: anterior";
+  if(!at.some(v=>v>0) && !tA){ $("leg-rit").textContent=""; return '<div class="graf" style="height:150px"><div class="graf-vazio">Sem saídas lançadas neste mês.</div></div>'; }
+  $("leg-rit").textContent = "";
   const c=cor("--laranja");
-  return `<svg viewBox="0 0 ${W} ${H+8}" width="100%" height="150" preserveAspectRatio="none" role="img" aria-label="Saídas acumuladas">
-    <line x1="${p}" y1="${py(mx/2).toFixed(2)}" x2="${W-p}" y2="${py(mx/2).toFixed(2)}" stroke="${cor("--linha")}" stroke-width=".35"/>
-    ${tA?`<polyline points="${ln(an)}" fill="none" stroke="${cor("--txt3")}" stroke-width=".7" stroke-dasharray="1.6 1.4" vector-effect="non-scaling-stroke"/>`:""}
-    <polygon points="${p},${H-p} ${ln(at)} ${px(at.length-1).toFixed(2)},${H-p}" fill="${c}" fill-opacity=".13"/>
-    <polyline points="${ln(at)}" fill="none" stroke="${c}" stroke-width="1.4" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
-    <text x="${p}" y="${H+6}" font-size="3.4" fill="${cor("--txt3")}">dia 1</text>
-    <text x="${W-p}" y="${H+6}" font-size="3.4" text-anchor="end" fill="${cor("--txt3")}">R$ ${brl0(mx)}</text></svg>`;
+  return `<div class="graf">
+    <svg viewBox="0 0 ${W} ${H}" height="150" preserveAspectRatio="none" role="img" aria-label="Saídas acumuladas do mês">
+      <line x1="${p}" y1="${py(mx/2).toFixed(2)}" x2="${W-p}" y2="${py(mx/2).toFixed(2)}" stroke="${cor("--linha")}" stroke-width=".35"/>
+      ${tA?`<polyline points="${ln(an)}" fill="none" stroke="${cor("--txt3")}" stroke-width=".7" stroke-dasharray="1.6 1.4" vector-effect="non-scaling-stroke"/>`:""}
+      <polygon points="${p},${H-p} ${ln(at)} ${px(at.length-1).toFixed(2)},${H-p}" fill="${c}" fill-opacity=".13"/>
+      <polyline points="${ln(at)}" fill="none" stroke="${c}" stroke-width="1.4" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    </svg>
+  </div><div class="graf-x"><span>dia 1</span><span>teto R$ ${brl0(mx)}</span></div>
+  <div class="graf-leg"><span><i class="dot" style="background:${c}"></i>este mês</span><span><i class="dot" style="background:${cor("--txt3")}"></i>anterior</span></div>`;
 }
 
 function gDonut(){
   const pares = rank(mesDe(hoje()));
-  if(!pares.length){ $("leg-donut").innerHTML=""; return '<div class="vazio" style="padding:14px 0">Nenhuma saída este mês.</div>'; }
+  if(!pares.length){ $("leg-donut").innerHTML=""; return '<div class="graf" style="height:150px"><div class="graf-vazio">Nenhuma saída categorizada neste mês.</div></div>'; }
   const tot = pares.reduce((s,[,v])=>s+v,0), R=42, C=2*Math.PI*R;
   const paleta = [cor("--sai"), cor("--alerta"), cor("--laranja"), "#9CA3AF", "#6B7280", "#C4A484", "#8B9DC3", "#B0B7B4"];
   let off = 0;
@@ -844,10 +848,13 @@ function aplicarEspaco(re){
 function irPara(v){
   view = v;
   VIEWS.forEach(n=> $("v-"+n).hidden = n!==v);
-  document.querySelectorAll("#nav .ab").forEach(b=>b.classList.toggle("on", b.dataset.v===v));
   document.querySelectorAll("#side-nav button").forEach(b=>b.classList.toggle("on", b.dataset.v===v));
+  $("tb-tit").textContent = TITULOS[v] || "";
+  fecharGaveta();
   window.scrollTo({top:0, behavior:"instant"});
 }
+function abrirGaveta(){ $("side").classList.add("aberta"); $("gaveta-veu").classList.add("on"); document.body.style.overflow="hidden"; }
+function fecharGaveta(){ $("side").classList.remove("aberta"); $("gaveta-veu").classList.remove("on"); document.body.style.overflow=""; }
 function abrirSheet(id){
   $("veu").hidden=false; $(id).hidden=false;
   requestAnimationFrame(()=>{ $("veu").classList.add("on"); $(id).classList.add("on"); });
@@ -1005,8 +1012,10 @@ function ligar(){
   $("seg").querySelectorAll("button").forEach(b=>b.onclick=()=>{
     if(espaco===b.dataset.e) return; espaco=b.dataset.e; vibra(10); aplicarEspaco(true);
   });
-  document.querySelectorAll("#nav .ab").forEach(b=>b.onclick=()=>irPara(b.dataset.v));
-  document.querySelectorAll("#side-nav button").forEach(b=>b.onclick=()=>irPara(b.dataset.v));
+  document.querySelectorAll("#side-nav button").forEach(b=>b.onclick=()=>{ vibra(6); irPara(b.dataset.v); });
+  $("bt-menu").onclick = ()=>{ vibra(8); abrirGaveta(); };
+  $("gaveta-veu").onclick = fecharGaveta;
+  $("bt-tema-m").onclick = ()=>aplicarTema(temaAtual()==="escuro"?"claro":"escuro");
   $("fab").onclick=()=>{ vibra(10); abrirLanc(hoje()); };
   $("bt-dia").onclick=fecharDia;
   $("bt-tema").onclick=()=>aplicarTema(temaAtual()==="escuro"?"claro":"escuro");
@@ -1071,7 +1080,7 @@ function ligar(){
   $("veu").onclick=fecharSheets;
   $("lanc-fech").onclick=fecharSheets;
   $("dia-fech").onclick=fecharSheets;
-  document.addEventListener("keydown", e=>{ if(e.key==="Escape") fecharSheets(); });
+  document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ fecharSheets(); fecharGaveta(); } });
   document.querySelectorAll(".tec button").forEach(b=>b.onclick=()=>tecla(b.dataset.k));
   $("bt-lancar").onclick=lancar;
   $("dia-lanc-bt").onclick=()=>{ const d=selDia; fecharSheets(); setTimeout(()=>abrirLanc(d),260); };
@@ -1133,6 +1142,7 @@ function ligar(){
     const dx=e.changedTouches[0].clientX-x0, dy=e.changedTouches[0].clientY-y0;
     x0=null;
     if(Math.abs(dx)<64 || Math.abs(dy)>Math.abs(dx)*.7) return;
+    if(dx>0 && x0<28){ abrirGaveta(); vibra(6); return; }
     const i=VIEWS.indexOf(view)+(dx<0?1:-1);
     if(i>=0 && i<VIEWS.length){ irPara(VIEWS[i]); vibra(6); }
   }, {passive:true});
