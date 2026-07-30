@@ -237,6 +237,7 @@ function venc(c){
   return dtMes(a,m,c.dia);
 }
 const contasOrd = () => [...contas()].sort((x,y)=>venc(x).localeCompare(venc(y)));
+const venc2 = venc;
 const contasDia = d => { const a=+d.slice(0,4), m=+d.slice(5,7); return contas().filter(c=>dtMes(a,m,c.dia)===d); };
 const evtsDia = d => evts().filter(e=>e.data===d).sort((x,y)=>(x.hora||"99").localeCompare(y.hora||"99"));
 const marcado = (id,d) => db.marcas.some(x=>x.habito_id===id && x.data===d);
@@ -364,6 +365,61 @@ function gDonut(){
     <text x="60" y="72" text-anchor="middle" font-size="15" font-weight="700" fill="${cor("--txt")}">R$ ${brl0(tot)}</text></svg>`;
 }
 
+
+/* Estado vazio que convida a agir em vez de explicar que está vazio. */
+function caixaZero(titulo, sub, aoClicar){
+  const b = document.createElement("button");
+  b.className = "zero-box press";
+  b.innerHTML = `<span class="mais">+</span><span class="tt">${esc(titulo)}</span><span class="ss">${esc(sub)}</span>`;
+  b.onclick = aoClicar;
+  return b;
+}
+
+/* Frase do topo: o app lendo o mês e dizendo o que fazer agora. */
+function rStatus(iM, oM, vM){
+  const h = hoje(), tt = $("st-tt"), ss = $("st-ss"), cta = $("st-cta");
+  const disp = iM - oM - vM;
+  const sd = noMes(mesDe(h),"saida");
+  const fut = som(sd.filter(x=>x.natureza==="futil"));
+  const pf = (oM>0) ? Math.round(fut/oM*100) : 0;
+  const venc = contasOrd().filter(c=>dif(h, venc2(c)) < 0).length;
+  const nLanc = lancs().length;
+  let acao = ()=>abrirLanc(hoje());
+  let rot = "Lançar";
+
+  if(!nLanc){
+    tt.textContent = "Vamos começar.";
+    ss.textContent = "Lance o último gasto que você lembra. Com três ou quatro, o painel inteiro liga.";
+    rot = "Lançar o primeiro";
+  }else if(venc){
+    tt.textContent = venc===1 ? "Uma conta venceu." : `${venc} contas venceram.`;
+    ss.textContent = "Elas estão marcadas em vermelho na tabela de contas fixas.";
+    rot = "Ver contas";
+    acao = ()=>{ irPara("painel"); document.querySelector("#l-contas")?.scrollIntoView({behavior:"smooth",block:"center"}); };
+  }else if(iM<=0){
+    tt.textContent = "Falta a entrada do mês.";
+    ss.textContent = "Sem entrada lançada eu não sei quanto você tem disponível — só quanto já saiu.";
+    rot = "Lançar entrada";
+    acao = ()=>abrirLanc(hoje(), "entrada");
+  }else if(disp<0){
+    tt.textContent = "Você passou do que entrou.";
+    ss.textContent = `Saíram R$ ${brl0(oM+vM)} contra R$ ${brl0(iM)} de entrada neste mês.`;
+    rot = "Ver números";
+    acao = ()=>irPara("numeros");
+  }else if(pf>=30){
+    tt.textContent = `${pf}% das suas saídas foram fúteis.`;
+    ss.textContent = "Não é julgamento, é informação. Só vale saber se isso é o que você quer.";
+    rot = "Ver números";
+    acao = ()=>irPara("numeros");
+  }else{
+    tt.textContent = "Está no controle.";
+    ss.textContent = `Sobram R$ ${brl0(disp)} disponíveis, com ${pf}% de saídas fúteis no mês.`;
+    rot = "Lançar";
+  }
+  cta.textContent = rot;
+  cta.onclick = ()=>{ vibra(8); acao(); };
+}
+
 /* ================= render ================= */
 function render(){
   const h=hoje(), y=mesDe(h), d=+h.slice(8,10);
@@ -377,6 +433,8 @@ function render(){
 
   const iM = som(noMes(y,"entrada")), oM = som(noMes(y,"saida")), vM = som(noMes(y,"investimento"));
   const sM = iM - oM - vM;
+
+  rStatus(iM, oM, vM);
 
   // anel + totais
   $("g-anel").innerHTML = gAnel(iM, oM, vM);
@@ -446,7 +504,12 @@ function rContas(){
   const cs = contasOrd();
   const total = cs.reduce((a,c)=>a+c.valor,0);
   $("cf-meta").textContent = cs.length ? `${cs.length} · R$ ${brl0(total)}` : "";
-  if(!cs.length){ ul.innerHTML='<li class="vazio">Sem contas fixas. Adicione aluguel, internet, assinaturas — é o que mais escapa.</li>'; return; }
+  if(!cs.length){
+    ul.appendChild(caixaZero("Cadastre suas contas fixas",
+      "Aluguel, internet, assinaturas. É o que mais escapa — e o app avisa antes de vencer.",
+      ()=>$("c-nome").focus()));
+    return;
+  }
   cs.forEach(c=>{
     const d = dif(h, venc(c));
     const pago = c.ultimo_pago === mesDe(h);
@@ -482,7 +545,9 @@ function rInvestimentos(){
   const totalGeral = todos.reduce((a,x)=>a+x.valor,0);
   $("inv-tot").textContent = totalGeral>0 ? `acumulado R$ ${brl0(totalGeral)}` : "";
   if(!todos.length){
-    ul.innerHTML = '<li class="vazio">Nada investido ainda. Investir aparece separado de gastar — sai do disponível, mas não é despesa.</li>';
+    ul.appendChild(caixaZero("Registre um investimento",
+      "Investir sai do disponível, mas não conta como gasto. Fica separado da sua despesa.",
+      ()=>abrirLanc(hoje(), "investimento")));
     return;
   }
   if(doMes.length){
@@ -508,7 +573,12 @@ function rLanc(){
   const h=hoje(), ul=$("l-lanc"); ul.innerHTML="";
   $("cnt-hoje").textContent = noDia(h).length+" hoje";
   const ult = lancs().slice(0,8);
-  if(!ult.length){ ul.innerHTML='<li class="vazio">Nada lançado neste espaço. Toque no + para começar.</li>'; return; }
+  if(!ult.length){
+    ul.appendChild(caixaZero("Lance seu primeiro gasto",
+      "Comece pelo último que você lembra. Leva dez segundos e o painel inteiro ganha vida.",
+      ()=>abrirLanc(hoje())));
+    return;
+  }
   ult.forEach(l=>{
     const li = document.createElement("li"); li.className="lin";
     const sub = [l.nota, espaco==="empresa"&&l.membro_id?nomeM(l.membro_id):""].filter(Boolean).join(" · ");
@@ -536,7 +606,11 @@ function rRotina(){
   const box=$("rt-blocos"); box.innerHTML="";
   $("rt-seed").hidden = db.blocos.length>0;
   if(!db.blocos.length){
-    box.innerHTML = '<div class="card"><div class="vazio">Nenhum bloco ainda. Use “Instalar minha rotina padrão” abaixo — depois é só editar o que não bater.</div></div>';
+    const c = document.createElement("div"); c.className = "card";
+    c.appendChild(caixaZero("Sua rotina ainda não existe",
+      "Instale a rotina de 07:30 às 00:00 que você me passou e depois apague o que não bater.",
+      instalarRotina));
+    box.appendChild(c);
     $("rt-barra").style.width="0%";
   }else{
     let tI=0,tF=0;
@@ -585,7 +659,9 @@ function rRotina(){
   const ul=$("rt-tarefas"); ul.innerHTML="";
   const ts=tarefasDia(d);
   $("rt-tc").textContent = ts.length ? ts.filter(t=>t.feita).length+"/"+ts.length : "";
-  if(!ts.length) ul.innerHTML='<li class="vazio">Nada só para este dia.</li>';
+  if(!ts.length) ul.appendChild(caixaZero("Algo só para este dia",
+    "Um lembrete que não faz parte da rotina fixa — uma reunião, uma entrega, um prazo.",
+    ()=>$("t-tit").focus()));
   ts.forEach(t=>{
     const li=document.createElement("li"); li.className="lin";
     const cx=document.createElement("button");
@@ -655,7 +731,12 @@ function rCalendario(){
 function rEventos(){
   const h=hoje(), ul=$("l-eventos"); ul.innerHTML="";
   const prox = evts().filter(e=>e.data>=h).sort((x,y)=>(x.data+(x.hora||"99")).localeCompare(y.data+(y.hora||"99"))).slice(0,10);
-  if(!prox.length){ ul.innerHTML='<li class="vazio">Nada marcado. Toque num dia do calendário para adicionar.</li>'; return; }
+  if(!prox.length){
+    ul.appendChild(caixaZero("Nenhum compromisso marcado",
+      "Toque num dia do calendário ao lado para marcar reunião, gravação ou prazo.",
+      ()=>{ selDia = hoje(); rDetalhe(); abrirSheet("sh-dia"); }));
+    return;
+  }
   prox.forEach(ev=>{
     const d=dif(h,ev.data);
     const li=document.createElement("li"); li.className="lin";
