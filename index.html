@@ -86,8 +86,41 @@ svg{display:block}
 
 /* ============ shell ============ */
 .shell{display:flex;min-height:100dvh}
-.side{display:none}
-.main{flex:1;min-width:0;padding:18px 16px calc(var(--nav-h) + 20px)}
+.side{display:flex;flex-direction:column;width:272px;flex:none;padding:calc(20px + env(safe-area-inset-top)) 16px 20px;
+  background:var(--card);border-right:1px solid var(--linha);position:fixed;inset:0 auto 0 0;z-index:80;transform:translateX(-100%);overflow-y:auto}
+.side.aberta{transform:none}
+@media (prefers-reduced-motion:no-preference){ .side{transition:transform .28s var(--mola)} }
+.side .lg{display:flex;align-items:center;gap:10px;margin-bottom:22px;padding:0 6px}
+.side .lg h1{font-size:15px} .side .lg p{margin:0;font-size:11.5px;color:var(--txt2)}
+.side nav{display:flex;flex-direction:column;gap:3px}
+.side nav button{display:flex;align-items:center;gap:11px;padding:12px;border-radius:var(--r2);
+  font-size:14.5px;font-weight:500;color:var(--txt2);text-align:left}
+.side nav button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.side nav button.on{background:color-mix(in srgb,var(--laranja) 12%,transparent);color:var(--laranja);font-weight:600}
+.side .fim{margin-top:auto;padding-top:18px;border-top:1px solid var(--linha)}
+.side .fim .em{font-size:12px;color:var(--txt3);padding:0 6px 10px;overflow:hidden;text-overflow:ellipsis}
+
+/* topbar do celular */
+.topbar{display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 0 10px;
+  position:sticky;top:0;z-index:44;background:color-mix(in srgb,var(--bg) 92%,transparent);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--linha);margin-bottom:14px}
+.tb-menu{width:40px;height:40px;flex:none;border-radius:var(--r2);border:1px solid var(--linha);background:var(--card);
+  display:grid;place-items:center;box-shadow:var(--sombra)}
+.tb-menu i{display:block;width:17px;height:2px;background:var(--txt);border-radius:2px;box-shadow:0 -6px 0 var(--txt),0 6px 0 var(--txt)}
+.tb-tit{flex:1;min-width:0;font-size:15.5px;font-weight:700;letter-spacing:-.015em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gaveta-veu{position:fixed;inset:0;background:rgba(15,20,18,.45);z-index:79;opacity:0;pointer-events:none}
+.gaveta-veu.on{opacity:1;pointer-events:auto}
+@media (prefers-reduced-motion:no-preference){ .gaveta-veu{transition:opacity .22s var(--mola)} }
+
+/* gráfico: geometria no SVG, texto em HTML */
+.graf{position:relative}
+.graf svg{width:100%;display:block}
+.graf-x{display:flex;justify-content:space-between;margin-top:8px;font-size:11.5px;color:var(--txt3)}
+.graf-vazio{position:absolute;inset:0;display:grid;place-items:center;padding:0 24px;text-align:center;
+  font-size:13px;color:var(--txt3);line-height:1.5;pointer-events:none}
+.graf-leg{display:flex;gap:14px;margin-top:9px;font-size:11.5px;color:var(--txt2)}
+.graf-leg span{display:flex;align-items:center;gap:6px}
+.main{flex:1;min-width:0;padding:0 16px 100px}
 .wrap{max-width:1120px;margin-inline:auto}
 
 .topo{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
@@ -280,16 +313,9 @@ svg{display:block}
 .cleg span{display:flex;align-items:center;gap:8px}
 
 /* ============ nav ============ */
-.nav{position:fixed;left:0;right:0;bottom:0;z-index:40;height:var(--nav-h);padding:0 6px env(safe-area-inset-bottom);
-  display:flex;align-items:center;justify-content:space-around;
-  background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  border-top:1px solid var(--linha)}
-.nav .ab{flex:1;max-width:72px;height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--txt3)}
-.nav .ab svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.nav .ab span{font-size:10px;font-weight:500}
-.nav .ab.on{color:var(--laranja)}
-.fab{width:50px;height:50px;flex:none;border-radius:99px;background:var(--laranja);color:#fff;display:grid;place-items:center;
-  font-size:25px;line-height:0;box-shadow:0 6px 18px color-mix(in srgb,var(--laranja) 42%,transparent);margin-top:-10px}
+.fab{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:45;
+  width:56px;height:56px;border-radius:99px;background:var(--laranja);color:#fff;display:grid;place-items:center;
+  font-size:27px;line-height:0;box-shadow:0 8px 24px color-mix(in srgb,var(--laranja) 45%,transparent)}
 @media (prefers-reduced-motion:no-preference){ .nav .ab{transition:color .16s var(--mola)} }
 
 /* ============ sheets ============ */
@@ -327,7 +353,7 @@ svg{display:block}
 .tec button.aux{font-size:13px;color:var(--txt2);font-weight:500}
 .sec{font-size:12px;font-weight:600;color:var(--txt3);margin:18px 0 4px}
 
-.toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 14px);transform:translateX(-50%);z-index:70;
+.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:70;
   background:var(--barra);color:#fff;border-radius:99px;padding:11px 20px;font-size:13px;font-weight:500;
   box-shadow:var(--sombra2);max-width:88vw;text-align:center}
 
@@ -335,8 +361,9 @@ svg{display:block}
 @media (min-width:900px){
   .nav{display:none}
   .main{padding:26px 30px 40px}
-  .side{display:flex;flex-direction:column;width:236px;flex:none;padding:22px 16px;
-    background:var(--card);border-right:1px solid var(--linha);min-height:100dvh;position:sticky;top:0}
+  .side{position:sticky;inset:auto;transform:none;min-height:100dvh;width:248px;padding:22px 16px}
+  .topbar{display:none !important}
+  .gaveta-veu{display:none !important}
   .side .lg{display:flex;align-items:center;gap:10px;margin-bottom:24px;padding:0 6px}
   .side .lg .mk{width:32px;height:32px;border-radius:9px;background:var(--barra);display:grid;place-items:center;flex:none}
   .side .lg .mk i{display:block;width:15px;height:2.4px;background:var(--laranja);border-radius:2px;box-shadow:0 -4.5px 0 var(--laranja),0 4.5px 0 var(--laranja)}
@@ -390,17 +417,19 @@ svg{display:block}
 </section>
 
 <!-- ================= APP ================= -->
+<div id="gaveta-veu" class="gaveta-veu"></div>
 <div id="shell" class="shell" hidden>
 
-  <aside class="side">
+  <aside id="side" class="side">
     <div class="lg">
       <span class="mk"><i></i></span>
       <div><h1>NexVot</h1><p>Gestão Inteligente</p></div>
     </div>
     <nav id="side-nav">
-      <button data-v="painel" class="on"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/></svg>Painel</button>
+      <button data-v="painel" class="on"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/></svg>Início</button>
       <button data-v="rotina"><svg viewBox="0 0 24 24"><path d="M4 7h3M4 12h3M4 17h3"/><path d="M10 7h10M10 12h10M10 17h10"/></svg>Rotina</button>
       <button data-v="agenda"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Agenda</button>
+      <button data-v="dinheiro"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10.5h19"/><path d="M6 15h4"/></svg>Dinheiro</button>
       <button data-v="numeros"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 15v-3M13 15V8M18 15v-5"/></svg>Números</button>
     </nav>
     <div class="fim">
@@ -411,6 +440,11 @@ svg{display:block}
   </aside>
 
   <main class="main"><div class="wrap">
+    <div class="topbar">
+      <button id="bt-menu" class="tb-menu press" aria-label="Abrir menu"><i></i></button>
+      <div id="tb-tit" class="tb-tit">Início</div>
+      <button id="bt-tema-m" class="ib press" aria-label="Trocar tema"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></button>
+    </div>
 
     <header class="topo">
       <div>
@@ -462,34 +496,8 @@ svg{display:block}
         </div>
       </div>
 
-      <div class="grade duas">
-        <div class="card" style="--d:60ms">
-          <div class="card-h">
-            <span class="ic"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-7 4 4"/></svg></span>
-            <h3>Evolução do saldo no mês</h3><span id="evo-meta" class="meta"></span>
-          </div>
-          <div class="card-b"><div id="g-evo"></div></div>
-        </div>
-        <div class="card" style="--d:100ms">
-          <div class="card-h">
-            <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 16v-4M13 16V7M18 16v-6"/></svg></span>
-            <h3>Entra × sai — 14 dias</h3><span class="meta">verde entra · vermelho sai</span>
-          </div>
-          <div class="card-b"><div id="g-fluxo"></div></div>
-        </div>
-      </div>
-
       <div id="kp-pessoal">
-        <div class="card" style="--d:140ms">
-          <div class="card-h">
-            <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
-            <h3>Essencial × fútil no mês</h3><span id="fut-pct" class="meta"></span>
-          </div>
-          <div class="card-b">
-            <div class="split"><i id="sp-e" class="e"></i><i id="sp-f" class="f"></i></div>
-            <div class="split-l"><span id="lg-e"></span><span id="lg-f"></span></div>
-          </div>
-        </div>
+        
       </div>
 
       <div id="kp-empresa" hidden>
@@ -510,8 +518,19 @@ svg{display:block}
         </div>
       </div>
 
+      <div class="card" style="--d:260ms">
+        <div class="card-h">
+          <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>
+          <h3>Últimos lançamentos</h3><span id="cnt-hoje" class="meta"></span>
+        </div>
+        <div class="card-b plano"><ul id="l-lanc"></ul></div>
+      </div>
+    </section>
+
+    <!-- ============ ROTINA ============ -->
+    <section id="v-dinheiro" hidden>
       <div class="grade duas">
-        <div class="card" style="--d:180ms">
+<div class="card" style="--d:180ms">
           <div class="card-h">
             <span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 2.5v3M16 2.5v3"/></svg></span>
             <h3>Contas fixas</h3><span id="cf-meta" class="meta"></span>
@@ -526,7 +545,7 @@ svg{display:block}
           </div>
         </div>
 
-        <div class="card" style="--d:220ms">
+<div class="card" style="--d:220ms">
           <div class="card-h ouro">
             <span class="ic"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-7 4 4"/><path d="M4 21h16"/></svg></span>
             <h3>Investimentos</h3><span id="inv-tot" class="meta"></span>
@@ -536,16 +555,18 @@ svg{display:block}
         </div>
       </div>
 
-      <div class="card" style="--d:260ms">
-        <div class="card-h">
-          <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>
-          <h3>Últimos lançamentos</h3><span id="cnt-hoje" class="meta"></span>
+<div class="card" style="--d:140ms">
+          <div class="card-h">
+            <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
+            <h3>Essencial × fútil no mês</h3><span id="fut-pct" class="meta"></span>
+          </div>
+          <div class="card-b">
+            <div class="split"><i id="sp-e" class="e"></i><i id="sp-f" class="f"></i></div>
+            <div class="split-l"><span id="lg-e"></span><span id="lg-f"></span></div>
+          </div>
         </div>
-        <div class="card-b plano"><ul id="l-lanc"></ul></div>
-      </div>
     </section>
 
-    <!-- ============ ROTINA ============ -->
     <section id="v-rotina" hidden>
       <div class="dnav">
         <button id="rt-ant" class="press" aria-label="Dia anterior">‹</button>
@@ -629,6 +650,24 @@ svg{display:block}
         <div class="kpi"><div class="r">Vs. mês passado</div><div id="k-rit" class="v"></div><div id="k-rit-s" class="s"></div></div>
       </div>
       <div class="grade duas">
+<div class="card" style="--d:60ms">
+          <div class="card-h">
+            <span class="ic"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-7 4 4"/></svg></span>
+            <h3>Evolução do saldo no mês</h3><span id="evo-meta" class="meta"></span>
+          </div>
+          <div class="card-b"><div id="g-evo"></div></div>
+        </div>
+
+<div class="card" style="--d:100ms">
+          <div class="card-h">
+            <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 16v-4M13 16V7M18 16v-6"/></svg></span>
+            <h3>Entra × sai — 14 dias</h3><span class="meta">verde entra · vermelho sai</span>
+          </div>
+          <div class="card-b"><div id="g-fluxo"></div></div>
+        </div>
+      </div>
+
+      <div class="grade duas">
         <div class="card">
           <div class="card-h">
             <span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6 3"/></svg></span>
@@ -659,13 +698,7 @@ svg{display:block}
   </div></main>
 </div>
 
-<nav id="nav" class="nav" hidden>
-  <button class="ab on" data-v="painel"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/></svg><span>Painel</span></button>
-  <button class="ab" data-v="rotina"><svg viewBox="0 0 24 24"><path d="M4 7h3M4 12h3M4 17h3"/><path d="M10 7h10M10 12h10M10 17h10"/></svg><span>Rotina</span></button>
-  <button id="fab" class="fab press" aria-label="Novo lançamento">+</button>
-  <button class="ab" data-v="agenda"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Agenda</span></button>
-  <button class="ab" data-v="numeros"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 15v-3M13 15V8M18 15v-5"/></svg><span>Números</span></button>
-</nav>
+<button id="fab" class="fab press" hidden aria-label="Novo lançamento">+</button>
 
 <div id="veu" class="veu" hidden></div>
 
