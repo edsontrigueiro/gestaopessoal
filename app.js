@@ -18,9 +18,11 @@ function fatal(msg){
 /* ================= constantes ================= */
 const CATS = {
   pessoal:{ saida:["Mercado","Comer fora","Transporte","Casa","Contas","Saúde","Lazer","Outros"],
-            entrada:["Salário","Freela","Rendimento","Outros"] },
+            entrada:["Salário","Freela","Rendimento","Outros"],
+            investimento:["Reserva","Renda fixa","Ações","Cripto","Fundos","Outros"] },
   empresa:{ saida:["Estoque","Marketing","Frete","Ferramentas","Impostos","Pró-labore","Outros"],
-            entrada:["Vendas","Serviços","Outros"] }
+            entrada:["Vendas","Serviços","Outros"],
+            investimento:["Equipamento","Estoque","Marketing","Reserva","Outros"] }
 };
 const NAT_PADRAO = { "Mercado":"essencial","Transporte":"essencial","Casa":"essencial","Contas":"essencial",
                      "Saúde":"essencial","Comer fora":"futil","Lazer":"futil","Outros":"essencial" };
@@ -88,18 +90,6 @@ function toast(txt, erro){
   clearTimeout(tT); tT = setTimeout(()=>el.remove(), erro?4200:1700);
 }
 const falhou = e => { console.error(e); toast((e&&e.message)||"falha ao salvar", true); };
-
-function anima(el, alvo){
-  const fim = Number(alvo)||0;
-  if(parado()){ el.innerHTML = `<small>R$</small>${brl(fim)}`; return; }
-  const t0 = performance.now();
-  const passo = t => {
-    const p = Math.min((t-t0)/500, 1), e = 1-Math.pow(1-p,3);
-    el.innerHTML = `<small>R$</small>${brl(fim*e)}`;
-    if(p<1) requestAnimationFrame(passo);
-  };
-  requestAnimationFrame(passo);
-}
 
 /* ================= tema ================= */
 function temaAtual(){ return document.documentElement.dataset.tema || "claro"; }
@@ -235,6 +225,7 @@ const noDia = (d,t) => lancs().filter(x=>x.data===d && (!t||x.tipo===t));
 const noMes = (y,t) => lancs().filter(x=>mesDe(x.data)===y && (!t||x.tipo===t));
 const sai = d => som(noDia(d,"saida"));
 const ent = d => som(noDia(d,"entrada"));
+const inv = d => som(noDia(d,"investimento"));
 function acum(y, ate){
   const a=+y.slice(0,4), m=+y.slice(5,7); const lim = ate||ultDia(a,m); const o=[]; let s=0;
   for(let d=1;d<=lim;d++){ s += sai(dtMes(a,m,d)); o.push(s); } return o;
@@ -260,8 +251,7 @@ function gFluxo(){
   const h = hoje(); const dias=[]; for(let i=13;i>=0;i--) dias.push(mais(h,-i));
   const ins = dias.map(ent), outs = dias.map(sai);
   const mx = Math.max(...ins, ...outs, 1);
-  if(!ins.some(v=>v>0) && !outs.some(v=>v>0))
-    return '<div class="vazio" style="padding:14px 0">Sem movimento nos últimos 14 dias.</div>';
+  const vazio = !ins.some(v=>v>0) && !outs.some(v=>v>0);
   const W=100,H=44,l=W/dias.length, cE=cor("--entra"), cS=cor("--sai");
   const b = dias.map((d,i)=>{
     const x=i*l, hi=(ins[i]/mx)*(H/2-2), ho=(outs[i]/mx)*(H/2-2);
@@ -269,9 +259,68 @@ function gFluxo(){
          + (outs[i]>0?`<rect x="${(x+l*.54).toFixed(2)}" y="${(H/2).toFixed(2)}" width="${(l*.32).toFixed(2)}" height="${ho.toFixed(2)}" rx=".5" fill="${cS}"/>`:"");
   }).join("");
   return `<svg viewBox="0 0 ${W} ${H+8}" width="100%" height="150" preserveAspectRatio="none" role="img" aria-label="Entradas e saídas dos últimos 14 dias">
-    <line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="${cor("--linha")}" stroke-width=".4"/>${b}
+    <line x1="0" y1="${H/2}" x2="${W}" y2="${H/2}" stroke="${cor("--linha")}" stroke-width=".5" stroke-dasharray="${vazio?"2 2":"0"}"/>${b}
+    ${vazio?`<text x="${W/2}" y="${H/2-3}" font-size="4" text-anchor="middle" fill="${cor("--txt3")}">nenhum movimento em 14 dias</text>`:""}
     <text x="0" y="${H+6}" font-size="3.4" fill="${cor("--txt3")}">${curto(dias[0])}</text>
     <text x="${W}" y="${H+6}" font-size="3.4" text-anchor="end" fill="${cor("--txt3")}">hoje</text></svg>`;
+}
+
+/* anel "disponível para gastar": o que entrou menos o que saiu e o que foi investido */
+function gAnel(iM, oM, vM){
+  const disp = iM - oM - vM;
+  const R = 46, C = 2*Math.PI*R, W = 130;
+  const base = iM > 0 ? iM : 1;
+  const partes = iM > 0
+    ? [[Math.max(disp,0), cor("--entra")], [vM, cor("--ouro")], [oM, cor("--sai")]]
+    : [];
+  let off = 0;
+  const arcos = partes.filter(([v])=>v>0).map(([v,c])=>{
+    const len = Math.min(v/base, 1) * C;
+    const el = `<circle cx="65" cy="65" r="${R}" fill="none" stroke="${c}" stroke-width="13"
+      stroke-dasharray="${Math.max(len-1.6,.5).toFixed(2)} ${(C-len+1.6).toFixed(2)}"
+      stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 65 65)" stroke-linecap="butt"/>`;
+    off += len; return el;
+  }).join("");
+  const trilho = `<circle cx="65" cy="65" r="${R}" fill="none" stroke="${cor("--linha")}" stroke-width="13"/>`;
+  const negativo = disp < 0;
+  return `<svg viewBox="0 0 ${W} ${W}" width="100%" height="176" style="max-width:190px" role="img"
+      aria-label="Disponível para gastar: R$ ${brl(disp)}">
+    ${trilho}${arcos}
+    <text x="65" y="60" text-anchor="middle" font-size="7.5" fill="${cor("--txt2")}">disponível</text>
+    <text x="65" y="76" text-anchor="middle" font-size="16" font-weight="700"
+      fill="${negativo?cor("--sai"):cor("--txt")}">R$ ${brl0(disp)}</text>
+    ${iM<=0?`<text x="65" y="90" text-anchor="middle" font-size="6.5" fill="${cor("--txt3")}">lance uma entrada</text>`:""}
+  </svg>`;
+}
+
+/* evolução do saldo acumulado no mês — a linha que sobe */
+function gEvo(){
+  const h = hoje(), y = mesDe(h), d = +h.slice(8,10);
+  const a = +y.slice(0,4), m = +y.slice(5,7), n = ultDia(a,m);
+  const serie = []; let acc = 0;
+  for(let k=1;k<=d;k++){ const dia = dtMes(a,m,k); acc += ent(dia) - sai(dia) - inv(dia); serie.push(acc); }
+  const W=100, H=44, p=3;
+  const vMax = Math.max(...serie, 0), vMin = Math.min(...serie, 0);
+  const amp = (vMax - vMin) || 1;
+  const px = i => p + (i/Math.max(n-1,1))*(W-p*2);
+  const py = v => H - p - ((v - vMin)/amp)*(H-p*2);
+  const zero = py(0);
+  const temDado = serie.some(v=>v!==0);
+  const ln = serie.map((v,i)=>`${px(i).toFixed(2)},${py(v).toFixed(2)}`).join(" ");
+  const cLinha = serie.length && serie[serie.length-1] < 0 ? cor("--sai") : cor("--entra");
+  $("evo-meta").textContent = temDado ? `hoje: R$ ${brl0(serie[serie.length-1])}` : "sem lançamentos ainda";
+  return `<svg viewBox="0 0 ${W} ${H+8}" width="100%" height="150" preserveAspectRatio="none" role="img"
+      aria-label="Evolução do saldo acumulado no mês">
+    <line x1="${p}" y1="${zero.toFixed(2)}" x2="${W-p}" y2="${zero.toFixed(2)}"
+      stroke="${cor("--linha")}" stroke-width=".5" stroke-dasharray="${temDado?"0":"2 2"}"/>
+    ${temDado?`<polygon points="${px(0).toFixed(2)},${zero.toFixed(2)} ${ln} ${px(serie.length-1).toFixed(2)},${zero.toFixed(2)}"
+      fill="${cLinha}" fill-opacity=".12"/>
+    <polyline points="${ln}" fill="none" stroke="${cLinha}" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <circle cx="${px(serie.length-1).toFixed(2)}" cy="${py(serie[serie.length-1]).toFixed(2)}" r="1.6" fill="${cLinha}"/>`:""}
+    <text x="${p}" y="${H+6}" font-size="3.4" fill="${cor("--txt3")}">dia 1</text>
+    <text x="${W-p}" y="${H+6}" font-size="3.4" text-anchor="end" fill="${cor("--txt3")}">dia ${n}</text>
+    ${!temDado?`<text x="${W/2}" y="${(zero-4).toFixed(2)}" font-size="4" text-anchor="middle" fill="${cor("--txt3")}">a linha começa no primeiro lançamento</text>`:""}
+  </svg>`;
 }
 
 function gRitmo(){
@@ -326,23 +375,37 @@ function render(){
   bd.disabled = fec;
   bd.textContent = fec ? `✓ ${streak(db.fechados)} dias seguidos` : "Fechar o dia";
 
-  const iM = som(noMes(y,"entrada")), oM = som(noMes(y,"saida")), sM = iM-oM;
-  if(espaco==="pessoal") rPessoal(h,y,d,oM); else rEmpresa(y,iM,oM,sM);
-  rContas(); rLanc(); rRotina(); rCalendario(); rEventos(); rNumeros(h,y,d,iM,oM,sM);
-  $("g-fluxo").innerHTML = gFluxo();
-}
+  const iM = som(noMes(y,"entrada")), oM = som(noMes(y,"saida")), vM = som(noMes(y,"investimento"));
+  const sM = iM - oM - vM;
 
-function rPessoal(h,y,d,oM){
-  const e=ent(h), s=sai(h);
-  anima($("p-saldo"), e-s);
-  $("p-saldo").style.color = (e-s)<0 ? cor("--sai") : (e-s)>0 ? cor("--entra") : "";
-  $("p-in").textContent = `entrou R$ ${brl0(e)}`;
-  $("p-out").textContent = `saiu R$ ${brl0(s)}`;
+  // anel + totais
+  $("g-anel").innerHTML = gAnel(iM, oM, vM);
+  $("disp-mes").textContent = new Date(h+"T00:00:00").toLocaleDateString("pt-BR",{month:"long"});
+  $("t-in").textContent  = "R$ " + brl0(iM);
+  $("t-inv").textContent = "R$ " + brl0(vM);
+  $("t-out").textContent = "R$ " + brl0(oM);
+
+  const hojeSaldo = ent(h) - sai(h) - inv(h);
+  const ph = $("p-hoje");
+  ph.className = "pill " + (hojeSaldo>0?"up":hojeSaldo<0?"down":"");
+  ph.textContent = `hoje: ${hojeSaldo>=0?"+":"−"} R$ ${brl0(Math.abs(hojeSaldo))}`;
+
   const an = acum(mesAnt(y), d), base = an.length?an[an.length-1]:0;
   const pr = $("p-ritmo");
   if(base<=0){ pr.className="pill"; pr.textContent="sem base do mês passado"; }
-  else{ const p=Math.round((oM/base-1)*100); pr.className="pill "+(p>0?"warn":"up"); pr.textContent=`${p>0?"+":""}${p}% vs. mês passado`; }
+  else{ const p=Math.round((oM/base-1)*100); pr.className="pill "+(p>0?"warn":"up"); pr.textContent=`${p>0?"+":""}${p}% em saídas vs. mês passado`; }
+  $("p-proj").textContent = oM>0 ? `projeção de saídas: R$ ${brl0(oM/d*ultDia(+y.slice(0,4),+y.slice(5,7)))}` : "sem saídas ainda";
 
+  if(espaco==="pessoal") rPessoal(y);
+  else rEmpresa(y,iM,oM,sM);
+
+  rContas(); rInvestimentos(); rLanc(); rRotina(); rCalendario(); rEventos();
+  rNumeros(h,y,d,iM,oM,vM);
+  $("g-fluxo").innerHTML = gFluxo();
+  $("g-evo").innerHTML = gEvo();
+}
+
+function rPessoal(y){
   const sd = noMes(y,"saida");
   const ess = som(sd.filter(x=>x.natureza!=="futil")), fut = som(sd.filter(x=>x.natureza==="futil"));
   const t = ess+fut, pf = t>0?Math.round(fut/t*100):0;
@@ -354,18 +417,14 @@ function rPessoal(h,y,d,oM){
 }
 
 function rEmpresa(y,iM,oM,lucro){
-  anima($("e-lucro"), lucro);
+  $("e-lucro").textContent = "R$ " + brl(lucro);
   $("e-lucro").style.color = lucro<0 ? cor("--sai") : lucro>0 ? cor("--entra") : "";
-  const roi = oM>0 ? ((iM-oM)/oM)*100 : null;
-  const er = $("e-roi");
-  er.className = "pill " + (roi===null?"":roi>=0?"up":"down");
-  er.textContent = roi===null ? "ROI sem base" : `ROI ${roi>0?"+":""}${roi.toFixed(0)}%`;
   const mg = iM>0 ? (lucro/iM)*100 : null;
-  $("e-margem").textContent = mg===null ? "sem receita" : `margem ${mg.toFixed(0)}%`;
-  $("e-in").textContent = "R$ "+brl(iM);
-  $("e-out").textContent = "R$ "+brl(oM);
-  $("e-in-s").textContent = noMes(y,"entrada").length+" lançamentos";
-  $("e-out-s").textContent = noMes(y,"saida").length+" lançamentos";
+  $("e-lucro-s").textContent = mg===null ? "sem receita no mês" : `margem de ${mg.toFixed(0)}%`;
+  const roi = oM>0 ? ((iM-oM)/oM)*100 : null;
+  $("e-roi").textContent = roi===null ? "—" : `${roi>0?"+":""}${roi.toFixed(0)}%`;
+  $("e-roi").style.color = roi===null ? "" : roi>=0 ? cor("--entra") : cor("--sai");
+  $("e-roi-s").textContent = roi===null ? "precisa de saída para calcular" : "(entrada − saída) ÷ saída";
 
   const g={}; noMes(y,"saida").forEach(x=>{ const k=x.membro_id||"sem"; g[k]=(g[k]||0)+x.valor; });
   const pares = Object.entries(g).sort((a,b)=>b[1]-a[1]);
@@ -384,18 +443,64 @@ function rEmpresa(y,iM,oM,lucro){
 
 function rContas(){
   const h=hoje(), ul=$("l-contas"); ul.innerHTML="";
-  if(!contas().length){ ul.innerHTML='<li class="vazio">Sem contas neste espaço. Adicione as fixas abaixo.</li>'; return; }
-  contasOrd().slice(0,7).forEach(c=>{
+  const cs = contasOrd();
+  const total = cs.reduce((a,c)=>a+c.valor,0);
+  $("cf-meta").textContent = cs.length ? `${cs.length} · R$ ${brl0(total)}` : "";
+  if(!cs.length){ ul.innerHTML='<li class="vazio">Sem contas fixas. Adicione aluguel, internet, assinaturas — é o que mais escapa.</li>'; return; }
+  cs.forEach(c=>{
     const d = dif(h, venc(c));
-    const cl = d<0?"venc":d<=3?"perto":"";
+    const pago = c.ultimo_pago === mesDe(h);
+    const cl = pago ? "" : d<0 ? "venc" : d<=3 ? "perto" : "";
+    const li = document.createElement("li"); li.className="trow";
+    const cx = document.createElement("button");
+    cx.className = "cx press" + (pago?" on":"");
+    cx.textContent = pago ? "✓" : "";
+    cx.setAttribute("aria-pressed", String(pago));
+    cx.setAttribute("aria-label", (pago?"pago":"marcar como pago")+": "+c.nome);
+    cx.onclick = ()=>{ if(!pago) pagar(c); else toast("já está marcada como paga neste mês"); };
+    const n = document.createElement("span");
+    n.className = "n"; n.innerHTML = esc(c.nome) + `<small>todo dia ${c.dia}</small>`;
+    const v = document.createElement("span");
+    v.className = "v"; v.textContent = c.valor ? "R$ "+brl(c.valor) : "—";
+    const fim = document.createElement("span");
+    fim.className = "fim";
+    const b = document.createElement("span");
+    b.className = "badge " + cl;
+    b.textContent = pago ? "pago" : d<0 ? `${-d}d atrás` : d===0 ? "hoje" : `${d}d`;
+    const x = document.createElement("button");
+    x.className="x press"; x.textContent="✕"; x.title="remover conta";
+    x.onclick=()=>apagar("contas", c.id, ()=>{ db.contas = db.contas.filter(z=>z.id!==c.id); });
+    fim.append(b,x);
+    li.append(cx,n,v,fim); ul.appendChild(li);
+  });
+}
+
+function rInvestimentos(){
+  const y = mesDe(hoje()), ul = $("l-inv"); ul.innerHTML="";
+  const todos = lancs().filter(x=>x.tipo==="investimento");
+  const doMes = todos.filter(x=>mesDe(x.data)===y);
+  const totalGeral = todos.reduce((a,x)=>a+x.valor,0);
+  $("inv-tot").textContent = totalGeral>0 ? `acumulado R$ ${brl0(totalGeral)}` : "";
+  if(!todos.length){
+    ul.innerHTML = '<li class="vazio">Nada investido ainda. Investir aparece separado de gastar — sai do disponível, mas não é despesa.</li>';
+    return;
+  }
+  if(doMes.length){
     const li = document.createElement("li"); li.className="lin";
-    li.innerHTML = `<span class="badge ${cl}">${d<0?`${-d}d atrás`:d===0?"hoje":`${d}d`}</span>
-      <span class="n">${esc(c.nome)}</span><span class="v">${c.valor?"R$ "+brl(c.valor):""}</span>`;
-    const pg = document.createElement("button"); pg.className="mini press"; pg.textContent="paguei";
-    pg.onclick = ()=>pagar(c);
-    const x = document.createElement("button"); x.className="x press"; x.textContent="✕";
-    x.onclick = ()=>apagar("contas", c.id, ()=>{ db.contas = db.contas.filter(z=>z.id!==c.id); });
-    li.append(pg,x); ul.appendChild(li);
+    li.style.background = "var(--card2)";
+    li.innerHTML = `<span class="n" style="color:var(--txt2);font-size:13px">Neste mês</span>
+      <span class="v" style="color:var(--ouro)">R$ ${brl(doMes.reduce((a,x)=>a+x.valor,0))}</span>`;
+    ul.appendChild(li);
+  }
+  todos.slice(0,6).forEach(x=>{
+    const li = document.createElement("li"); li.className="lin";
+    li.innerHTML = `<span class="dot" style="background:var(--ouro)"></span>
+      <span class="n">${esc(x.categoria)}${x.nota?`<small>${esc(x.nota)}</small>`:""}</span>
+      <span class="badge">${curto(x.data)}</span>
+      <span class="v" style="color:var(--ouro)">R$ ${brl(x.valor)}</span>`;
+    const b = document.createElement("button"); b.className="x press"; b.textContent="✕";
+    b.onclick=()=>apagar("lancamentos", x.id, ()=>{ db.lancamentos = db.lancamentos.filter(z=>z.id!==x.id); });
+    li.appendChild(b); ul.appendChild(li);
   });
 }
 
@@ -407,11 +512,14 @@ function rLanc(){
   ult.forEach(l=>{
     const li = document.createElement("li"); li.className="lin";
     const sub = [l.nota, espaco==="empresa"&&l.membro_id?nomeM(l.membro_id):""].filter(Boolean).join(" · ");
-    li.innerHTML = `<span class="dot" style="background:${l.tipo==="entrada"?cor("--entra"):cor("--sai")}"></span>
+    const c = l.tipo==="entrada" ? cor("--entra") : l.tipo==="investimento" ? cor("--ouro") : cor("--sai");
+    const sinal = l.tipo==="entrada" ? "+" : l.tipo==="investimento" ? "→" : "−";
+    li.innerHTML = `<span class="dot" style="background:${c}"></span>
       <span class="n">${esc(l.categoria)}${sub?`<small>${esc(sub)}</small>`:""}</span>
       ${l.natureza==="futil"?'<span class="badge fut">fútil</span>':""}
+      ${l.tipo==="investimento"?'<span class="badge" style="color:var(--ouro)">investido</span>':""}
       <span class="badge">${l.data===h?"hoje":curto(l.data)}</span>
-      <span class="v ${l.tipo==="entrada"?"entra":"sai"}">${l.tipo==="entrada"?"+":"−"} ${brl(l.valor)}</span>`;
+      <span class="v" style="color:${c}">${sinal} ${brl(l.valor)}</span>`;
     const x = document.createElement("button"); x.className="x press"; x.textContent="✕";
     x.onclick = ()=>apagar("lancamentos", l.id, ()=>{ db.lancamentos = db.lancamentos.filter(z=>z.id!==l.id); });
     li.appendChild(x); ul.appendChild(li);
@@ -560,14 +668,13 @@ function rEventos(){
   });
 }
 
-function rNumeros(h,y,d,iM,oM,sM){
+function rNumeros(h,y,d,iM,oM,vM){
   $("k-in").textContent = "R$ "+brl(iM);
   $("k-out").textContent = "R$ "+brl(oM);
   $("k-in-s").textContent = noMes(y,"entrada").length+" lançamentos";
   $("k-out-s").textContent = `projeção: R$ ${brl0(oM/d*ultDia(+y.slice(0,4),+y.slice(5,7)))}`;
-  $("k-sal").textContent = "R$ "+brl(sM);
-  $("k-sal").style.color = sM<0?cor("--sai"):sM>0?cor("--entra"):"";
-  $("k-sal-s").textContent = iM>0?`margem ${(sM/iM*100).toFixed(0)}%`:"sem entradas";
+  $("k-inv").textContent = "R$ "+brl(vM);
+  $("k-inv-s").textContent = iM>0 ? `${(vM/iM*100).toFixed(0)}% do que entrou` : "sem entradas";
   const an=acum(mesAnt(y),d), base=an.length?an[an.length-1]:0;
   if(base<=0){ $("k-rit").textContent="—"; $("k-rit").style.color=""; $("k-rit-s").textContent="sem base anterior"; }
   else{
@@ -583,8 +690,8 @@ function rNumeros(h,y,d,iM,oM,sM){
 function rDetalhe(){
   const d=selDia, h=hoje();
   $("dia-tit").textContent = d===h?"Hoje":ext(d,{weekday:"long",day:"2-digit",month:"long"});
-  const s = ent(d)-sai(d);
-  $("dia-saldo").innerHTML = `<small>R$</small>${brl(s)}`;
+  const s = ent(d)-sai(d)-inv(d);
+  $("dia-saldo").textContent = "R$ " + brl(s);
   $("dia-saldo").style.color = s<0?cor("--sai"):s>0?cor("--entra"):"";
 
   const dl=$("dia-lanc"); dl.innerHTML="";
@@ -592,9 +699,11 @@ function rDetalhe(){
   if(!ls.length) dl.innerHTML='<li class="vazio" style="padding:10px 0">Nenhum lançamento.</li>';
   ls.forEach(l=>{
     const li=document.createElement("li"); li.className="lin";
-    li.innerHTML=`<span class="dot" style="background:${l.tipo==="entrada"?cor("--entra"):cor("--sai")}"></span>
+    const c = l.tipo==="entrada" ? cor("--entra") : l.tipo==="investimento" ? cor("--ouro") : cor("--sai");
+    const sinal = l.tipo==="entrada" ? "+" : l.tipo==="investimento" ? "→" : "−";
+    li.innerHTML=`<span class="dot" style="background:${c}"></span>
       <span class="n">${esc(l.categoria)}${l.nota?`<small>${esc(l.nota)}</small>`:""}</span>
-      <span class="v ${l.tipo==="entrada"?"entra":"sai"}">${l.tipo==="entrada"?"+":"−"} ${brl(l.valor)}</span>`;
+      <span class="v" style="color:${c}">${sinal} ${brl(l.valor)}</span>`;
     const x=document.createElement("button"); x.className="x press"; x.textContent="✕";
     x.onclick=()=>apagar("lancamentos", l.id, ()=>{ db.lancamentos=db.lancamentos.filter(z=>z.id!==l.id); rDetalhe(); });
     li.appendChild(x); dl.appendChild(li);
@@ -647,6 +756,7 @@ function aplicarEspaco(re){
   $("seg").querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.e===espaco));
   $("kp-pessoal").hidden = !p;
   $("kp-empresa").hidden = p;
+  $("disp-tit").textContent = p ? "Disponível para gastar" : "Caixa disponível";
   try{ localStorage.setItem("nexvot:espaco", espaco); }catch(e){}
   if(re) render();
 }
@@ -674,13 +784,13 @@ const valor = () => dig ? parseInt(dig,10)/100 : 0;
 function pintaValor(){
   const v=valor(), el=$("mostra");
   el.innerHTML = `<small>R$</small>${brl(v)}`;
-  el.className = "v"+(v<=0?" zero":tipoSel==="entrada"?" e":" s");
+  el.className = "v"+(v<=0?" zero":tipoSel==="entrada"?" e":tipoSel==="investimento"?" i":" s");
   $("bt-lancar").disabled = v<=0 || !catSel;
   $("bt-lancar").style.opacity = ($("bt-lancar").disabled)?".5":"1";
 }
 function tecla(k){ if(k==="del") dig=dig.slice(0,-1); else if(dig.length<9) dig+=k; vibra(6); pintaValor(); }
-function abrirLanc(data){
-  dig=""; catSel=null; tipoSel="saida"; natSel="essencial";
+function abrirLanc(data, tipo){
+  dig=""; catSel=null; tipoSel=tipo||"saida"; natSel="essencial";
   membroSel = (db.membros.find(m=>m.eh_voce)||db.membros[0]||{}).id||null;
   dataAlvo = data||hoje();
   $("nota").value=""; $("lanc-msg").textContent="";
@@ -689,9 +799,9 @@ function abrirLanc(data){
   abrirSheet("sh-lanc");
 }
 function pintaTipo(){
+  const cl = { entrada:"e", investimento:"i", saida:"s" };
   $("dp-tipo").querySelectorAll("button").forEach(b=>{
-    const on = b.dataset.t===tipoSel;
-    b.className = on ? ("on "+(tipoSel==="entrada"?"e":"s")) : "";
+    b.className = b.dataset.t===tipoSel ? ("on "+cl[tipoSel]) : "";
   });
 }
 function pintaData(){
@@ -925,6 +1035,7 @@ function ligar(){
     $("e-tit").value=""; $("e-hora").value=""; $("e-lem").value="";
     render(); rDetalhe(); toast("compromisso marcado");
   };
+  $("inv-add").onclick=()=>{ vibra(10); abrirLanc(hoje(), "investimento"); };
   $("bt-export").onclick=()=>{
     const a=document.createElement("a");
     a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:"application/json"}));
