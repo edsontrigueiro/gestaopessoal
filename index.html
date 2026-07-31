@@ -1,796 +1,546 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-tema="claro">
+<html lang="pt-BR" data-tema="escuro">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F4F5F3">
+<meta name="theme-color" content="#0A0A0B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NexVot">
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231A1D1B'/><path d='M9 21h14M9 11h14M9 16h9' stroke='%23FF5E04' stroke-width='2.6' stroke-linecap='round'/></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230A0A0B'/><path d='M8 22h16M8 10h16M8 16h10' stroke='%23FF5E04' stroke-width='2.8' stroke-linecap='round'/></svg>">
 <title>NexVot — Gestão Inteligente</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-/* ============ tokens ============ */
-html[data-tema="claro"]{
-  --bg:#F4F5F3; --card:#FFFFFF; --card2:#FAFBFA; --barra:#1D211E;
-  --linha:#E7EAE7; --linha2:#F0F2F0;
-  --txt:#1A1D1B; --txt2:#5C6560; --txt3:#98A19C; --barra-txt:#FFFFFF;
-  --entra:#16A34A; --sai:#DC2626; --ouro:#D97706; --alerta:#EA7317; --laranja:#FF5E04; --neutro:#C3CAC6;
-  --sombra:0 1px 2px rgba(20,30,25,.05), 0 6px 20px rgba(20,30,25,.06);
-  --sombra2:0 2px 4px rgba(20,30,25,.06), 0 12px 32px rgba(20,30,25,.10);
-  --campo:#FFFFFF;
-}
+/* ================= TOKENS ================= */
 html[data-tema="escuro"]{
-  --bg:#101312; --card:#191D1B; --card2:#1F2422; --barra:#0A0C0B;
-  --linha:#272D2A; --linha2:#212724;
-  --txt:#EEF1EF; --txt2:#9AA5A0; --txt3:#6B7671; --barra-txt:#FFFFFF;
-  --entra:#34D399; --sai:#F87171; --ouro:#FBBF24; --alerta:#FBA94C; --laranja:#FF7A2E; --neutro:#3A423E;
-  --sombra:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.28);
-  --sombra2:0 2px 6px rgba(0,0,0,.4), 0 14px 36px rgba(0,0,0,.4);
-  --campo:#141817;
+  --bg:#0A0A0B; --side:#0C0C0E; --card:#141417; --card2:#1A1A1E; --card3:#202026;
+  --linha:#232328; --linha2:#1B1B20;
+  --txt:#FAFAFA; --txt2:#A1A1AA; --txt3:#71717A;
+  --laranja:#FF5E04; --verde:#22C55E; --ambar:#F59E0B; --vermelho:#EF4444;
+  --violeta:#A855F7; --azul:#3B82F6; --campo:#141417;
+  --sombra:0 1px 2px rgba(0,0,0,.4);
+  --sombra2:0 20px 60px rgba(0,0,0,.6);
 }
-:root{
-  --r:18px; --r2:11px;
-  --nav-h:calc(62px + env(safe-area-inset-bottom));
-  --mola:cubic-bezier(.22,1,.32,1);
-  --f:"Inter",-apple-system,system-ui,sans-serif;
+html[data-tema="claro"]{
+  --bg:#F7F8FA; --side:#FFFFFF; --card:#FFFFFF; --card2:#F4F5F7; --card3:#ECEEF1;
+  --linha:#E3E6EA; --linha2:#EEF0F3;
+  --txt:#0B0D10; --txt2:#4B5563; --txt3:#6B7280;
+  --laranja:#F25400; --verde:#12924E; --ambar:#B7791F; --vermelho:#D22B2B;
+  --violeta:#8B3DD9; --azul:#2563EB; --campo:#FFFFFF;
+  --sombra:0 1px 2px rgba(16,24,40,.05), 0 8px 24px rgba(16,24,40,.05);
+  --sombra2:0 24px 64px rgba(16,24,40,.18);
 }
+:root{ --f:"Inter",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  --r:16px; --r2:12px; --r3:10px; --side-w:272px; --mola:cubic-bezier(.22,1,.32,1); }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{background:var(--bg)}
-body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--f);font-size:15px;line-height:1.5;
-  -webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
-h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:-.015em}
-button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
-input,select{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--laranja);outline-offset:2px}
-::placeholder{color:var(--txt3)}
-[hidden]{display:none !important}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--f);font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overscroll-behavior-y:none}
+h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+button{font:inherit;color:inherit;cursor:pointer;border:none;background:none;font-family:var(--f)}
+input,select,textarea{font:inherit;color:inherit;font-family:var(--f)}
 ul{list-style:none;margin:0;padding:0}
 svg{display:block}
-@media (prefers-reduced-motion:no-preference){
-  html[data-tema]{transition:none}
-  body,.card,.kpi,.side{transition:background-color .25s ease,color .25s ease,border-color .25s ease}
-}
+[hidden]{display:none !important}
+:focus-visible{outline:2px solid var(--laranja);outline-offset:2px;border-radius:6px}
+::placeholder{color:var(--txt3)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--linha);border-radius:99px;border:3px solid var(--bg)}
+::-webkit-scrollbar-track{background:transparent}
+.micro{font-size:11.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--txt3)}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.t2{color:var(--txt2)} .t3{color:var(--txt3)}
+.pos{color:var(--verde)} .neg{color:var(--vermelho)} .inv{color:var(--ambar)}
 
-.num{font-variant-numeric:tabular-nums;letter-spacing:-.02em;font-weight:700}
-.mut{color:var(--txt2)}
-.press:active{transform:scale(.975)}
-@media (prefers-reduced-motion:no-preference){ .press{transition:transform .12s var(--mola)} }
-
-/* ============ splash / auth ============ */
-.splash{display:grid;place-items:center;min-height:100dvh;gap:14px;text-align:center;padding:24px}
-.splash .logo{font-size:26px;font-weight:700;letter-spacing:-.03em}
-.splash .st{color:var(--txt2);font-size:13.5px}
-.splash .st.erro{color:var(--sai);max-width:340px;line-height:1.65}
-
+/* ================= SPLASH / AUTH ================= */
+.splash{display:grid;place-items:center;min-height:100dvh;gap:16px;text-align:center;padding:24px}
+.splash .marca{display:flex;align-items:center;gap:12px}
+.splash .st{color:var(--txt2);font-size:14px;max-width:400px;line-height:1.6}
+.splash .st.erro{color:var(--vermelho)}
+.mk{width:40px;height:40px;border-radius:11px;background:var(--laranja);display:grid;place-items:center;flex:none}
+.mk i{display:block;width:18px;height:2.6px;background:#fff;border-radius:2px;box-shadow:0 -6px 0 #fff,0 6px 0 #fff}
+.mk.pq{width:34px;height:34px;border-radius:9px}
+.mk.pq i{width:15px;height:2.4px;box-shadow:0 -5px 0 #fff,0 5px 0 #fff}
 .auth{min-height:100dvh;display:grid;place-items:center;padding:24px}
-.auth-box{width:100%;max-width:380px}
-.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:26px}
-.auth-logo .mk{width:34px;height:34px;border-radius:9px;background:var(--barra);display:grid;place-items:center}
-.auth-logo .mk i{display:block;width:16px;height:2.5px;background:var(--laranja);border-radius:2px;box-shadow:0 -5px 0 var(--laranja),0 5px 0 var(--laranja)}
-.auth-logo h1{font-size:19px}
-.auth-logo p{margin:1px 0 0;font-size:12.5px;color:var(--txt2)}
-.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--card2);border:1px solid var(--linha);border-radius:var(--r2);padding:4px;margin-bottom:18px}
-.tabs button{padding:9px;border-radius:7px;font-size:13.5px;font-weight:600;color:var(--txt2)}
+.auth-box{width:100%;max-width:400px}
+.auth-logo{display:flex;align-items:center;gap:13px;margin-bottom:32px}
+.auth-logo h1{font-size:21px} .auth-logo p{margin:2px 0 0;font-size:13.5px;color:var(--txt2)}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--card2);border:1px solid var(--linha);border-radius:var(--r2);padding:5px;margin-bottom:20px}
+.tabs button{padding:11px;border-radius:8px;font-size:14.5px;font-weight:600;color:var(--txt2)}
 .tabs button.on{background:var(--card);color:var(--txt);box-shadow:var(--sombra)}
-.campo{width:100%;background:var(--campo);border:1px solid var(--linha);border-radius:var(--r2);padding:13px 14px;margin-bottom:10px;font-size:15px}
+.campo{width:100%;background:var(--campo);border:1px solid var(--linha);border-radius:var(--r2);padding:14px 15px;margin-bottom:11px;font-size:15px}
 .campo:focus{border-color:var(--laranja);outline:none}
-.btn{width:100%;background:var(--laranja);color:#fff;border-radius:var(--r2);padding:14px;font-size:14.5px;font-weight:600}
-.btn.sec{background:transparent;border:1px solid var(--linha);color:var(--txt2)}
-.msg{font-size:12.5px;margin-top:12px;min-height:17px;line-height:1.55;text-align:center}
-.msg.erro{color:var(--sai)} .msg.ok{color:var(--entra)}
-.auth-pe{margin-top:18px;text-align:center;font-size:12px;color:var(--txt3);line-height:1.6}
+.btn{width:100%;background:var(--laranja);color:#fff;border-radius:var(--r2);padding:15px;font-size:15px;font-weight:600;transition:filter .15s}
+.btn:hover{filter:brightness(1.08)}
+.msg{font-size:13.5px;margin-top:14px;min-height:19px;line-height:1.55;text-align:center}
+.msg.erro{color:var(--vermelho)} .msg.ok{color:var(--verde)}
+.auth-pe{margin-top:22px;text-align:center;font-size:13px;color:var(--txt3);line-height:1.6}
+.auth-lang{display:flex;gap:6px;justify-content:center;margin-top:20px}
+.auth-lang button{padding:7px 13px;border-radius:99px;border:1px solid var(--linha);font-size:12.5px;font-weight:600;color:var(--txt3)}
+.auth-lang button.on{border-color:var(--laranja);color:var(--laranja)}
 
-/* ============ shell ============ */
-.shell{display:flex;min-height:100dvh}
-.side{display:flex;flex-direction:column;width:272px;flex:none;padding:calc(20px + env(safe-area-inset-top)) 16px 20px;
-  background:var(--card);border-right:1px solid var(--linha);position:fixed;inset:0 auto 0 0;z-index:80;transform:translateX(-100%);overflow-y:auto}
-.side.aberta{transform:none}
-@media (prefers-reduced-motion:no-preference){ .side{transition:transform .28s var(--mola)} }
-.side .lg{display:flex;align-items:center;gap:10px;margin-bottom:22px;padding:0 6px}
-.side .lg h1{font-size:15px} .side .lg p{margin:0;font-size:11.5px;color:var(--txt2)}
-.side nav{display:flex;flex-direction:column;gap:3px}
-.side nav button{display:flex;align-items:center;gap:11px;padding:12px;border-radius:var(--r2);
-  font-size:14.5px;font-weight:500;color:var(--txt2);text-align:left}
-.side nav button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.side nav button.on{background:color-mix(in srgb,var(--laranja) 12%,transparent);color:var(--laranja);font-weight:600}
-.side .fim{margin-top:auto;padding-top:18px;border-top:1px solid var(--linha)}
-.side .fim .em{font-size:12px;color:var(--txt3);padding:0 6px 10px;overflow:hidden;text-overflow:ellipsis}
+/* ================= ESTRUTURA ================= */
+.app{display:flex;min-height:100dvh}
+.side{width:var(--side-w);flex:none;background:var(--side);border-right:1px solid var(--linha);
+  display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;z-index:80;overflow-y:auto}
+.conteudo{flex:1;min-width:0;margin-left:var(--side-w)}
+body.recolhido{--side-w:76px}
+body.recolhido .side-txt,body.recolhido .grupo-t,body.recolhido .busca{display:none}
+body.recolhido .side .item{justify-content:center;padding:12px}
+body.recolhido .side .lg{justify-content:center}
+.side .lg{display:flex;align-items:center;gap:11px;padding:22px 20px 18px}
+.side .lg h1{font-size:16.5px;letter-spacing:-.025em}
+.side .lg p{margin:1px 0 0;font-size:12px;color:var(--txt3)}
+.busca{margin:0 16px 20px;position:relative}
+.busca input{width:100%;background:var(--card);border:1px solid var(--linha);border-radius:var(--r3);padding:11px 12px 11px 38px;font-size:14px}
+.busca svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--txt3);fill:none;stroke-width:2}
+.busca kbd{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-family:var(--f);font-size:11px;
+  color:var(--txt3);border:1px solid var(--linha);border-radius:5px;padding:2px 6px;background:var(--card2)}
+.grupo{padding:0 12px;margin-bottom:22px}
+.grupo-t{display:flex;align-items:center;gap:7px;padding:0 10px 9px;font-size:11px;font-weight:600;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--txt3)}
+.item{display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;border-radius:var(--r3);
+  font-size:14.5px;font-weight:500;color:var(--txt2);text-align:left;position:relative;margin-bottom:2px}
+.item svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.item:hover{background:var(--card2);color:var(--txt)}
+.item.on{background:color-mix(in srgb,var(--laranja) 11%,transparent);color:var(--laranja);font-weight:600}
+.item.on::before{content:"";position:absolute;left:-12px;top:50%;transform:translateY(-50%);width:3px;height:22px;background:var(--laranja);border-radius:0 3px 3px 0}
+@media (prefers-reduced-motion:no-preference){ .item{transition:background .15s,color .15s} }
+.side-fim{margin-top:auto;padding:16px 12px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--linha)}
 
-/* topbar do celular */
-.topbar{display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 0 10px;
-  position:sticky;top:0;z-index:44;background:color-mix(in srgb,var(--bg) 92%,transparent);
-  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--linha);margin-bottom:14px}
-.tb-menu{width:40px;height:40px;flex:none;border-radius:var(--r2);border:1px solid var(--linha);background:var(--card);
-  display:grid;place-items:center;box-shadow:var(--sombra)}
-.tb-menu i{display:block;width:17px;height:2px;background:var(--txt);border-radius:2px;box-shadow:0 -6px 0 var(--txt),0 6px 0 var(--txt)}
-.tb-tit{flex:1;min-width:0;font-size:15.5px;font-weight:700;letter-spacing:-.015em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gaveta-veu{position:fixed;inset:0;background:rgba(15,20,18,.45);z-index:79;opacity:0;pointer-events:none}
-.gaveta-veu.on{opacity:1;pointer-events:auto}
-@media (prefers-reduced-motion:no-preference){ .gaveta-veu{transition:opacity .22s var(--mola)} }
+.topbar{height:70px;display:flex;align-items:center;gap:16px;padding:0 32px;position:sticky;top:0;z-index:44;
+  background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--linha)}
+.trilha{display:flex;align-items:center;gap:10px;font-size:14.5px;color:var(--txt2);flex:1;min-width:0}
+.trilha svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.9}
+.trilha .sep{color:var(--txt3)} .trilha b{color:var(--txt);font-weight:600}
+.tb-acoes{display:flex;align-items:center;gap:8px}
+.ib{width:38px;height:38px;border-radius:var(--r3);display:grid;place-items:center;color:var(--txt2)}
+.ib:hover{background:var(--card2);color:var(--txt)}
+.ib svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.lang{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:var(--r3);font-size:13px;font-weight:600;color:var(--txt2)}
+.lang:hover{background:var(--card2);color:var(--txt)}
+.perfil{display:flex;align-items:center;gap:11px;padding-left:14px;margin-left:6px;border-left:1px solid var(--linha)}
+.avatar{width:38px;height:38px;border-radius:99px;background:color-mix(in srgb,var(--laranja) 18%,transparent);
+  color:var(--laranja);display:grid;place-items:center;font-weight:700;font-size:15px;flex:none}
+.perfil .nm{font-size:14px;font-weight:600;line-height:1.25}
+.perfil .em{font-size:12.5px;color:var(--txt3);line-height:1.25}
+.tb-menu{display:none;width:38px;height:38px;border-radius:var(--r3);border:1px solid var(--linha);background:var(--card);place-items:center}
+.tb-menu i{display:block;width:16px;height:2px;background:var(--txt);border-radius:2px;box-shadow:0 -5.5px 0 var(--txt),0 5.5px 0 var(--txt)}
 
-/* gráfico: geometria no SVG, texto em HTML */
-.graf{position:relative}
-.graf svg{width:100%;display:block}
-.graf-x{display:flex;justify-content:space-between;margin-top:8px;font-size:11.5px;color:var(--txt3)}
-.graf-vazio{position:absolute;inset:0;display:grid;place-items:center;padding:0 24px;text-align:center;
-  font-size:13px;color:var(--txt3);line-height:1.5;pointer-events:none}
-.graf-leg{display:flex;gap:14px;margin-top:9px;font-size:11.5px;color:var(--txt2)}
-.graf-leg span{display:flex;align-items:center;gap:6px}
-.main{flex:1;min-width:0;padding:0 16px 100px}
-.wrap{max-width:1120px;margin-inline:auto}
-
-.topo{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
-.topo .hoje{font-size:19px;font-weight:700;letter-spacing:-.02em}
-.topo .sub{font-size:12.5px;color:var(--txt2);margin-top:1px}
-.acoes{display:flex;gap:8px;align-items:center}
-.ib{width:38px;height:38px;border-radius:var(--r2);border:1px solid var(--linha);background:var(--card);display:grid;place-items:center;box-shadow:var(--sombra)}
-.ib svg{width:17px;height:17px;stroke:var(--txt2);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.bt-dia{border-radius:var(--r2);padding:10px 15px;font-size:13px;font-weight:600;background:var(--laranja);color:#fff;box-shadow:var(--sombra)}
-.bt-dia.feito{background:var(--card);color:var(--entra);border:1px solid var(--linha)}
-
-.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--card2);border:1px solid var(--linha);border-radius:var(--r2);padding:4px;margin-bottom:16px;max-width:340px}
-.seg button{padding:9px;border-radius:7px;font-size:13.5px;font-weight:600;color:var(--txt2)}
-.seg button.on{background:var(--card);color:var(--txt);box-shadow:var(--sombra)}
-
-/* ============ cards ============ */
-.grade{display:grid;grid-template-columns:1fr;gap:14px}
-.card{background:var(--card);border:1px solid var(--linha);border-radius:var(--r);box-shadow:var(--sombra);overflow:hidden}
-.card-h{padding:17px 17px 0;display:flex;align-items:center;gap:11px}
-.card-h.ouro .ic{background:color-mix(in srgb,var(--ouro) 15%,transparent) !important;color:var(--ouro) !important}
-.card-h .ic{width:32px;height:32px;flex:none;border-radius:10px;display:grid;place-items:center;
+.pagina{padding:30px 32px 80px;max-width:1560px}
+.ph{display:flex;align-items:flex-start;gap:18px;margin-bottom:28px;flex-wrap:wrap}
+.ph-ic{width:56px;height:56px;flex:none;border-radius:14px;display:grid;place-items:center;
   background:color-mix(in srgb,var(--laranja) 13%,transparent);color:var(--laranja)}
-.card-h .ic svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.card-h h3{flex:1;min-width:0;font-size:15.5px;font-weight:700;letter-spacing:-.015em;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card-h .meta{font-size:12px;color:var(--txt3);white-space:nowrap;font-weight:500}
-.card-b{padding:15px 17px 17px}
-.card-b.plano{padding:0}
+.ph-ic svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ph-txt{flex:1;min-width:240px}
+.ph h1{font-size:34px;font-weight:700;letter-spacing:-.033em}
+.ph p{margin:5px 0 0;font-size:15.5px;color:var(--txt2);line-height:1.5}
+.ph-acoes{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.seg{display:flex;background:var(--card);border:1px solid var(--linha);border-radius:var(--r2);padding:5px;gap:2px}
+.seg button{padding:9px 18px;border-radius:8px;font-size:14px;font-weight:600;color:var(--txt2);white-space:nowrap}
+.seg button:hover{color:var(--txt)}
+.seg button.on{background:var(--laranja);color:#fff}
+.data-sel{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--linha);
+  border-radius:var(--r2);padding:11px 15px;font-size:14px;font-weight:500;color:var(--txt2)}
+.data-sel svg{width:17px;height:17px;stroke:var(--laranja);fill:none;stroke-width:1.9}
+.btn-pri{background:var(--laranja);color:#fff;border-radius:var(--r2);padding:12px 22px;font-size:14.5px;font-weight:600;
+  display:flex;align-items:center;gap:9px;transition:filter .15s;white-space:nowrap}
+.btn-pri:hover{filter:brightness(1.08)}
+.btn-pri svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2.2}
 
+/* ================= CARTÕES ================= */
+.grade{display:grid;gap:18px;margin-bottom:22px}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g21{grid-template-columns:1.6fr 1fr}
+@media (max-width:1180px){ .g3{grid-template-columns:repeat(2,1fr)} .g21{grid-template-columns:1fr} }
+@media (max-width:760px){ .g3,.g2{grid-template-columns:1fr} }
+.card{background:var(--card);border:1px solid var(--linha);border-radius:var(--r);overflow:hidden}
+.card.pad{padding:24px}
 @media (prefers-reduced-motion:no-preference){
-  .card{animation:sobe .32s var(--mola) both;animation-delay:var(--d,0ms)}
-  @keyframes sobe{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .card{animation:sobe .38s var(--mola) both;animation-delay:var(--d,0ms)}
+  @keyframes sobe{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 }
-
-/* ============ destaque ============ */
-.saldo{text-align:left}
-.saldo .rot{font-size:12.5px;color:var(--txt2)}
-.saldo .v{font-size:38px;font-weight:700;letter-spacing:-.035em;margin:5px 0 12px;font-variant-numeric:tabular-nums}
-.saldo .v small{font-size:17px;color:var(--txt2);margin-right:5px;font-weight:600}
-.pills{display:flex;gap:8px;flex-wrap:wrap}
-.pill{border:1px solid var(--linha);border-radius:99px;padding:6px 12px;font-size:12.5px;color:var(--txt2);background:var(--card2)}
-.pill.up{color:var(--entra);border-color:color-mix(in srgb,var(--entra) 35%,transparent)}
-.pill.down{color:var(--sai);border-color:color-mix(in srgb,var(--sai) 35%,transparent)}
-.pill.warn{color:var(--alerta);border-color:color-mix(in srgb,var(--alerta) 40%,transparent)}
-
-.kpis{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:13px}
-.kpi{background:var(--card);border:1px solid var(--linha);border-radius:var(--r);padding:14px;box-shadow:var(--sombra)}
-.kpi .r{font-size:12px;color:var(--txt2)}
-.kpi .v{font-size:22px;font-weight:700;letter-spacing:-.03em;margin-top:5px;font-variant-numeric:tabular-nums}
-.kpi .s{font-size:11.5px;color:var(--txt3);margin-top:4px}
-
-/* ============ listas ============ */
-.lin{display:flex;align-items:center;gap:11px;padding:13px 17px;border-bottom:1px solid var(--linha2)}
-.lin:last-child{border-bottom:none}
-.lin .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14.5px}
-.lin .n small{display:block;font-size:12px;color:var(--txt3);margin-top:1px}
-.lin .v{font-size:14.5px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
-.lin .v.entra{color:var(--entra)} .lin .v.sai{color:var(--sai)}
-.badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;background:var(--card2);border:1px solid var(--linha);color:var(--txt2);white-space:nowrap}
-.badge.perto{color:var(--alerta);border-color:color-mix(in srgb,var(--alerta) 40%,transparent)}
-.badge.venc{background:var(--sai);border-color:var(--sai);color:#fff}
-.badge.fut{color:var(--alerta);border-color:color-mix(in srgb,var(--alerta) 40%,transparent)}
-.dot{width:8px;height:8px;border-radius:99px;flex:none}
-.x{color:var(--txt3);padding:5px;font-size:15px;line-height:1;flex:none}
-.x:active{color:var(--sai)}
-.mini{border:1px solid var(--linha);border-radius:8px;padding:7px 11px;font-size:12.5px;font-weight:500;color:var(--txt2);background:var(--card)}
-.mini:active{border-color:var(--laranja);color:var(--laranja)}
-.mini.forte{color:var(--laranja);border-color:color-mix(in srgb,var(--laranja) 45%,transparent)}
-.vazio{color:var(--txt3);font-size:13.5px;padding:6px 17px 17px;line-height:1.6}
-
-.form{display:flex;gap:8px;flex-wrap:wrap;padding:13px 17px;border-top:1px solid var(--linha2);background:var(--card2)}
-.form input,.form select{border:1px solid var(--linha);border-radius:9px;background:var(--campo);padding:10px 11px;font-size:14px;min-width:0;color-scheme:light dark}
-.form .fn{flex:1 1 130px}
-.form .fx{width:78px}
-.form .fh{width:112px}
-
-/* ============ barras / split ============ */
-.bl{display:grid;grid-template-columns:92px 1fr 78px;align-items:center;gap:10px;padding:7px 0}
-.bl .n{font-size:12.5px;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tr{height:9px;background:var(--card2);border:1px solid var(--linha);border-radius:99px;overflow:hidden}
-.tr i{display:block;height:100%;background:var(--laranja);border-radius:99px}
-.bl .v{font-size:13px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
-@media (prefers-reduced-motion:no-preference){ .tr i{transition:width .5s var(--mola)} }
-.split{display:flex;height:30px;border-radius:99px;overflow:hidden;background:var(--card2);border:1px solid var(--linha);margin-bottom:9px}
-.split i{display:block;height:100%}
-.split .e{background:var(--neutro)} .split .f{background:var(--alerta)}
-@media (prefers-reduced-motion:no-preference){ .split i{transition:width .5s var(--mola)} }
-.split-l{display:flex;justify-content:space-between;font-size:12.5px;color:var(--txt2)}
-
-
-
-/* ---- vazio que convida ---- */
-.zero-box{margin:13px 17px 17px;border:1.5px dashed var(--linha);border-radius:var(--r2);
-  padding:22px 18px;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;
-  background:color-mix(in srgb,var(--card2) 60%,transparent);width:calc(100% - 34px)}
-.zero-box .mais{width:40px;height:40px;border-radius:99px;background:var(--card);border:1px solid var(--linha);
-  display:grid;place-items:center;font-size:22px;color:var(--laranja);line-height:0;box-shadow:var(--sombra)}
-.zero-box .tt{font-size:14.5px;font-weight:600}
-.zero-box .ss{font-size:12.5px;color:var(--txt3);max-width:290px;line-height:1.5}
-.zero-box:active{border-color:var(--laranja)}
-@media (prefers-reduced-motion:no-preference){ .zero-box{transition:border-color .16s var(--mola)} }
-
-/* ---- status: o app falando com você ---- */
-.status{display:flex;align-items:center;gap:14px;padding:17px}
+.kpi{position:relative;padding:24px}
+.kpi-t{font-size:15px;color:var(--txt2);padding-right:62px;font-weight:500}
+.kpi-ic{position:absolute;top:22px;right:22px;width:46px;height:46px;border-radius:12px;display:grid;place-items:center}
+.kpi-ic svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.kpi-v{font-size:38px;font-weight:700;letter-spacing:-.035em;font-variant-numeric:tabular-nums;margin:14px 0 16px;line-height:1.05}
+.kpi-v small{font-size:20px;font-weight:600;color:var(--txt2);margin-right:6px;letter-spacing:0}
+.kpi-f{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--txt2)}
+.kpi-f svg{width:15px;height:15px;flex:none;stroke:currentColor;fill:none;stroke-width:2.2}
+.ic-lar{background:color-mix(in srgb,var(--laranja) 15%,transparent);color:var(--laranja)}
+.ic-ver{background:color-mix(in srgb,var(--verde) 15%,transparent);color:var(--verde)}
+.ic-amb{background:color-mix(in srgb,var(--ambar) 16%,transparent);color:var(--ambar)}
+.ic-vrm{background:color-mix(in srgb,var(--vermelho) 15%,transparent);color:var(--vermelho)}
+.ic-vio{background:color-mix(in srgb,var(--violeta) 16%,transparent);color:var(--violeta)}
+.ic-azu{background:color-mix(in srgb,var(--azul) 16%,transparent);color:var(--azul)}
+.sec-h{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:22px;flex-wrap:wrap}
+.sec-h h2{font-size:25px;font-weight:700;letter-spacing:-.028em}
+.sec-h p{margin:5px 0 0;font-size:14.5px;color:var(--txt2)}
+.sec-h .dir{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.btn-sec{border:1px solid var(--linha);border-radius:var(--r2);padding:11px 18px;font-size:14px;font-weight:600;color:var(--txt2);background:var(--card2)}
+.btn-sec:hover{color:var(--txt);border-color:var(--txt3)}
+.legenda{display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--txt2)}
+.legenda span{display:flex;align-items:center;gap:7px}
+.pt{width:9px;height:9px;border-radius:99px;flex:none;display:inline-block}
+.faixa{display:grid;gap:1px;background:var(--linha);border:1px solid var(--linha);border-radius:var(--r2);overflow:hidden}
+.faixa > div{background:var(--card);padding:16px 18px}
+.faixa .r{font-size:13.5px;color:var(--txt2);margin-bottom:6px}
+.faixa .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.022em}
+.tb-h{display:grid;gap:14px;padding:13px 24px;background:var(--card2);border-bottom:1px solid var(--linha);
+  font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--txt3)}
+.tb-l{display:grid;gap:14px;padding:16px 24px;border-bottom:1px solid var(--linha2);align-items:center}
+.tb-l:last-child{border-bottom:none}
+.tb-l:hover{background:var(--card2)}
+.tb .n,.li .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:500}
+.tb .n small,.li .n small{display:block;font-size:13px;color:var(--txt3);font-weight:400;margin-top:2px}
+.tb .v{font-size:15.5px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.dir-fim{display:flex;justify-content:flex-end;align-items:center;gap:8px}
+.li{display:flex;align-items:center;gap:14px;padding:16px 24px;border-bottom:1px solid var(--linha2)}
+.li:last-child{border-bottom:none}
+.li:hover{background:var(--card2)}
+.li .n{flex:1}
+.li .v{font-size:15.5px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{font-size:12px;font-weight:600;padding:5px 11px;border-radius:99px;background:var(--card2);
+  border:1px solid var(--linha);color:var(--txt2);white-space:nowrap}
+.tag.ver{color:var(--verde);border-color:color-mix(in srgb,var(--verde) 35%,transparent);background:color-mix(in srgb,var(--verde) 10%,transparent)}
+.tag.amb{color:var(--ambar);border-color:color-mix(in srgb,var(--ambar) 38%,transparent);background:color-mix(in srgb,var(--ambar) 10%,transparent)}
+.tag.vrm{color:#fff;border-color:var(--vermelho);background:var(--vermelho)}
+.tag.lar{color:var(--laranja);border-color:color-mix(in srgb,var(--laranja) 38%,transparent);background:color-mix(in srgb,var(--laranja) 10%,transparent)}
+.x{color:var(--txt3);padding:7px;border-radius:8px;line-height:0;flex:none}
+.x:hover{color:var(--vermelho);background:var(--card3)}
+.x svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+.mini{border:1px solid var(--linha);border-radius:9px;padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--txt2);background:var(--card2)}
+.mini:hover{color:var(--txt);border-color:var(--txt3)}
+.mini.lar{color:var(--laranja);border-color:color-mix(in srgb,var(--laranja) 40%,transparent)}
+.cx{width:22px;height:22px;flex:none;border:1.8px solid var(--linha);border-radius:7px;display:grid;place-items:center;color:transparent;background:var(--card2)}
+.cx svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.cx.on{background:var(--verde);border-color:var(--verde);color:#fff}
+.form{display:flex;gap:10px;flex-wrap:wrap;padding:18px 24px;border-top:1px solid var(--linha);background:var(--card2)}
+.form input,.form select{border:1px solid var(--linha);border-radius:var(--r3);background:var(--campo);
+  padding:12px 14px;font-size:14.5px;min-width:0;color-scheme:dark light}
+.form .fn{flex:1 1 160px} .form .fx{width:100px} .form .fh{width:130px}
+.barra{height:10px;background:var(--card3);border-radius:99px;overflow:hidden}
+.barra i{display:block;height:100%;border-radius:99px;background:var(--laranja)}
+.barra i.ok{background:var(--verde)} .barra i.al{background:var(--ambar)} .barra i.est{background:var(--vermelho)}
+@media (prefers-reduced-motion:no-preference){ .barra i{transition:width .6s var(--mola)} }
+.linha-b{display:grid;grid-template-columns:160px 1fr 140px;align-items:center;gap:18px;padding:12px 0}
+.linha-b .n{font-size:14.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.linha-b .v{font-size:14px;text-align:right;color:var(--txt2);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (max-width:600px){ .linha-b{grid-template-columns:1fr;gap:8px} .linha-b .v{text-align:left} }
+.graf{position:relative}
+.graf svg{width:100%;display:block;overflow:visible}
+.graf-x{display:flex;justify-content:space-between;margin-top:14px;font-size:12.5px;color:var(--txt3);font-weight:500}
+.graf-vazio{position:absolute;inset:0;display:grid;place-items:center;padding:0 30px;text-align:center;
+  font-size:14.5px;color:var(--txt3);line-height:1.6;pointer-events:none}
+.eixo-y{position:absolute;left:0;top:0;bottom:30px;width:76px;display:flex;flex-direction:column;
+  justify-content:space-between;font-size:12px;color:var(--txt3);font-variant-numeric:tabular-nums;pointer-events:none}
+.com-y{padding-left:84px;position:relative}
+.zero{margin:24px;border:1.5px dashed var(--linha);border-radius:var(--r2);padding:44px 28px;
+  display:flex;flex-direction:column;align-items:center;gap:11px;text-align:center;width:calc(100% - 48px);
+  background:color-mix(in srgb,var(--card2) 55%,transparent)}
+.zero:hover{border-color:color-mix(in srgb,var(--laranja) 50%,transparent)}
+.zero .mais{width:52px;height:52px;border-radius:99px;background:color-mix(in srgb,var(--laranja) 14%,transparent);
+  color:var(--laranja);display:grid;place-items:center;font-size:26px;line-height:0}
+.zero .tt{font-size:18px;font-weight:700;letter-spacing:-.02em}
+.zero .ss{font-size:14.5px;color:var(--txt2);max-width:400px;line-height:1.6}
+.status{display:flex;align-items:center;gap:22px;padding:26px 24px}
 .status .txt{flex:1;min-width:0}
-.status .tt{font-size:16px;font-weight:700;letter-spacing:-.015em}
-.status .ss{font-size:13px;color:var(--txt2);margin-top:3px;line-height:1.45}
-.status .cta{flex:none;border-radius:99px;padding:11px 17px;font-size:13px;font-weight:600;
-  background:var(--txt);color:var(--card);white-space:nowrap}
-@media (max-width:520px){ .status{flex-direction:column;align-items:stretch} .status .cta{width:100%} }
+.status .tt{font-size:22px;font-weight:700;letter-spacing:-.028em}
+.status .ss{font-size:15px;color:var(--txt2);margin-top:6px;line-height:1.55}
+@media (max-width:640px){ .status{flex-direction:column;align-items:stretch} .status .btn-pri{justify-content:center} }
 
-/* ---- hero disponível ---- */
-.hero{display:grid;grid-template-columns:1fr;gap:16px;align-items:center;padding:18px 15px}
-.hero-anel{display:grid;place-items:center}
-.hero-tot{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
-.tot{border:1px solid var(--linha);border-radius:var(--r2);padding:12px 13px;background:var(--card2)}
-.tot .r{font-size:11px;color:var(--txt2);display:flex;align-items:center;gap:6px}
-.tot .v{font-size:17px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.tot.e .v{color:var(--entra)} .tot.i .v{color:var(--ouro)} .tot.s .v{color:var(--sai)}
-
-/* ---- tabela ---- */
-.thead{display:grid;grid-template-columns:34px 1fr 92px 74px;gap:8px;padding:10px 17px;margin-top:13px;background:var(--card2);
-  border-bottom:1px solid var(--linha);font-size:11px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em}
-.trow{display:grid;grid-template-columns:34px 1fr 92px 74px;gap:8px;align-items:center;padding:12px 17px;border-bottom:1px solid var(--linha2)}
-.trow:last-child{border-bottom:none}
-.trow .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14.5px}
-.trow .n small{display:block;font-size:12px;color:var(--txt3)}
-.trow .v{font-size:14.5px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
-.trow .fim{display:flex;justify-content:flex-end;gap:5px;align-items:center}
-.cx{width:21px;height:21px;flex:none;border:1.8px solid var(--linha);border-radius:6px;display:grid;place-items:center;
-  font-size:12px;color:transparent;background:var(--card2)}
-.cx.on{background:var(--entra);border-color:var(--entra);color:#fff}
-
-/* ---- trio de tipo ---- */
-.trio{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--card2);border:1px solid var(--linha);border-radius:var(--r2);padding:4px;margin-bottom:12px}
-.trio button{padding:10px 4px;border-radius:7px;font-size:13px;font-weight:600;color:var(--txt2)}
+/* ================= SHEET ================= */
+.veu{position:fixed;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(3px);z-index:90;opacity:0}
+.veu.on{opacity:1}
+.sheet{position:fixed;z-index:95;background:var(--card);border:1px solid var(--linha);box-shadow:var(--sombra2);
+  left:50%;top:50%;transform:translate(-50%,-46%) scale(.97);opacity:0;border-radius:var(--r);
+  width:calc(100% - 48px);max-width:520px;max-height:88dvh;overflow-y:auto;padding:24px}
+.sheet.on{transform:translate(-50%,-50%) scale(1);opacity:1}
+@media (prefers-reduced-motion:no-preference){ .veu{transition:opacity .22s var(--mola)} .sheet{transition:transform .28s var(--mola),opacity .22s} }
+.sh-c{display:flex;align-items:center;gap:13px;margin-bottom:22px}
+.sh-c .ic{width:42px;height:42px;flex:none;border-radius:12px;display:grid;place-items:center;
+  background:color-mix(in srgb,var(--laranja) 14%,transparent);color:var(--laranja)}
+.sh-c .ic svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sh-c h3{flex:1;min-width:0;font-size:20px}
+.fechar{width:34px;height:34px;flex:none;border-radius:99px;background:var(--card2);border:1px solid var(--linha);
+  display:grid;place-items:center;color:var(--txt2)}
+.fechar:hover{color:var(--txt)}
+.fechar svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2}
+.sub-sec{font-size:11.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--txt3);margin:22px 0 10px}
+.mostra{text-align:center;padding:8px 0 20px}
+.mostra .v{font-size:48px;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums;line-height:1}
+.mostra .v small{font-size:22px;color:var(--txt2);margin-right:7px;font-weight:600}
+.mostra .v.zv{color:var(--txt3)}
+.trio{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--card2);border:1px solid var(--linha);border-radius:var(--r2);padding:5px;margin-bottom:16px}
+.trio button{padding:11px 6px;border-radius:8px;font-size:14px;font-weight:600;color:var(--txt2)}
 .trio button.on{background:var(--card);box-shadow:var(--sombra)}
-.trio button.on.s{color:var(--sai)} .trio button.on.e{color:var(--entra)} .trio button.on.i{color:var(--ouro)}
-.mostra .v.i{color:var(--ouro)}
+.dup{display:grid;grid-template-columns:1fr 1fr;background:var(--card2);border:1px solid var(--linha);border-radius:var(--r2);padding:5px;margin-bottom:16px}
+.dup button{padding:11px;border-radius:8px;font-size:14px;font-weight:600;color:var(--txt2)}
+.dup button.on{background:var(--card);color:var(--txt);box-shadow:var(--sombra)}
+.rolo{display:flex;gap:8px;overflow-x:auto;padding-bottom:5px;margin-bottom:16px;scrollbar-width:none}
+.rolo::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:10px 16px;border-radius:99px;border:1px solid var(--linha);background:var(--card2);
+  font-size:13.5px;font-weight:500;color:var(--txt2);white-space:nowrap;cursor:pointer}
+.chip:hover{color:var(--txt)}
+.chip.on{background:var(--laranja);border-color:var(--laranja);color:#fff;font-weight:600}
+.tec{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:18px}
+.tec button{height:56px;border-radius:var(--r2);background:var(--card2);border:1px solid var(--linha);font-size:21px;font-weight:600}
+.tec button:hover{background:var(--card3)}
+.tec button.aux{font-size:13.5px;color:var(--txt2);font-weight:500}
 
-/* ============ rotina ============ */
-.dnav{display:grid;grid-template-columns:42px 1fr 42px;gap:9px;margin-bottom:12px}
-.dnav button{border:1px solid var(--linha);border-radius:var(--r2);background:var(--card);box-shadow:var(--sombra);font-size:16px;color:var(--txt2)}
-.dnav .c{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px}
-.dnav .c .d{font-size:14.5px;font-weight:600}
-.dnav .c .s{font-size:11.5px;color:var(--laranja);margin-top:1px}
-.pbar{height:7px;border-radius:99px;background:var(--card2);border:1px solid var(--linha);overflow:hidden;margin-bottom:13px}
-.pbar i{display:block;height:100%;background:var(--entra);border-radius:99px}
-@media (prefers-reduced-motion:no-preference){ .pbar i{transition:width .45s var(--mola)} }
-
-.blk{background:var(--card);border:1px solid var(--linha);border-radius:var(--r);box-shadow:var(--sombra);margin-bottom:9px;overflow:hidden}
+/* ================= ROTINA / CALENDÁRIO ================= */
+.dnav{display:grid;grid-template-columns:46px 1fr 46px;gap:12px;margin-bottom:20px}
+.dnav button{border:1px solid var(--linha);border-radius:var(--r2);background:var(--card);font-size:17px;color:var(--txt2)}
+.dnav button:hover{color:var(--txt);border-color:var(--txt3)}
+.dnav .c{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:13px}
+.dnav .c .d{font-size:16px;font-weight:600}
+.dnav .c .s{font-size:12.5px;color:var(--laranja);margin-top:2px}
+.blk{background:var(--card);border:1px solid var(--linha);border-radius:var(--r);margin-bottom:11px;overflow:hidden}
 .blk.agora{border-color:color-mix(in srgb,var(--laranja) 55%,transparent)}
-.blk-c{display:flex;align-items:center;gap:12px;width:100%;padding:14px 15px;text-align:left}
-.blk-h{font-size:14px;font-weight:700;color:var(--laranja);width:48px;flex:none;font-variant-numeric:tabular-nums}
-.blk.ok .blk-h{color:var(--entra)}
-.blk-t{flex:1;min-width:0;font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.blk-c{display:flex;align-items:center;gap:16px;width:100%;padding:18px 22px;text-align:left}
+.blk-c:hover{background:var(--card2)}
+.blk-h{font-size:16px;font-weight:700;color:var(--laranja);width:56px;flex:none;font-variant-numeric:tabular-nums}
+.blk.ok .blk-h{color:var(--verde)}
+.blk-t{flex:1;min-width:0;font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .blk.ok .blk-t{color:var(--txt2)}
-.blk-n{font-size:12px;color:var(--txt3);flex:none}
-.blk-s{font-size:12px;color:var(--txt3);width:12px;text-align:right;flex:none}
-.blk-b{border-top:1px solid var(--linha2);padding:4px 15px 12px}
-.blk-nota{font-size:12.5px;color:var(--alerta);padding:10px 0 2px}
-
-.tk{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--linha2);width:100%;text-align:left}
+.blk-n{font-size:13.5px;color:var(--txt3);flex:none;font-variant-numeric:tabular-nums}
+.blk-s{font-size:13px;color:var(--txt3);width:14px;text-align:right;flex:none}
+.blk-b{border-top:1px solid var(--linha2);padding:6px 22px 16px}
+.blk-nota{font-size:13.5px;color:var(--ambar);padding:13px 0 4px}
+.tk{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--linha2);width:100%;text-align:left}
 .tk:last-child{border-bottom:none}
-.cx{width:22px;height:22px;flex:none;border:1.8px solid var(--linha);border-radius:7px;display:grid;place-items:center;font-size:12px;color:transparent;background:var(--card2)}
-.tk.on .cx{background:var(--entra);border-color:var(--entra);color:#fff}
-.tk .t{flex:1;min-width:0;font-size:14.5px}
+.tk.on .cx{background:var(--verde);border-color:var(--verde);color:#fff}
+.tk .t{flex:1;min-width:0;font-size:15px}
 .tk.on .t{color:var(--txt3);text-decoration:line-through}
-.tk .h{font-size:11.5px;color:var(--txt3);flex:none}
-.selo{font-size:11px;font-weight:600;color:var(--laranja);border:1px solid color-mix(in srgb,var(--laranja) 40%,transparent);border-radius:99px;padding:2px 8px;flex:none}
-
-/* ============ calendário ============ */
-.cnav{display:flex;align-items:center;gap:8px}
-.cnav button{width:28px;height:28px;border-radius:8px;color:var(--barra-txt);opacity:.75;font-size:14px}
-.cnav .m{font-size:13px;font-weight:600;min-width:104px;text-align:center}
-.sem{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:6px}
-.sem b{font-size:11px;color:var(--txt3);text-align:center;font-weight:500}
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
-.dia{aspect-ratio:1;border:1px solid var(--linha);border-radius:9px;position:relative;overflow:hidden;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:var(--card2)}
-.dia .n{font-size:13.5px;font-weight:600;color:var(--txt2);position:relative;z-index:1;font-variant-numeric:tabular-nums}
-.dia .f{position:absolute;inset:0;background:var(--sai);opacity:0}
-.dia .m{display:flex;gap:3px;height:5px;position:relative;z-index:1}
-.dia .m i{width:5px;height:5px;border-radius:99px;display:block}
-.dia.fora{opacity:.32}
+.tk .h{font-size:12.5px;color:var(--txt3);flex:none}
+.pbar{height:8px;border-radius:99px;background:var(--card3);overflow:hidden;margin-bottom:20px}
+.pbar i{display:block;height:100%;background:var(--verde);border-radius:99px}
+@media (prefers-reduced-motion:no-preference){ .pbar i{transition:width .5s var(--mola)} }
+.cal-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:8px}
+.cal-sem b{font-size:12px;color:var(--txt3);text-align:center;font-weight:600}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
+.dia{aspect-ratio:1;border:1px solid var(--linha);border-radius:var(--r3);position:relative;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:var(--card2)}
+.dia:hover{border-color:var(--txt3)}
+.dia .n{font-size:14.5px;font-weight:600;color:var(--txt2);position:relative;z-index:1;font-variant-numeric:tabular-nums}
+.dia .f{position:absolute;inset:0;background:var(--vermelho);opacity:0}
+.dia .m{display:flex;gap:4px;height:6px;position:relative;z-index:1}
+.dia .m i{width:6px;height:6px;border-radius:99px;display:block}
+.dia.fora{opacity:.3}
 .dia.hoje{border-color:var(--laranja);border-width:2px}
 .dia.hoje .n{color:var(--laranja)}
 .dia.gastou .n{color:var(--txt)}
-.dia.fech{box-shadow:inset 0 -3px 0 var(--entra)}
-.cleg{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px;font-size:12px;color:var(--txt2)}
-.cleg span{display:flex;align-items:center;gap:8px}
-
-/* ============ nav ============ */
-.fab{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:45;
-  width:56px;height:56px;border-radius:99px;background:var(--laranja);color:#fff;display:grid;place-items:center;
-  font-size:27px;line-height:0;box-shadow:0 8px 24px color-mix(in srgb,var(--laranja) 45%,transparent)}
-@media (prefers-reduced-motion:no-preference){ .nav .ab{transition:color .16s var(--mola)} }
-
-/* ============ sheets ============ */
-.veu{position:fixed;inset:0;background:rgba(15,20,18,.5);backdrop-filter:blur(2px);z-index:50;opacity:0}
-.veu.on{opacity:1}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--card);border-radius:24px 24px 0 0;
-  padding:8px 16px calc(18px + env(safe-area-inset-bottom));max-height:92dvh;overflow-y:auto;
-  transform:translateY(100%);max-width:520px;margin-inline:auto;box-shadow:var(--sombra2)}
-.sheet.on{transform:none}
-@media (prefers-reduced-motion:no-preference){ .veu{transition:opacity .24s var(--mola)} .sheet{transition:transform .3s var(--mola)} }
-.puxa{width:36px;height:4px;border-radius:99px;background:var(--linha);margin:7px auto 14px}
-.sh-c{display:flex;align-items:center;gap:11px;margin-bottom:16px}
-.sh-c .ic{width:32px;height:32px;flex:none;border-radius:10px;display:grid;place-items:center;
-  background:color-mix(in srgb,var(--laranja) 13%,transparent);color:var(--laranja);font-size:16px;font-weight:600}
-.sh-c h3{flex:1;min-width:0;font-size:18px;letter-spacing:-.02em}
-.sh-c .fech{flex:none;width:32px;height:32px;border-radius:99px;background:var(--card2);border:1px solid var(--linha);
-  display:grid;place-items:center;font-size:14px;color:var(--txt2);line-height:0}
-
-.mostra{text-align:center;padding:4px 0 14px}
-.mostra .v{font-size:44px;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
-.mostra .v.zero{color:var(--txt3)}
-.mostra .v.e{color:var(--entra)} .mostra .v.s{color:var(--sai)}
-.mostra .v small{font-size:17px;color:var(--txt2);margin-right:5px;font-weight:600}
-.dup{display:grid;grid-template-columns:1fr 1fr;background:var(--card2);border:1px solid var(--linha);border-radius:var(--r2);padding:4px;margin-bottom:12px}
-.dup button{padding:10px;border-radius:7px;font-size:13.5px;font-weight:600;color:var(--txt2)}
-.dup button.on{background:var(--card);color:var(--txt);box-shadow:var(--sombra)}
-.dup button.on.e{color:var(--entra)} .dup button.on.s{color:var(--sai)}
-.rolo{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none}
-.rolo::-webkit-scrollbar{display:none}
-.rolo .pill{flex:none;cursor:pointer}
-.rolo .pill.on{background:var(--laranja);border-color:var(--laranja);color:#fff}
-.tec{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:13px}
-.tec button{height:52px;border-radius:var(--r2);background:var(--card2);border:1px solid var(--linha);font-size:20px;font-weight:600}
-.tec button:active{background:var(--linha2)}
-.tec button.aux{font-size:13px;color:var(--txt2);font-weight:500}
-.sec{font-size:12px;font-weight:600;color:var(--txt3);margin:18px 0 4px}
-
-.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:70;
-  background:var(--barra);color:#fff;border-radius:99px;padding:11px 20px;font-size:13px;font-weight:500;
+.dia.fech{box-shadow:inset 0 -3px 0 var(--verde)}
+.drop{border:2px dashed var(--linha);border-radius:var(--r2);padding:48px 28px;text-align:center;background:var(--card2);
+  display:flex;flex-direction:column;align-items:center;gap:12px;cursor:pointer}
+.drop.sobre{border-color:var(--laranja);background:color-mix(in srgb,var(--laranja) 7%,transparent)}
+.drop svg{width:38px;height:38px;stroke:var(--laranja);fill:none;stroke-width:1.6}
+.drop .tt{font-size:16px;font-weight:600}
+.drop .ss{font-size:13.5px;color:var(--txt3)}
+.toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);z-index:120;background:var(--card);
+  border:1px solid var(--linha);border-radius:99px;padding:14px 24px;font-size:14px;font-weight:500;
   box-shadow:var(--sombra2);max-width:88vw;text-align:center}
+@media (prefers-reduced-motion:no-preference){ .toast{animation:sobeT .26s var(--mola)}
+  @keyframes sobeT{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}} }
 
-/* ============ desktop ============ */
-@media (min-width:900px){
-  .nav{display:none}
-  .main{padding:26px 30px 40px}
-  .side{position:sticky;inset:auto;transform:none;min-height:100dvh;width:248px;padding:22px 16px}
-  .topbar{display:none !important}
-  .gaveta-veu{display:none !important}
-  .side .lg{display:flex;align-items:center;gap:10px;margin-bottom:24px;padding:0 6px}
-  .side .lg .mk{width:32px;height:32px;border-radius:9px;background:var(--barra);display:grid;place-items:center;flex:none}
-  .side .lg .mk i{display:block;width:15px;height:2.4px;background:var(--laranja);border-radius:2px;box-shadow:0 -4.5px 0 var(--laranja),0 4.5px 0 var(--laranja)}
-  .side .lg h1{font-size:15px}
-  .side .lg p{margin:0;font-size:11.5px;color:var(--txt2)}
-  .side nav{display:flex;flex-direction:column;gap:3px}
-  .side nav button{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:var(--r2);
-    font-size:14px;font-weight:500;color:var(--txt2);text-align:left}
-  .side nav button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
-  .side nav button:hover{background:var(--card2)}
-  .side nav button.on{background:color-mix(in srgb,var(--laranja) 12%,transparent);color:var(--laranja);font-weight:600}
-  .side .fim{margin-top:auto;padding-top:18px;border-top:1px solid var(--linha)}
-  .side .fim .em{font-size:12px;color:var(--txt3);padding:0 6px 10px;overflow:hidden;text-overflow:ellipsis}
-  .grade.duas{grid-template-columns:1fr 1fr;align-items:start}
-  .hero{grid-template-columns:190px 1fr;padding:20px}
-  .grade.tres{grid-template-columns:1.4fr 1fr}
-  .kpis{grid-template-columns:repeat(4,1fr)}
-  .saldo .v{font-size:46px}
-  .sheet{border-radius:20px;top:50%;bottom:auto;left:50%;right:auto;transform:translate(-50%,-46%) scale(.97);opacity:0;
-    max-width:460px;width:calc(100% - 48px);max-height:86dvh;padding-bottom:20px}
-  .sheet.on{transform:translate(-50%,-50%) scale(1);opacity:1}
-  .puxa{display:none}
-  .toast{bottom:26px}
+/* ================= CELULAR ================= */
+@media (max-width:1000px){
+  .side{transform:translateX(-100%);width:280px;box-shadow:var(--sombra2)}
+  .side.aberta{transform:none}
+  .conteudo{margin-left:0}
+  .tb-menu{display:grid}
+  .topbar{padding:0 16px;height:64px;gap:12px}
+  .perfil .nm,.perfil .em{display:none}
+  .perfil{padding-left:0;margin-left:0;border-left:none}
+  #seg-espaco{display:none}
+  .pagina{padding:20px 16px 110px}
+  .ph h1{font-size:26px}
+  .ph-ic{width:48px;height:48px;border-radius:12px}
+  .ph-ic svg{width:22px;height:22px}
+  .ph{gap:14px;margin-bottom:22px}
+  .seg button{padding:9px 13px;font-size:13.5px}
+  .kpi{padding:20px} .kpi-v{font-size:32px}
+  .sec-h h2{font-size:21px}
+  .card.pad{padding:20px}
+  .tb-h,.tb-l,.li,.form{padding-left:18px;padding-right:18px}
+  .zero{margin:18px;width:calc(100% - 36px);padding:34px 20px}
+  .status{padding:22px 20px}
+  .fab{display:grid !important}
+  .com-y{padding-left:0} .eixo-y{display:none}
+  #bt-novo{display:none}
+}
+@media (max-width:1000px) and (prefers-reduced-motion:no-preference){ .side{transition:transform .3s var(--mola)} }
+.fab{display:none;position:fixed;right:18px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:60;
+  width:58px;height:58px;border-radius:99px;background:var(--laranja);color:#fff;place-items:center;
+  box-shadow:0 10px 28px color-mix(in srgb,var(--laranja) 45%,transparent)}
+.fab svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
+
+@media print{
+  .side,.topbar,.fab,.form,.ph-acoes,.btn-pri,.btn-sec,.mini,.x,.zero{display:none !important}
+  body,html{background:#fff}
+  .conteudo{margin-left:0}
+  .pagina{padding:0;max-width:none}
+  .card{border:1px solid #ddd;break-inside:avoid;page-break-inside:avoid}
+  .grade{gap:12px}
+  *{color:#111 !important;background:#fff !important}
 }
 </style>
 </head>
 <body>
 
 <div id="splash" class="splash">
-  <div class="logo">NexVot</div>
-  <div id="splash-txt" class="st">abrindo…</div>
+  <div class="marca"><span class="mk"><i></i></span><span style="font-size:22px;font-weight:700;letter-spacing:-.03em">NexVot</span></div>
+  <div id="splash-txt" class="st">carregando…</div>
 </div>
 
-<!-- ================= LOGIN / REGISTRO ================= -->
 <section id="auth" class="auth" hidden>
   <div class="auth-box">
-    <div class="auth-logo">
-      <span class="mk"><i></i></span>
-      <div><h1>NexVot</h1><p>Gestão Inteligente</p></div>
-    </div>
+    <div class="auth-logo"><span class="mk"><i></i></span>
+      <div><h1 data-i="app.nome">NexVot</h1><p data-i="app.sub">Gestão Inteligente</p></div></div>
     <div class="tabs" id="auth-tabs">
-      <button data-m="entrar" class="on">Entrar</button>
-      <button data-m="criar">Criar conta</button>
+      <button data-m="entrar" class="on" data-i="auth.entrar">Entrar</button>
+      <button data-m="criar" data-i="auth.criar">Criar conta</button>
     </div>
-    <input id="a-email" class="campo" type="email" placeholder="seu e-mail" autocomplete="email" inputmode="email">
-    <input id="a-senha" class="campo" type="password" placeholder="senha" autocomplete="current-password">
-    <button id="a-ok" class="btn press">Entrar</button>
+    <input id="a-email" class="campo" type="email" autocomplete="email" inputmode="email" data-ip="auth.email">
+    <input id="a-senha" class="campo" type="password" autocomplete="current-password" data-ip="auth.senha">
+    <button id="a-ok" class="btn" data-i="auth.entrar">Entrar</button>
     <div id="a-msg" class="msg" role="status"></div>
-    <div class="auth-pe">Uma conta, os mesmos dados no celular e no computador.</div>
+    <div class="auth-pe" data-i="auth.rodape"></div>
+    <div class="auth-lang" id="auth-lang">
+      <button data-l="pt">PT</button><button data-l="en">EN</button><button data-l="es">ES</button>
+    </div>
   </div>
 </section>
 
-<!-- ================= APP ================= -->
-<div id="gaveta-veu" class="gaveta-veu"></div>
-<div id="shell" class="shell" hidden>
-
+<div id="app" class="app" hidden>
   <aside id="side" class="side">
-    <div class="lg">
-      <span class="mk"><i></i></span>
-      <div><h1>NexVot</h1><p>Gestão Inteligente</p></div>
+    <div class="lg"><span class="mk pq"><i></i></span>
+      <div class="side-txt"><h1 data-i="app.nome">NexVot</h1><p data-i="app.sub">Gestão Inteligente</p></div></div>
+
+    <div class="busca">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="busca" data-ip="nav.buscar" autocomplete="off"><kbd>⌘K</kbd>
     </div>
-    <nav id="side-nav">
-      <button data-v="painel" class="on"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/></svg>Início</button>
-      <button data-v="rotina"><svg viewBox="0 0 24 24"><path d="M4 7h3M4 12h3M4 17h3"/><path d="M10 7h10M10 12h10M10 17h10"/></svg>Rotina</button>
-      <button data-v="agenda"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Agenda</button>
-      <button data-v="dinheiro"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10.5h19"/><path d="M6 15h4"/></svg>Dinheiro</button>
-      <button data-v="numeros"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 15v-3M13 15V8M18 15v-5"/></svg>Números</button>
-    </nav>
-    <div class="fim">
-      <div id="side-email" class="em"></div>
-      <button id="side-tema" class="mini press" style="width:100%;margin-bottom:7px">Tema escuro</button>
-      <button id="side-sair" class="mini press" style="width:100%">Sair</button>
+
+    <div class="grupo" id="g-recentes" hidden>
+      <div class="grupo-t"><span data-i="nav.recentes">Recentes</span></div>
+      <div id="lista-recentes"></div>
+    </div>
+
+    <div class="grupo">
+      <div class="grupo-t"><span data-i="nav.principal">Principal</span></div>
+      <button class="item on" data-v="painel">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/></svg>
+        <span class="side-txt" data-i="nav.painel">Painel</span></button>
+    </div>
+
+    <div class="grupo">
+      <div class="grupo-t"><span data-i="nav.dinheiro">Dinheiro</span></div>
+      <button class="item" data-v="fluxo"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-7 4 4"/><path d="M3 21h18"/></svg><span class="side-txt" data-i="nav.fluxo">Fluxo</span></button>
+      <button class="item" data-v="orcamento"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6 3"/></svg><span class="side-txt" data-i="nav.orcamento">Orçamento</span></button>
+      <button class="item" data-v="recorrencias"><svg viewBox="0 0 24 24"><path d="M4 10a8 8 0 0113.7-5.6L20 7"/><path d="M20 4v4h-4"/><path d="M20 14a8 8 0 01-13.7 5.6L4 17"/><path d="M4 20v-4h4"/></svg><span class="side-txt" data-i="nav.recorrencias">Recorrências</span></button>
+      <button class="item" data-v="metas"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg><span class="side-txt" data-i="nav.metas">Metas</span></button>
+    </div>
+
+    <div class="grupo">
+      <div class="grupo-t"><span data-i="nav.rotina">Rotina</span></div>
+      <button class="item" data-v="rotina"><svg viewBox="0 0 24 24"><path d="M4 7h3M4 12h3M4 17h3"/><path d="M10 7h10M10 12h10M10 17h10"/></svg><span class="side-txt" data-i="nav.rotinaDia">Meu dia</span></button>
+      <button class="item" data-v="agenda"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span class="side-txt" data-i="nav.agenda">Agenda</span></button>
+    </div>
+
+    <div class="grupo">
+      <div class="grupo-t"><span data-i="nav.sistema">Sistema</span></div>
+      <button class="item" data-v="relatorios"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg><span class="side-txt" data-i="nav.relatorios">Relatórios</span></button>
+      <button class="item" data-v="ajustes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9 2 2 0 11-2.8 2.8 1.7 1.7 0 00-2.9 1.2 2 2 0 11-4 0 1.7 1.7 0 00-2.9-1.2 2 2 0 11-2.8-2.8A1.7 1.7 0 002.5 14a2 2 0 110-4 1.7 1.7 0 001.2-2.9 2 2 0 112.8-2.8A1.7 1.7 0 009.4 3.1a2 2 0 114 0 1.7 1.7 0 002.9 1.2 2 2 0 112.8 2.8 1.7 1.7 0 001.2 2.9 2 2 0 110 4 1.7 1.7 0 00-1.2 1z"/></svg><span class="side-txt" data-i="nav.ajustes">Ajustes</span></button>
+    </div>
+
+    <div class="side-fim">
+      <button class="item" id="bt-sair"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg><span class="side-txt" data-i="nav.sair">Sair</span></button>
+      <button class="item" id="bt-recolher"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg><span class="side-txt" data-i="nav.recolher">Recolher</span></button>
     </div>
   </aside>
 
-  <main class="main"><div class="wrap">
-    <div class="topbar">
-      <button id="bt-menu" class="tb-menu press" aria-label="Abrir menu"><i></i></button>
-      <div id="tb-tit" class="tb-tit">Início</div>
-      <button id="bt-tema-m" class="ib press" aria-label="Trocar tema"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></button>
-    </div>
-
-    <header class="topo">
-      <div>
-        <div id="topo-hoje" class="hoje"></div>
-        <div id="topo-sub" class="sub"></div>
+  <div class="conteudo">
+    <header class="topbar">
+      <button id="bt-menu" class="tb-menu" aria-label="Menu"><i></i></button>
+      <div class="trilha">
+        <svg viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+        <span class="sep">›</span><b id="trilha-nome">Painel</b>
       </div>
-      <div class="acoes">
-        <button id="bt-tema" class="ib press" aria-label="Trocar tema">
-          <svg id="ic-tema" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
-        </button>
-        <button id="bt-dia" class="bt-dia press">Fechar o dia</button>
+      <div class="tb-acoes">
+        <div class="seg" id="seg-espaco" style="padding:4px">
+          <button data-e="pessoal" class="on" data-i="esp.pessoal">Pessoal</button>
+          <button data-e="empresa" data-i="esp.empresa">Empresa</button>
+        </div>
+        <button class="lang" id="bt-lang"><span id="lang-atual">PT</span>
+          <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.4"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button class="ib" id="bt-tema" aria-label="Tema"><svg id="ic-tema" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></button>
+        <button class="ib" id="bt-avisos" aria-label="Avisos"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg></button>
+        <div class="perfil"><span class="avatar" id="avatar">N</span>
+          <div><div class="nm" id="perfil-nome"></div><div class="em" id="perfil-email"></div></div></div>
       </div>
     </header>
 
-    <div class="seg" id="seg">
-      <button data-e="pessoal" class="on">Pessoal</button>
-      <button data-e="empresa">Empresa</button>
-    </div>
-
-    <!-- ============ PAINEL ============ -->
-    <section id="v-painel">
-
-      <div class="card" style="--d:0ms">
-        <div class="status">
-          <div class="txt"><div id="st-tt" class="tt"></div><div id="st-ss" class="ss"></div></div>
-          <button id="st-cta" class="cta press"></button>
+    <main class="pagina">
+      <div class="ph">
+        <div class="ph-ic" id="ph-ic"></div>
+        <div class="ph-txt"><h1 id="ph-tit"></h1><p id="ph-sub"></p></div>
+        <div class="ph-acoes">
+          <div class="seg" id="seg-periodo">
+            <button data-p="hoje" data-i="per.hoje">Hoje</button>
+            <button data-p="7" data-i="per.7">7 dias</button>
+            <button data-p="30" data-i="per.30">30 dias</button>
+            <button data-p="mes" class="on" data-i="per.mes">Mês</button>
+          </div>
+          <div class="data-sel"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span id="periodo-label"></span></div>
+          <button class="btn-pri" id="bt-novo"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span data-i="lanc.titulo">Novo lançamento</span></button>
         </div>
       </div>
 
-      <div class="card" style="--d:40ms">
-        <div class="card-h">
-          <span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h5M9.5 14.5h5"/></svg></span>
-          <h3 id="disp-tit">Disponível para gastar</h3><span id="disp-mes" class="meta"></span>
-        </div>
-        <div class="card-b hero">
-          <div class="hero-anel"><div id="g-anel"></div></div>
-          <div>
-            <div class="hero-tot">
-              <div class="tot e"><div class="r"><i class="dot" style="background:var(--entra)"></i>Entradas</div><div id="t-in" class="v"></div></div>
-              <div class="tot i"><div class="r"><i class="dot" style="background:var(--ouro)"></i>Investido</div><div id="t-inv" class="v"></div></div>
-              <div class="tot s"><div class="r"><i class="dot" style="background:var(--sai)"></i>Saídas</div><div id="t-out" class="v"></div></div>
-            </div>
-            <div class="pills">
-              <span id="p-hoje" class="pill"></span>
-              <span id="p-ritmo" class="pill"></span>
-              <span id="p-proj" class="pill"></span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="kp-pessoal">
-        
-      </div>
-
-      <div id="kp-empresa" hidden>
-        <div class="kpis">
-          <div class="kpi"><div class="r">Lucro do mês</div><div id="e-lucro" class="v"></div><div id="e-lucro-s" class="s"></div></div>
-          <div class="kpi"><div class="r">ROI</div><div id="e-roi" class="v"></div><div id="e-roi-s" class="s"></div></div>
-        </div>
-        <div class="card" style="--d:140ms">
-          <div class="card-h">
-            <span class="ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0112 0"/><path d="M16 6.5a3 3 0 010 5.5M18 20a5.5 5.5 0 00-3-4.6"/></svg></span>
-            <h3>Gasto por sócio no mês</h3><span id="e-soc-t" class="meta"></span>
-          </div>
-          <div class="card-b"><div id="e-socios"></div></div>
-          <div class="form">
-            <input id="m-nome" class="fn" placeholder="nome do sócio" aria-label="Nome do sócio">
-            <button id="m-add" class="mini press">Adicionar</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card" style="--d:260ms">
-        <div class="card-h">
-          <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>
-          <h3>Últimos lançamentos</h3><span id="cnt-hoje" class="meta"></span>
-        </div>
-        <div class="card-b plano"><ul id="l-lanc"></ul></div>
-      </div>
-    </section>
-
-    <!-- ============ ROTINA ============ -->
-    <section id="v-dinheiro" hidden>
-      <div class="grade duas">
-<div class="card" style="--d:180ms">
-          <div class="card-h">
-            <span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 2.5v3M16 2.5v3"/></svg></span>
-            <h3>Contas fixas</h3><span id="cf-meta" class="meta"></span>
-          </div>
-          <div class="thead"><span>Pago</span><span>Nome</span><span style="text-align:right">Valor</span><span style="text-align:right">Vence</span></div>
-          <div class="card-b plano"><ul id="l-contas"></ul></div>
-          <div class="form">
-            <input id="c-nome" class="fn" placeholder="conta" aria-label="Nome da conta">
-            <input id="c-dia" class="fx" inputmode="numeric" placeholder="dia" aria-label="Dia">
-            <input id="c-valor" class="fx" inputmode="decimal" placeholder="valor" aria-label="Valor">
-            <button id="c-add" class="mini press">Add</button>
-          </div>
-        </div>
-
-<div class="card" style="--d:220ms">
-          <div class="card-h ouro">
-            <span class="ic"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-7 4 4"/><path d="M4 21h16"/></svg></span>
-            <h3>Investimentos</h3><span id="inv-tot" class="meta"></span>
-          </div>
-          <div class="card-b plano"><ul id="l-inv"></ul></div>
-          <div class="form"><button id="inv-add" class="mini forte press" style="width:100%">Registrar investimento</button></div>
-        </div>
-      </div>
-
-<div class="card" style="--d:140ms">
-          <div class="card-h">
-            <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span>
-            <h3>Essencial × fútil no mês</h3><span id="fut-pct" class="meta"></span>
-          </div>
-          <div class="card-b">
-            <div class="split"><i id="sp-e" class="e"></i><i id="sp-f" class="f"></i></div>
-            <div class="split-l"><span id="lg-e"></span><span id="lg-f"></span></div>
-          </div>
-        </div>
-    </section>
-
-    <section id="v-rotina" hidden>
-      <div class="dnav">
-        <button id="rt-ant" class="press" aria-label="Dia anterior">‹</button>
-        <button id="rt-hoje" class="c press"><span id="rt-data" class="d"></span><span id="rt-rel" class="s"></span></button>
-        <button id="rt-prox" class="press" aria-label="Próximo dia">›</button>
-      </div>
-      <div class="pbar"><i id="rt-barra"></i></div>
-      <div id="rt-blocos"></div>
-
-      <div class="card" style="--d:60ms">
-        <div class="card-h">
-          <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></span>
-          <h3>Só neste dia</h3><span id="rt-tc" class="meta"></span>
-        </div>
-        <div class="card-b plano"><ul id="rt-tarefas"></ul></div>
-        <div class="form">
-          <input id="t-tit" class="fn" placeholder="lembrete deste dia" aria-label="Lembrete">
-          <input id="t-hora" class="fh" type="time" aria-label="Hora">
-          <button id="t-add" class="mini press">Add</button>
-        </div>
-      </div>
-
-      <div class="card" style="--d:100ms">
-        <div class="card-h">
-          <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></span>
-          <h3>Editar a rotina</h3>
-        </div>
-        <div class="card-b">
-          <button id="rt-seed" class="mini forte press" style="width:100%;margin-bottom:11px" hidden>Instalar minha rotina padrão</button>
-          <div class="vazio" style="padding:0;font-size:12.5px">Blocos valem todo dia. Para algo de um dia só, use “Só neste dia”.</div>
-        </div>
-        <div class="form">
-          <input id="b-hora" class="fh" type="time" aria-label="Hora do bloco">
-          <input id="b-tit" class="fn" placeholder="novo bloco" aria-label="Título">
-          <button id="b-add" class="mini press">Add</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============ AGENDA ============ -->
-    <section id="v-agenda" hidden>
-      <div class="grade tres">
-        <div class="card">
-          <div class="card-h">
-            <span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
-            <h3>Calendário</h3>
-            <div class="cnav">
-              <button id="cal-ant" class="press" aria-label="Mês anterior">‹</button>
-              <span id="cal-mes" class="m"></span>
-              <button id="cal-prox" class="press" aria-label="Próximo mês">›</button>
-            </div>
-          </div>
-          <div class="card-b">
-            <div class="sem"><b>D</b><b>S</b><b>T</b><b>Q</b><b>Q</b><b>S</b><b>S</b></div>
-            <div id="cal" class="cal"></div>
-            <div class="cleg">
-              <span><i class="dot" style="background:var(--sai)"></i>gastou</span>
-              <span><i class="dot" style="background:var(--alerta)"></i>conta vence</span>
-              <span><i class="dot" style="background:var(--laranja)"></i>compromisso</span>
-              <span><i class="dot" style="background:var(--entra)"></i>dia fechado</span>
-            </div>
-          </div>
-        </div>
-        <div class="card" style="--d:60ms">
-          <div class="card-h">
-            <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></span>
-            <h3>Próximos compromissos</h3>
-          </div>
-          <div class="card-b plano"><ul id="l-eventos"></ul></div>
-          <div class="form"><button id="bt-notif" class="mini press" style="width:100%">Ativar avisos no navegador</button></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ============ NÚMEROS ============ -->
-    <section id="v-numeros" hidden>
-      <div class="kpis">
-        <div class="kpi"><div class="r">Entradas no mês</div><div id="k-in" class="v" style="color:var(--entra)"></div><div id="k-in-s" class="s"></div></div>
-        <div class="kpi"><div class="r">Saídas no mês</div><div id="k-out" class="v" style="color:var(--sai)"></div><div id="k-out-s" class="s"></div></div>
-        <div class="kpi"><div class="r">Investido no mês</div><div id="k-inv" class="v" style="color:var(--ouro)"></div><div id="k-inv-s" class="s"></div></div>
-        <div class="kpi"><div class="r">Vs. mês passado</div><div id="k-rit" class="v"></div><div id="k-rit-s" class="s"></div></div>
-      </div>
-      <div class="grade duas">
-<div class="card" style="--d:60ms">
-          <div class="card-h">
-            <span class="ic"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-7 4 4"/></svg></span>
-            <h3>Evolução do saldo no mês</h3><span id="evo-meta" class="meta"></span>
-          </div>
-          <div class="card-b"><div id="g-evo"></div></div>
-        </div>
-
-<div class="card" style="--d:100ms">
-          <div class="card-h">
-            <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 16v-4M13 16V7M18 16v-6"/></svg></span>
-            <h3>Entra × sai — 14 dias</h3><span class="meta">verde entra · vermelho sai</span>
-          </div>
-          <div class="card-b"><div id="g-fluxo"></div></div>
-        </div>
-      </div>
-
-      <div class="grade duas">
-        <div class="card">
-          <div class="card-h">
-            <span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6 3"/></svg></span>
-            <h3>Para onde foi</h3>
-          </div>
-          <div class="card-b"><div id="g-donut"></div><div id="leg-donut" style="margin-top:12px"></div></div>
-        </div>
-        <div class="card" style="--d:60ms">
-          <div class="card-h">
-            <span class="ic"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-7 4 4"/></svg></span>
-            <h3>Acumulado do mês</h3><span id="leg-rit" class="meta"></span>
-          </div>
-          <div class="card-b"><div id="g-ritmo"></div></div>
-        </div>
-      </div>
-      <div class="card" style="--d:110ms;margin-top:13px">
-        <div class="card-h">
-          <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg></span>
-          <h3>Dados e conta</h3>
-        </div>
-        <div class="card-b">
-          <button id="bt-export" class="mini press" style="width:100%;margin-bottom:9px">Baixar backup em JSON</button>
-          <button id="bt-sair" class="mini press" style="width:100%">Sair da conta</button>
-        </div>
-      </div>
-    </section>
-
-  </div></main>
+      <section id="v-painel"></section>
+      <section id="v-fluxo" hidden></section>
+      <section id="v-orcamento" hidden></section>
+      <section id="v-recorrencias" hidden></section>
+      <section id="v-metas" hidden></section>
+      <section id="v-rotina" hidden></section>
+      <section id="v-agenda" hidden></section>
+      <section id="v-relatorios" hidden></section>
+      <section id="v-ajustes" hidden></section>
+    </main>
+  </div>
 </div>
 
-<button id="fab" class="fab press" hidden aria-label="Novo lançamento">+</button>
-
+<button id="fab" class="fab" hidden aria-label="+"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
 <div id="veu" class="veu" hidden></div>
+<div id="sheets"></div>
 
-<section id="sh-lanc" class="sheet" hidden aria-label="Novo lançamento">
-  <div class="puxa"></div>
-  <div class="sh-c"><span class="ic">+</span><h3 id="lanc-tit">Lançar</h3><button id="lanc-fech" class="fech press" aria-label="Fechar">✕</button></div>
-  <div class="trio" id="dp-tipo"><button data-t="saida" class="on s">Saída</button><button data-t="entrada">Entrada</button><button data-t="investimento">Investir</button></div>
-  <div class="mostra"><div id="mostra" class="v zero"><small>R$</small>0,00</div></div>
-  <div id="rl-data" class="rolo"></div>
-  <div id="rl-cat" class="rolo"></div>
-  <div class="dup" id="dp-nat" hidden><button data-n="essencial" class="on">Essencial</button><button data-n="futil">Fútil</button></div>
-  <div id="rl-membro" class="rolo" hidden></div>
-  <div class="tec">
-    <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
-    <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
-    <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
-    <button data-k="00" class="aux">00</button><button data-k="0">0</button><button data-k="del" class="aux">apagar</button>
-  </div>
-  <input id="nota" class="campo" placeholder="nota (opcional)" aria-label="Nota">
-  <div id="lanc-msg" class="msg erro"></div>
-  <button id="bt-lancar" class="btn press">Lançar</button>
-</section>
-
-<section id="sh-dia" class="sheet" hidden aria-label="Detalhe do dia">
-  <div class="puxa"></div>
-  <div class="sh-c"><span class="ic">◷</span><h3 id="dia-tit"></h3><button id="dia-fech" class="fech press" aria-label="Fechar">✕</button></div>
-  <div class="saldo" style="margin-bottom:6px">
-    <div class="rot">Saldo do dia</div>
-    <div id="dia-saldo" class="v" style="font-size:32px"></div>
-  </div>
-  <div class="sec">Lançamentos</div>
-  <ul id="dia-lanc"></ul>
-  <div class="sec">Contas com vencimento</div>
-  <ul id="dia-contas"></ul>
-  <div class="sec">Compromissos</div>
-  <ul id="dia-eventos"></ul>
-  <div class="form" style="border:none;background:none;padding:12px 0 0">
-    <input id="e-tit" class="fn" placeholder="compromisso" aria-label="Compromisso">
-    <input id="e-hora" class="fh" type="time" aria-label="Hora">
-    <select id="e-lem" aria-label="Lembrete">
-      <option value="">sem aviso</option><option value="10">10 min antes</option>
-      <option value="30">30 min antes</option><option value="60">1 h antes</option>
-    </select>
-    <button id="e-add" class="mini press">Add</button>
-  </div>
-  <div style="display:flex;gap:9px;margin-top:16px">
-    <button id="dia-rot" class="mini press" style="flex:1;padding:13px">Rotina do dia</button>
-    <button id="dia-lanc-bt" class="btn press" style="flex:1">Lançar</button>
-  </div>
-</section>
-
-<section id="sh-bloco" class="sheet" hidden aria-label="Editar bloco">
-  <div class="puxa"></div>
-  <div class="sh-c"><span class="ic">≡</span><h3 id="bl-tit">Bloco</h3><button id="bl-fech" class="fech press" aria-label="Fechar">✕</button></div>
-  <div class="sec">Itens</div>
-  <ul id="bl-itens"></ul>
-  <div class="form" style="border:none;background:none;padding:12px 0 0">
-    <input id="bl-novo" class="fn" placeholder="novo item" aria-label="Novo item">
-    <select id="bl-dia" aria-label="Dia da semana">
-      <option value="">todo dia</option><option value="1">só segunda</option><option value="2">só terça</option>
-      <option value="3">só quarta</option><option value="4">só quinta</option><option value="5">só sexta</option>
-      <option value="6">só sábado</option><option value="0">só domingo</option>
-    </select>
-    <button id="bl-add" class="mini press">Add</button>
-  </div>
-  <div class="sec">Bloco</div>
-  <div class="form" style="border:none;background:none;padding:0">
-    <input id="bl-hora" class="fh" type="time" aria-label="Hora">
-    <input id="bl-nome" class="fn" placeholder="título" aria-label="Título">
-    <button id="bl-salvar" class="mini press">Salvar</button>
-  </div>
-  <button id="bl-apagar" class="mini press" style="width:100%;margin-top:16px;color:var(--sai);border-color:color-mix(in srgb,var(--sai) 40%,transparent)">Apagar este bloco</button>
-</section>
-
+<script src="./config.js"></script>
+<script src="./i18n.js"></script>
 <script>
 window.addEventListener("error", function(e){
-  var el = document.getElementById("splash-txt");
+  var el=document.getElementById("splash-txt");
   if(el && !document.getElementById("splash").hidden){
-    el.className = "st erro";
-    el.textContent = "Erro ao carregar: " + (e.message||"arquivo não encontrado") + (e.filename?" · "+e.filename.split("/").pop():"");
+    el.className="st erro";
+    el.textContent="Erro ao carregar: "+(e.message||"arquivo não encontrado")+(e.filename?" · "+e.filename.split("/").pop():"");
   }
-}, true);
+},true);
 setTimeout(function(){
-  var el = document.getElementById("splash-txt");
+  var el=document.getElementById("splash-txt");
   if(!window.__OK__ && el && !document.getElementById("splash").hidden){
-    el.className = "st erro";
-    el.textContent = "O app.js não carregou em 10 segundos. Abra o console e leia a primeira linha vermelha.";
+    el.className="st erro";
+    el.textContent="O app.js não carregou em 10 segundos. Abra o console e leia a primeira linha vermelha.";
   }
-}, 10000);
-try{ var t = localStorage.getItem("nexvot:tema"); if(t) document.documentElement.dataset.tema = t; }catch(e){}
+},10000);
+try{
+  var t=localStorage.getItem("nexvot:tema"); if(t) document.documentElement.dataset.tema=t;
+  if(localStorage.getItem("nexvot:recolhido")==="1") document.body.classList.add("recolhido");
+}catch(e){}
 </script>
-<script src="./config.js"></script>
 <script type="module" src="./app.js"></script>
 </body>
 </html>
