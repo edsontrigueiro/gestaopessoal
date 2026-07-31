@@ -101,12 +101,12 @@ body.recolhido .side .lg{justify-content:center}
 .grupo{padding:0 12px;margin-bottom:18px}
 .grupo-t{display:flex;align-items:center;gap:7px;padding:0 10px 9px;font-size:11px;font-weight:600;
   letter-spacing:.11em;text-transform:uppercase;color:var(--txt3)}
-.item{display:flex;align-items:center;gap:11px;width:100%;padding:10px 12px;border-radius:var(--r3);
+.item{display:flex;align-items:center;gap:11px;width:100%;padding:10px 12px 10px 15px;border-radius:var(--r3);
   font-size:14px;font-weight:500;color:var(--txt2);text-align:left;position:relative;margin-bottom:2px}
 .item svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .item:hover{background:var(--card2);color:var(--txt)}
 .item.on{background:color-mix(in srgb,var(--laranja) 11%,transparent);color:var(--laranja);font-weight:600}
-.item.on::before{content:"";position:absolute;left:-12px;top:50%;transform:translateY(-50%);width:3px;height:22px;background:var(--laranja);border-radius:0 3px 3px 0}
+.item.on::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--laranja);border-radius:0 3px 3px 0}
 @media (prefers-reduced-motion:no-preference){ .item{transition:background .15s,color .15s} }
 .side-fim{margin-top:auto;padding:16px 12px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--linha)}
 
@@ -159,7 +159,10 @@ body.recolhido .side .lg{justify-content:center}
 @media (max-width:1180px){ .g3{grid-template-columns:repeat(2,1fr)} .g21{grid-template-columns:1fr} }
 @media (max-width:760px){ .g3,.g2{grid-template-columns:1fr} }
 .card{background:var(--card);border:1px solid var(--linha);border-radius:var(--r);overflow:hidden}
+.pad{padding:20px}
 .card.pad{padding:20px}
+/* cabeçalho de seção dentro de cartão com lista: recheio só em cima e nos lados */
+.card > .pad:first-child{padding-bottom:0}
 @media (prefers-reduced-motion:no-preference){
   .card{animation:sobe .38s var(--mola) both;animation-delay:var(--d,0ms)}
   @keyframes sobe{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -220,10 +223,22 @@ body.recolhido .side .lg{justify-content:center}
 .cx{width:22px;height:22px;flex:none;border:1.8px solid var(--linha);border-radius:7px;display:grid;place-items:center;color:transparent;background:var(--card2)}
 .cx svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .cx.on{background:var(--verde);border-color:var(--verde);color:#fff}
-.form{display:flex;gap:9px;flex-wrap:wrap;padding:15px 20px;border-top:1px solid var(--linha);background:var(--card2)}
+.card{container-type:inline-size}
+.form{display:flex;gap:9px;flex-wrap:wrap;align-items:center;padding:15px 20px;
+  border-top:1px solid var(--linha);background:var(--card2)}
 .form input,.form select{border:1px solid var(--linha);border-radius:var(--r3);background:var(--campo);
-  padding:12px 14px;font-size:14.5px;min-width:0;color-scheme:dark light}
-.form .fn{flex:1 1 160px} .form .fx{width:100px} .form .fh{width:130px}
+  padding:11px 13px;font-size:14px;min-width:0;color-scheme:dark light;height:42px}
+.form .mini{height:42px;padding-inline:16px}
+.form .fn{flex:1 1 110px;min-width:110px}
+.form .fx{flex:0 1 84px;min-width:70px}
+.form .fh{flex:0 1 118px;min-width:96px}
+/* cartão estreito: o formulário vira grade e para de deixar buraco */
+@container (max-width:540px){
+  .form{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .form .fn{grid-column:1 / -1}
+  .form .mini{grid-column:1 / -1}
+  .form .fx,.form .fh{flex:none;min-width:0}
+}
 .barra{height:10px;background:var(--card3);border-radius:99px;overflow:hidden}
 .barra i{display:block;height:100%;border-radius:99px;background:var(--laranja)}
 .barra i.ok{background:var(--verde)} .barra i.al{background:var(--ambar)} .barra i.est{background:var(--vermelho)}
@@ -237,6 +252,7 @@ body.recolhido .side .lg{justify-content:center}
 .graf-x{display:flex;justify-content:space-between;margin-top:10px;font-size:12px;color:var(--txt3);font-weight:500}
 .graf-vazio{position:absolute;inset:0;display:grid;place-items:center;padding:0 24px;text-align:center;
   font-size:13px;color:var(--txt3);line-height:1.6;pointer-events:none}
+.graf svg{margin-block:2px}
 .eixo-y{position:absolute;left:0;top:-2px;bottom:26px;width:68px;display:flex;flex-direction:column;
   justify-content:space-between;font-size:11.5px;color:var(--txt3);font-variant-numeric:tabular-nums;pointer-events:none;text-align:right;padding-right:12px}
 .com-y{padding-left:68px;position:relative}
@@ -366,7 +382,7 @@ body.recolhido .side .lg{justify-content:center}
   .seg button{padding:9px 13px;font-size:13.5px}
   .kpi{padding:20px} .kpi-v{font-size:32px}
   .sec-h h2{font-size:21px}
-  .card.pad{padding:20px}
+  .card.pad,.pad{padding:18px}
   .tb-h,.tb-l,.li,.form{padding-left:18px;padding-right:18px}
   .zero{margin:18px;width:calc(100% - 36px);padding:34px 20px}
   .status{padding:22px 20px}
