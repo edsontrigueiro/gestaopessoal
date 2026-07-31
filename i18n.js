@@ -176,6 +176,36 @@ pt: {
   "av.meta": "meta atingida",
   "av.evento": "compromisso {q}",
   "av.permitir": "Permitir avisos do navegador",
+  "cat.mercado": "Mercado",
+  "cat.comer_fora": "Comer fora",
+  "cat.transporte": "Transporte",
+  "cat.casa": "Casa",
+  "cat.contas": "Contas",
+  "cat.saude": "Saúde",
+  "cat.lazer": "Lazer",
+  "cat.outros": "Outros",
+  "cat.salario": "Salário",
+  "cat.freela": "Freela",
+  "cat.rendimento": "Rendimento",
+  "cat.reserva": "Reserva",
+  "cat.renda_fixa": "Renda fixa",
+  "cat.acoes": "Ações",
+  "cat.cripto": "Cripto",
+  "cat.fundos": "Fundos",
+  "cat.estoque": "Estoque",
+  "cat.marketing": "Marketing",
+  "cat.frete": "Frete",
+  "cat.ferramentas": "Ferramentas",
+  "cat.impostos": "Impostos",
+  "cat.prolabore": "Pró-labore",
+  "cat.vendas": "Vendas",
+  "cat.servicos": "Serviços",
+  "cat.equipamento": "Equipamento",
+  "msg.desfazer": "Desfazer",
+  "msg.restaurado": "restaurado",
+  "ses.caiu": "Sua sessão expirou. Recarregando…",
+  "rec.desteMes": "já neste mês",
+  "rec.proximoMes": "a partir do próximo mês",
   "sem.base": "sem base do mês passado", "sem.dados": "sem dados"
 },
 
@@ -350,6 +380,36 @@ en: {
   "av.meta": "goal reached",
   "av.evento": "event {q}",
   "av.permitir": "Allow browser alerts",
+  "cat.mercado": "Groceries",
+  "cat.comer_fora": "Eating out",
+  "cat.transporte": "Transport",
+  "cat.casa": "Home",
+  "cat.contas": "Bills",
+  "cat.saude": "Health",
+  "cat.lazer": "Leisure",
+  "cat.outros": "Other",
+  "cat.salario": "Salary",
+  "cat.freela": "Freelance",
+  "cat.rendimento": "Yield",
+  "cat.reserva": "Reserve",
+  "cat.renda_fixa": "Fixed income",
+  "cat.acoes": "Stocks",
+  "cat.cripto": "Crypto",
+  "cat.fundos": "Funds",
+  "cat.estoque": "Inventory",
+  "cat.marketing": "Marketing",
+  "cat.frete": "Shipping",
+  "cat.ferramentas": "Tools",
+  "cat.impostos": "Taxes",
+  "cat.prolabore": "Owner pay",
+  "cat.vendas": "Sales",
+  "cat.servicos": "Services",
+  "cat.equipamento": "Equipment",
+  "msg.desfazer": "Undo",
+  "msg.restaurado": "restored",
+  "ses.caiu": "Your session expired. Reloading…",
+  "rec.desteMes": "starting this month",
+  "rec.proximoMes": "starting next month",
   "sem.base": "no baseline from last month", "sem.dados": "no data"
 },
 
@@ -524,41 +584,68 @@ es: {
   "av.meta": "meta alcanzada",
   "av.evento": "evento {q}",
   "av.permitir": "Permitir avisos del navegador",
+  "cat.mercado": "Mercado",
+  "cat.comer_fora": "Comer fuera",
+  "cat.transporte": "Transporte",
+  "cat.casa": "Casa",
+  "cat.contas": "Cuentas",
+  "cat.saude": "Salud",
+  "cat.lazer": "Ocio",
+  "cat.outros": "Otros",
+  "cat.salario": "Sueldo",
+  "cat.freela": "Freelance",
+  "cat.rendimento": "Rendimiento",
+  "cat.reserva": "Reserva",
+  "cat.renda_fixa": "Renta fija",
+  "cat.acoes": "Acciones",
+  "cat.cripto": "Cripto",
+  "cat.fundos": "Fondos",
+  "cat.estoque": "Inventario",
+  "cat.marketing": "Marketing",
+  "cat.frete": "Envío",
+  "cat.ferramentas": "Herramientas",
+  "cat.impostos": "Impuestos",
+  "cat.prolabore": "Pro-labore",
+  "cat.vendas": "Ventas",
+  "cat.servicos": "Servicios",
+  "cat.equipamento": "Equipo",
+  "msg.desfazer": "Deshacer",
+  "msg.restaurado": "restaurado",
+  "ses.caiu": "Tu sesión expiró. Recargando…",
+  "rec.desteMes": "ya este mes",
+  "rec.proximoMes": "desde el próximo mes",
   "sem.base": "sin base del mes pasado", "sem.dados": "sin datos"
 }
 
 };
 
 // Categorias e rotina traduzidas separadamente — são listas, não frases.
-window.I18N_LISTAS = {
-  pt: {
-    cat: { pessoal:{ saida:["Mercado","Comer fora","Transporte","Casa","Contas","Saúde","Lazer","Outros"],
-                     entrada:["Salário","Freela","Rendimento","Outros"],
-                     investimento:["Reserva","Renda fixa","Ações","Cripto","Fundos","Outros"] },
-           empresa:{ saida:["Estoque","Marketing","Frete","Ferramentas","Impostos","Pró-labore","Outros"],
-                     entrada:["Vendas","Serviços","Outros"],
-                     investimento:["Equipamento","Estoque","Marketing","Reserva","Outros"] } },
-    dias: ["domingo","segunda","terça","quarta","quinta","sexta","sábado"],
-    diasCurto: ["D","S","T","Q","Q","S","S"]
+// ============================================================
+//  CATEGORIAS — chaves estáveis, independentes de idioma.
+//  O banco guarda a chave. A tela mostra t("cat."+chave).
+// ============================================================
+window.CATEGORIAS = {
+  pessoal: {
+    saida:        ["mercado","comer_fora","transporte","casa","contas","saude","lazer","outros"],
+    entrada:      ["salario","freela","rendimento","outros"],
+    investimento: ["reserva","renda_fixa","acoes","cripto","fundos","outros"]
   },
-  en: {
-    cat: { pessoal:{ saida:["Groceries","Eating out","Transport","Home","Bills","Health","Leisure","Other"],
-                     entrada:["Salary","Freelance","Yield","Other"],
-                     investimento:["Reserve","Fixed income","Stocks","Crypto","Funds","Other"] },
-           empresa:{ saida:["Inventory","Marketing","Shipping","Tools","Taxes","Owner pay","Other"],
-                     entrada:["Sales","Services","Other"],
-                     investimento:["Equipment","Inventory","Marketing","Reserve","Other"] } },
-    dias: ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
-    diasCurto: ["S","M","T","W","T","F","S"]
-  },
-  es: {
-    cat: { pessoal:{ saida:["Mercado","Comer fuera","Transporte","Casa","Cuentas","Salud","Ocio","Otros"],
-                     entrada:["Sueldo","Freelance","Rendimiento","Otros"],
-                     investimento:["Reserva","Renta fija","Acciones","Cripto","Fondos","Otros"] },
-           empresa:{ saida:["Inventario","Marketing","Envío","Herramientas","Impuestos","Pro-labore","Otros"],
-                     entrada:["Ventas","Servicios","Otros"],
-                     investimento:["Equipo","Inventario","Marketing","Reserva","Otros"] } },
-    dias: ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"],
-    diasCurto: ["D","L","M","M","J","V","S"]
+  empresa: {
+    saida:        ["estoque","marketing","frete","ferramentas","impostos","prolabore","outros"],
+    entrada:      ["vendas","servicos","outros"],
+    investimento: ["equipamento","estoque","marketing","reserva","outros"]
   }
+};
+
+// Chaves consideradas gasto fútil por padrão no espaço pessoal.
+window.CAT_FUTEIS = ["comer_fora","lazer"];
+
+// Nomes de dia da semana — esses continuam por idioma.
+window.I18N_LISTAS = {
+  pt: { dias:["domingo","segunda","terça","quarta","quinta","sexta","sábado"],
+        diasCurto:["D","S","T","Q","Q","S","S"] },
+  en: { dias:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+        diasCurto:["S","M","T","W","T","F","S"] },
+  es: { dias:["domingo","lunes","martes","miércoles","jueves","viernes","sábado"],
+        diasCurto:["D","L","M","M","J","V","S"] }
 };
