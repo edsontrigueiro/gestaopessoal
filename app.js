@@ -18,17 +18,17 @@ function fatal(msg){
 
 /* ================= IDIOMA ================= */
 let idioma = "pt";
-function t(k, vars){
+function t(k, vars, alt){
   const D = window.I18N;
-  let s = (D && ((D[idioma] && D[idioma][k]) || (D.pt && D.pt[k]))) || k;
+  let s = (D && ((D[idioma] && D[idioma][k]) || (D.pt && D.pt[k]))) || alt || k;
   if(vars) for(const [a,b] of Object.entries(vars)) s = String(s).replace("{"+a+"}", b);
   return s;
 }
-const VAZIO_LISTAS = { cat:{ pessoal:{saida:[],entrada:[],investimento:[]},
-                             empresa:{saida:[],entrada:[],investimento:[]} },
-                       dias:["","","","","","",""], diasCurto:["","","","","","",""] };
+const VAZIO_LISTAS = { dias:["","","","","","",""], diasCurto:["","","","","","",""] };
 const listas = () => (window.I18N_LISTAS && (window.I18N_LISTAS[idioma] || window.I18N_LISTAS.pt)) || VAZIO_LISTAS;
-const CATS   = () => listas().cat;
+/* CATS devolve CHAVES estáveis; rotCat traduz na hora de mostrar. */
+const CATS   = () => window.CATEGORIAS;
+const rotCat = k => k ? t("cat."+k, null, k) : "";
 const DIAS   = () => listas().dias;
 const DIASC  = () => listas().diasCurto;
 const locale = () => idioma==="en" ? "en-US" : idioma==="es" ? "es-ES" : "pt-BR";
@@ -148,8 +148,8 @@ async function boot(){
   if(!window.I18N || !window.I18N.pt)
     return fatal("O i18n.js não carregou. Confira se o arquivo está na raiz do repositório, "
                + "com o nome exato i18n.js, e se o commit chegou na Vercel.");
-  if(!window.I18N_LISTAS)
-    return fatal("O i18n.js carregou incompleto: falta o bloco I18N_LISTAS no fim do arquivo. "
+  if(!window.I18N_LISTAS || !window.CATEGORIAS)
+    return fatal("O i18n.js carregou incompleto: falta o bloco de CATEGORIAS no fim do arquivo. "
                + "Cole o arquivo inteiro, do começo ao fim.");
   if(!window.CONFIG)
     return fatal("O config.js não carregou. Confira se o arquivo está na raiz do repositório.");
@@ -231,6 +231,14 @@ async function entrar(){
   selDia = hoje(); rtDia = hoje(); dataAlvo = hoje();
   calRef = { a:+selDia.slice(0,4), m:+selDia.slice(5,7) };
   try{ espaco = localStorage.getItem("nexvot:espaco") || "pessoal"; }catch(e){}
+  // A sessão pode cair com o app aberto, ou o usuário sair em outra aba.
+  sb.auth.onAuthStateChange((evento, ses)=>{
+    if(evento === "SIGNED_OUT" || (!ses && evento !== "INITIAL_SESSION")){
+      toast(t("ses.caiu"), true);
+      setTimeout(()=>location.reload(), 1400);
+    }
+  });
+
   ligar();
   await carregar();
   await materializarRecorrencias();
@@ -297,15 +305,21 @@ async function materializarRecorrencias(){
 }
 
 /* ================= SELEÇÕES E CÁLCULOS ================= */
-const lancs   = () => db.lancamentos.filter(x=>x.espaco===espaco);
-const contas  = () => db.contas.filter(x=>x.espaco===espaco);
+/* Os agregados eram recalculados dezenas de vezes por desenho.
+   O cache vive só durante um render e é limpo a cada alteração. */
+let _memo = {};
+const limparMemo = () => { _memo = {}; };
+const memo = (k, fn) => (k in _memo) ? _memo[k] : (_memo[k] = fn());
+
+const lancs   = () => memo("l:"+espaco, ()=>db.lancamentos.filter(x=>x.espaco===espaco));
+const contas  = () => memo("c:"+espaco, ()=>db.contas.filter(x=>x.espaco===espaco));
 const evts    = () => db.eventos.filter(x=>x.espaco===espaco);
 const orcs    = () => db.orcamentos.filter(x=>x.espaco===espaco);
 const recs    = () => db.recorrencias.filter(x=>x.espaco===espaco);
 const metas   = () => db.metas.filter(x=>x.espaco===espaco);
 const soma    = a => a.reduce((s,x)=>s+x.valor,0);
-const noDia   = (d,tp) => lancs().filter(x=>x.data===d && (!tp||x.tipo===tp));
-const noMes   = (y,tp) => lancs().filter(x=>mesDe(x.data)===y && (!tp||x.tipo===tp));
+const noDia   = (d,tp)  => memo(`d:${espaco}:${d}:${tp||""}`, ()=>lancs().filter(x=>x.data===d && (!tp||x.tipo===tp)));
+const noMes   = (y,tp)  => memo(`m:${espaco}:${y}:${tp||""}`, ()=>lancs().filter(x=>mesDe(x.data)===y && (!tp||x.tipo===tp)));
 const entra   = d => soma(noDia(d,"entrada"));
 const saiu    = d => soma(noDia(d,"saida"));
 const investe = d => soma(noDia(d,"investimento"));
@@ -470,7 +484,7 @@ function grafRosca(pares, centroR, centroV){
   const leg = pares.slice(0,7).map(([c,v],i)=>
     `<div style="display:flex;align-items:center;gap:12px;padding:9px 0;font-size:14.5px">
       <i class="pt" style="background:${paleta[i%paleta.length]}"></i>
-      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" class="t2">${esc(c)}</span>
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" class="t2">${esc(rotCat(c))}</span>
       <b class="num">${Math.round(v/total*100)}%</b>
       <span class="t3 num" style="width:86px;text-align:right">${din0(v)}</span></div>`).join("");
   return `<div style="display:flex;gap:32px;align-items:center;flex-wrap:wrap">
@@ -494,6 +508,7 @@ const zero = (tt,ss,acao) => `
 
 /* ================= RENDER ================= */
 function render(){
+  limparMemo();
   const [ti,su] = TITULO[tela];
   $("ph-tit").textContent = t(ti);
   $("ph-sub").textContent = t(su);
@@ -626,7 +641,7 @@ function vOrcamento(){
         const cl = o.pct>100?"est":o.pct>=80?"al":"ok";
         const tag = o.pct>100 ? `<span class="tag vrm">${t("orc.estourado")}</span>`
                               : `<span class="tag ${o.pct>=80?"amb":"ver"}">${Math.round(o.pct)}%</span>`;
-        return `<div class="linha-b"><span class="n">${esc(o.categoria)}</span>
+        return `<div class="linha-b"><span class="n">${esc(rotCat(o.categoria))}</span>
           <span><span class="barra"><i class="${cl}" style="width:${Math.min(100,o.pct).toFixed(1)}%"></i></span></span>
           <span class="v">${din0(o.gasto)} / ${din0(o.valor_mes)} ${tag}
             <button class="x" data-del-orc="${o.id}">${ICO.x}</button></span></div>`;
@@ -636,7 +651,7 @@ function vOrcamento(){
     <div class="pad">${secH(t("sec.orcamento"), t("sec.orcamento.sub"))}</div>
     ${corpo}
     <div class="form">
-      <select id="orc-cat" class="fn">${cats.map(c=>`<option>${esc(c)}</option>`).join("")}</select>
+      <select id="orc-cat" class="fn">${cats.map(c=>`<option value="${esc(c)}">${esc(rotCat(c))}</option>`).join("")}</select>
       <input id="orc-valor" class="fx" inputmode="decimal" placeholder="${t("form.teto")}">
       <button class="mini lar" id="orc-add">${t("form.add")}</button></div>
   </div>
@@ -659,7 +674,7 @@ function vRecorrencias(){
           const c = x.tipo==="entrada"?cor("--verde"):x.tipo==="investimento"?cor("--ambar"):cor("--vermelho");
           const sinal = x.tipo==="entrada"?"+":x.tipo==="investimento"?"→":"−";
           return `<div class="tb-l" style="grid-template-columns:1fr 130px 120px 190px">
-            <span class="n">${esc(x.categoria)}<small>${esc(x.descricao||"")}</small></span>
+            <span class="n">${esc(rotCat(x.categoria))}<small>${esc(x.descricao||"")}</small></span>
             <span class="t2">${t("rec.todoDia",{d:x.dia})}</span>
             <span class="v" style="color:${c}">${sinal} ${num(x.valor)}</span>
             <span class="dir-fim">
@@ -676,10 +691,13 @@ function vRecorrencias(){
         <option value="saida">${t("lanc.saida")}</option>
         <option value="entrada">${t("lanc.entrada")}</option>
         <option value="investimento">${t("lanc.investir")}</option></select>
-      <select id="rec-cat" class="fh">${cats.map(c=>`<option>${esc(c)}</option>`).join("")}</select>
+      <select id="rec-cat" class="fh">${cats.map(c=>`<option value="${esc(c)}">${esc(rotCat(c))}</option>`).join("")}</select>
       <input id="rec-desc" class="fn" placeholder="${t("form.descricao")}">
       <input id="rec-dia" class="fx" inputmode="numeric" placeholder="${t("form.dia")}">
       <input id="rec-valor" class="fx" inputmode="decimal" placeholder="${t("form.valor")}">
+      <select id="rec-inicio" class="fh">
+        <option value="agora">${t("rec.desteMes")}</option>
+        <option value="proximo" selected>${t("rec.proximoMes")}</option></select>
       <button class="mini lar" id="rec-add">${t("form.add")}</button></div>
   </div>`;
 }
@@ -701,7 +719,7 @@ function vMetas(){
             <span class="tag ${p.pct>=100?"ver":"lar"}">${Math.round(p.pct)}%</span>
             <button class="x" data-del-meta="${x.id}">${ICO.x}</button></div>
           <span class="barra"><i class="${cl}" style="width:${Math.min(100,p.pct).toFixed(1)}%"></i></span>
-          <div class="t3" style="font-size:13.5px;margin-top:9px">${esc(pe)}${x.categoria?" · "+esc(x.categoria):""}</div>
+          <div class="t3" style="font-size:13.5px;margin-top:9px">${esc(pe)}${x.categoria?" · "+esc(rotCat(x.categoria)):""}</div>
         </div>`; }).join("")}</div>`;
   return `
   <div class="card">
@@ -709,7 +727,7 @@ function vMetas(){
     ${corpo}
     <div class="form">
       <input id="meta-nome" class="fn" placeholder="${t("form.nome")}">
-      <select id="meta-cat" class="fh"><option value="">${t("form.todoDia")}</option>${cats.map(c=>`<option>${esc(c)}</option>`).join("")}</select>
+      <select id="meta-cat" class="fh"><option value="">${t("form.todoDia")}</option>${cats.map(c=>`<option value="${esc(c)}">${esc(rotCat(c))}</option>`).join("")}</select>
       <input id="meta-alvo" class="fx" inputmode="decimal" placeholder="${t("form.alvo")}">
       <button class="mini lar" id="meta-add">${t("form.add")}</button></div>
   </div>`;
@@ -845,10 +863,10 @@ function vRelatorios(){
         ${linha(t("fech.investido"), f.a.invest, f.b.invest)}
         ${linha(t("fech.saldo"), f.saldoA, f.saldoB)}</div>
       ${f.alta && f.alta.d>0 ? `<div class="li" style="padding-left:0;padding-right:0">
-        <span class="tag amb">${t("fech.maiorAlta")}</span><span class="n">${esc(f.alta.cat)}</span>
+        <span class="tag amb">${t("fech.maiorAlta")}</span><span class="n">${esc(rotCat(f.alta.cat))}</span>
         <span class="v neg">+ ${num(f.alta.d)}</span></div>`:""}
       ${f.queda && f.queda.d<0 ? `<div class="li" style="padding-left:0;padding-right:0;border-bottom:none">
-        <span class="tag ver">${t("fech.maiorQueda")}</span><span class="n">${esc(f.queda.cat)}</span>
+        <span class="tag ver">${t("fech.maiorQueda")}</span><span class="n">${esc(rotCat(f.queda.cat))}</span>
         <span class="v pos">− ${num(-f.queda.d)}</span></div>`:""}</div>`;
   const dscHTML = !dsc
     ? `<div class="pad t3" style="font-size:14.5px">${t("vazio.disciplina")}</div>`
@@ -946,7 +964,7 @@ function listaLancamentos(n){
     const sinal = l.tipo==="entrada"?"+":l.tipo==="investimento"?"→":"−";
     const sub = [l.nota, espaco==="empresa"&&l.membro_id?nomeM(l.membro_id):"", l.recorrencia_id?t("nav.recorrencias"):""].filter(Boolean).join(" · ");
     return `<div class="li"><i class="pt" style="background:${c}"></i>
-      <span class="n">${esc(l.categoria)}${sub?`<small>${esc(sub)}</small>`:""}</span>
+      <span class="n">${esc(rotCat(l.categoria))}${sub?`<small>${esc(sub)}</small>`:""}</span>
       ${l.natureza==="futil"?`<span class="tag amb">${t("leg.futil")}</span>`:""}
       <span class="tag">${l.data===h?t("dia.hoje"):curto(l.data)}</span>
       <span class="v" style="color:${c}">${sinal} ${num(l.valor)}</span>
@@ -1086,11 +1104,11 @@ function pintaData(){
   $("rl-data").innerHTML = op.map(o=>`<button class="chip ${o.d===dataAlvo?"on":""}" data-d="${o.d}">${o.r}</button>`).join("");
   $$("#rl-data button").forEach(b=>b.onclick=()=>{ dataAlvo=b.dataset.d; vibra(); pintaData(); });
 }
-const FUTEIS = new Set(["Comer fora","Lazer","Eating out","Leisure","Comer fuera","Ocio"]);
+const FUTEIS = new Set(window.CAT_FUTEIS || ["comer_fora","lazer"]);
 function pintaCat(){
   const lista = CATS()[espaco][tipoSel];
   if(catSel && !lista.includes(catSel)) catSel=null;
-  $("rl-cat").innerHTML = lista.map(c=>`<button class="chip ${c===catSel?"on":""}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
+  $("rl-cat").innerHTML = lista.map(c=>`<button class="chip ${c===catSel?"on":""}" data-c="${esc(c)}">${esc(rotCat(c))}</button>`).join("");
   $$("#rl-cat button").forEach(b=>b.onclick=()=>{
     catSel=b.dataset.c;
     if(espaco==="pessoal"&&tipoSel==="saida") natSel = FUTEIS.has(catSel) ? "futil" : "essencial";
@@ -1123,7 +1141,7 @@ function abrirDia(d){
     ${ls.length?ls.map(l=>{
       const c = l.tipo==="entrada"?cor("--verde"):l.tipo==="investimento"?cor("--ambar"):cor("--vermelho");
       return `<div class="li" style="padding:12px 0"><i class="pt" style="background:${c}"></i>
-        <span class="n">${esc(l.categoria)}${l.nota?`<small>${esc(l.nota)}</small>`:""}</span>
+        <span class="n">${esc(rotCat(l.categoria))}${l.nota?`<small>${esc(l.nota)}</small>`:""}</span>
         <span class="v" style="color:${c}">${num(l.valor)}</span>
         <button class="x" data-dl="${l.id}">${ICO.x}</button></div>`;
     }).join(""):`<div class="t3" style="font-size:14px;padding:8px 0">—</div>`}
@@ -1207,10 +1225,44 @@ function abrirBloco(bl){
 }
 
 /* ================= MUTAÇÕES ================= */
+/* Apagar guarda a linha inteira e oferece Desfazer por 7 segundos.
+   Num app de dinheiro, um clique errado não pode ser definitivo. */
+let tDesfazer = null;
+function toastDesfazer(txt, aoDesfazer){
+  clearTimeout(tDesfazer);
+  let el = $("toast");
+  if(!el){ el = document.createElement("div"); el.id="toast"; el.className="toast"; document.body.appendChild(el); }
+  el.style.borderColor = cor("--linha"); el.style.color = cor("--txt");
+  el.innerHTML = `<span>${esc(txt)}</span>
+    <button id="bt-desfazer" style="margin-left:14px;color:var(--laranja);font-weight:600">${t("msg.desfazer")}</button>`;
+  $("bt-desfazer").onclick = async ()=>{ el.remove(); clearTimeout(tDesfazer); await aoDesfazer(); };
+  tDesfazer = setTimeout(()=>el.remove(), 7000);
+}
+
 async function apagar(tabela, id, local){
+  const linha = (db[MAPA_TABELA[tabela]]||[]).find(x=>x.id===id);
   const { error } = await sb.from(tabela).delete().eq("id", id);
   if(error) return falhou(error);
-  local(); render(); toast(t("msg.removido"));
+  local(); limparMemo(); render();
+  if(!linha) return toast(t("msg.removido"));
+  toastDesfazer(t("msg.removido"), async ()=>{
+    const { data, error:e2 } = await sb.from(tabela).insert(linha).select().single();
+    if(e2) return falhou(e2);
+    const chave = MAPA_TABELA[tabela];
+    db[chave].push(numerico(chave, data));
+    if(chave==="lancamentos") db.lancamentos.sort((a,b)=>b.data.localeCompare(a.data));
+    limparMemo(); render(); toast(t("msg.restaurado"));
+  });
+}
+const MAPA_TABELA = { lancamentos:"lancamentos", contas:"contas", orcamentos:"orcamentos",
+  recorrencias:"recorrencias", metas:"metas", eventos:"eventos", tarefas:"tarefas",
+  membros:"membros", habitos:"habitos", blocos_rotina:"blocos" };
+function numerico(chave, x){
+  if(chave==="lancamentos"||chave==="recorrencias") return {...x, valor:Number(x.valor)};
+  if(chave==="contas")     return {...x, valor:Number(x.valor||0)};
+  if(chave==="orcamentos") return {...x, valor_mes:Number(x.valor_mes)};
+  if(chave==="metas")      return {...x, alvo:Number(x.alvo)};
+  return x;
 }
 async function lancar(){
   const v = valorDig();
@@ -1225,7 +1277,7 @@ async function lancar(){
   if(error) return falhou(error);
   db.lancamentos.unshift({...data, valor:Number(data.valor)});
   db.lancamentos.sort((a,b)=>b.data.localeCompare(a.data));
-  vibra(14); fecharSheet(); render();
+  vibra(14); fecharSheet(); limparMemo(); render();
   toast(`${tipoSel==="entrada"?"+":"−"} ${din(v)}`);
 }
 async function pagarConta(c){
@@ -1234,7 +1286,8 @@ async function pagarConta(c){
   if(error) return falhou(error);
   c.ultimo_pago = mes;
   if(c.valor>0){
-    const catContas = CATS()[c.espaco].saida[4] || CATS()[c.espaco].saida[0];
+    const listaS = CATS()[c.espaco].saida;
+    const catContas = listaS.includes("contas") ? "contas" : listaS[listaS.length-1];
     const { data, error:e2 } = await sb.from("lancamentos").insert({
       user_id:user.id, espaco:c.espaco, tipo:"saida", data:hoje(), valor:c.valor,
       categoria:catContas, nota:c.nome, natureza:c.espaco==="pessoal"?"essencial":null }).select().single();
@@ -1242,7 +1295,7 @@ async function pagarConta(c){
     db.lancamentos.unshift({...data, valor:Number(data.valor)});
     db.lancamentos.sort((a,b)=>b.data.localeCompare(a.data));
   }
-  vibra(14); render(); toast(`${c.nome} · ${t("msg.quitada")}`);
+  limparMemo(); vibra(14); render(); toast(`${c.nome} · ${t("msg.quitada")}`);
 }
 async function marcarItem(id, on, d){
   vibra(on?6:12);
@@ -1257,7 +1310,7 @@ async function marcarItem(id, on, d){
     if(error) return falhou(error);
     db.marcas.push(data);
   }
-  render();
+  limparMemo(); render();
 }
 async function addEvento(){
   const ti=$("e-tit").value.trim(); if(!ti) return;
@@ -1302,7 +1355,7 @@ async function instalarRotina(){
     if(e2) return falhou(e2);
     db.habitos.push(...novos);
   }
-  render(); toast(t("msg.rotinaCriada"));
+  limparMemo(); render(); toast(t("msg.rotinaCriada"));
 }
 
 /* ================= IMPORTAÇÃO ================= */
@@ -1319,25 +1372,54 @@ function parseOFX(txt){
   }
   return out;
 }
+/* Lê CSV de banco em dois formatos:
+   (a) uma coluna de valor com sinal;
+   (b) colunas separadas de débito e crédito — comum em banco brasileiro. */
 function parseCSV(txt){
   const linhas = txt.split(/\r?\n/).filter(l=>l.trim());
   if(!linhas.length) return [];
   const sep = (linhas[0].match(/;/g)||[]).length > (linhas[0].match(/,/g)||[]).length ? ";" : ",";
-  const cab = linhas[0].toLowerCase().split(sep).map(s=>s.trim().replace(/"/g,""));
-  const iData = cab.findIndex(c=>/data|date|fecha/.test(c));
-  const iVal  = cab.findIndex(c=>/valor|amount|importe|value/.test(c));
-  const iDesc = cab.findIndex(c=>/desc|hist|memo|detalle|title/.test(c));
-  if(iData<0 || iVal<0) return [];
+  const cab = linhas[0].toLowerCase().split(sep).map(s=>s.trim().replace(/^"|"$/g,""));
+
+  const acha = re => cab.findIndex(c=>re.test(c));
+  const iData  = acha(/^(data|date|fecha)/);
+  const iDeb   = acha(/d[ée]bito|debit|saída|saida|salida|retirada|withdraw/);
+  const iCred  = acha(/cr[ée]dito|credit|entrada|dep[óo]sito|deposit/);
+  const iVal   = acha(/valor|amount|importe|^value/);
+  const iDesc  = acha(/desc|hist|memo|detalle|lan[çc]amento|title|refer/);
+  const iSinal = acha(/tipo|type|natureza|d\/c|dc/);
+  if(iData < 0) return [];
+  if(iVal < 0 && (iDeb < 0 || iCred < 0)) return [];
+
+  const dataDe = bruto => {
+    if(/^\d{4}-\d{2}-\d{2}/.test(bruto)) return bruto.slice(0,10);
+    const m = bruto.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+    if(!m) return "";
+    const a = m[3].length===2 ? "20"+m[3] : m[3];
+    return `${a}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+  };
+
   const out = [];
   for(const l of linhas.slice(1)){
-    const p = l.split(sep).map(s=>s.trim().replace(/^"|"$/g,""));
-    const bruto = p[iData]||""; let d = "";
-    if(/^\d{4}-\d{2}-\d{2}/.test(bruto)) d = bruto.slice(0,10);
-    else { const m = bruto.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/); if(m) d = `${m[3]}-${m[2]}-${m[1]}`; }
-    const bruV = p[iVal]||"0";
-    const val = Math.abs(numBR(bruV));
-    if(!d || !val) continue;
-    out.push({ data:d, valor:val, tipo: /-/.test(bruV) ? "saida" : "entrada", nota:(p[iDesc]||"").slice(0,120) });
+    const p = l.split(sep).map(x=>x.trim().replace(/^"|"$/g,""));
+    const d = dataDe(p[iData]||"");
+    if(!d) continue;
+    let val = 0, tipo = "saida";
+
+    if(iDeb >= 0 && iCred >= 0){
+      const deb = Math.abs(numBR(p[iDeb]||"0")), cred = Math.abs(numBR(p[iCred]||"0"));
+      if(cred > 0){ val = cred; tipo = "entrada"; }
+      else if(deb > 0){ val = deb; tipo = "saida"; }
+    }else{
+      const bruV = p[iVal] || "0";
+      val = Math.abs(numBR(bruV));
+      const negativo = /^\s*-/.test(bruV) || /\(\s*[\d.,]+\s*\)/.test(bruV);
+      const marca = iSinal >= 0 ? (p[iSinal]||"").toLowerCase() : "";
+      if(marca) tipo = /^(c|cr|cred|entrada|receita)/.test(marca) ? "entrada" : "saida";
+      else tipo = negativo ? "saida" : "entrada";
+    }
+    if(!val) continue;
+    out.push({ data:d, valor:val, tipo, nota:(p[iDesc]||"").slice(0,120) });
   }
   return out;
 }
@@ -1363,7 +1445,7 @@ async function lerArquivo(file){
         <span class="tag">${curto(x.data)}</span>
         <span class="n">${esc(x.nota||"—")}</span>
         <select data-cat="${i}" style="border:1px solid var(--linha);border-radius:8px;background:var(--campo);padding:7px 9px;font-size:13px">
-          ${(x.tipo==="entrada"?catsE:catsS).map(c=>`<option>${esc(c)}</option>`).join("")}</select>
+          ${(x.tipo==="entrada"?catsE:catsS).map(c=>`<option value="${esc(c)}">${esc(rotCat(c))}</option>`).join("")}</select>
         <span class="v" style="color:${x.tipo==="entrada"?cor("--verde"):cor("--vermelho")}">${num(x.valor)}</span></div>`).join("")}
     </div>
     <button class="btn" id="imp-ok">${t("imp.confirmar",{n:itens.length})}</button>`);
@@ -1510,14 +1592,14 @@ function ligarTela(){
     const x = db.tarefas.find(z=>z.id===b.dataset.tarefa); if(!x) return;
     const { error } = await sb.from("tarefas").update({ feita: !x.feita }).eq("id", x.id);
     if(error) return falhou(error);
-    x.feita = !x.feita; vibra(); render();
+    x.feita = !x.feita; limparMemo(); vibra(); render();
   });
   on("[data-lang]", b => b.onclick = ()=>trocarIdioma(b.dataset.lang));
   on("[data-toggle-rec]", b => b.onclick = async ()=>{
     const r = db.recorrencias.find(x=>x.id===b.dataset.toggleRec); if(!r) return;
     const { error } = await sb.from("recorrencias").update({ ativo: !r.ativo }).eq("id", r.id);
     if(error) return falhou(error);
-    r.ativo = !r.ativo; render();
+    r.ativo = !r.ativo; limparMemo(); render();
   });
 
   add("c-add", async ()=>{
@@ -1526,7 +1608,7 @@ function ligarTela(){
     const { data, error } = await sb.from("contas").insert({ user_id:user.id, espaco, nome:n,
       dia:Math.min(Math.max(d,1),31), valor:numBR($("c-valor").value) }).select().single();
     if(error) return falhou(error);
-    db.contas.push({...data, valor:Number(data.valor||0)}); render(); toast(t("msg.contaCadastrada"));
+    db.contas.push({...data, valor:Number(data.valor||0)}); limparMemo(); render(); toast(t("msg.contaCadastrada"));
   });
   add("orc-add", async ()=>{
     const c=$("orc-cat").value, v=numBR($("orc-valor").value);
@@ -1537,20 +1619,23 @@ function ligarTela(){
     if(error) return falhou(error);
     db.orcamentos = db.orcamentos.filter(x=>!(x.espaco===espaco && x.categoria===c));
     db.orcamentos.push({...data, valor_mes:Number(data.valor_mes)});
-    render(); toast(t("msg.tetoSalvo"));
+    limparMemo(); render(); toast(t("msg.tetoSalvo"));
   });
   add("rec-add", async ()=>{
     const d=parseInt($("rec-dia").value,10), v=numBR($("rec-valor").value);
     if(!d||!v) return toast(t("auth.preencha"), true);
     const tp=$("rec-tipo").value;
+    // "próximo mês" nasce com o mês atual já marcado como gerado, então nada é lançado retroativo
+    const comecaAgora = $("rec-inicio").value === "agora";
     const { data, error } = await sb.from("recorrencias").insert({
       user_id:user.id, espaco, tipo:tp, categoria:$("rec-cat").value,
       descricao:$("rec-desc").value.trim(), valor:v, dia:Math.min(Math.max(d,1),31),
+      ultimo_gerado: comecaAgora ? null : mesDe(hoje()),
       natureza:(espaco==="pessoal"&&tp==="saida")?"essencial":null }).select().single();
     if(error) return falhou(error);
     db.recorrencias.push({...data, valor:Number(data.valor)});
-    await materializarRecorrencias();
-    render(); toast(t("msg.recSalva"));
+    if(comecaAgora) await materializarRecorrencias();
+    limparMemo(); render(); toast(t("msg.recSalva"));
   });
   add("meta-add", async ()=>{
     const n=$("meta-nome").value.trim(), a=numBR($("meta-alvo").value);
