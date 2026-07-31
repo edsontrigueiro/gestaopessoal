@@ -9,6 +9,18 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230A0A0B'/><path d='M8 22h16M8 10h16M8 16h10' stroke='%23FF5E04' stroke-width='2.8' stroke-linecap='round'/></svg>">
 <title>NexVot — Gestão Inteligente</title>
+<meta name="description" content="Painel de finanças e rotina: entradas, saídas, investimento, orçamento por categoria, recorrências, metas e fôlego em dias. Português, inglês e espanhol.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="NexVot">
+<meta property="og:title" content="NexVot — Gestão Inteligente">
+<meta property="og:description" content="Entradas, saídas, investimento, orçamento, recorrências e metas — num painel só.">
+<meta property="og:image" content="./compartilhar.svg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="NexVot — Gestão Inteligente">
+<meta name="twitter:description" content="Entradas, saídas, investimento, orçamento, recorrências e metas — num painel só.">
+<meta name="twitter:image" content="./compartilhar.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -384,8 +396,10 @@ body.recolhido .side .lg{justify-content:center}
 .drop .tt{font-size:16px;font-weight:600}
 .drop .ss{font-size:13.5px;color:var(--txt3)}
 .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);z-index:120;background:var(--card);
-  border:1px solid var(--linha);border-radius:99px;padding:14px 24px;font-size:14px;font-weight:500;
-  box-shadow:var(--sombra2);max-width:88vw;text-align:center}
+  border:1px solid var(--linha);border-radius:99px;padding:13px 22px;font-size:14px;font-weight:500;
+  box-shadow:var(--sombra2);max-width:88vw;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.toast button{padding:4px 8px;border-radius:8px}
+.toast button:hover{background:color-mix(in srgb,var(--laranja) 14%,transparent)}
 @media (prefers-reduced-motion:no-preference){ .toast{animation:sobeT .26s var(--mola)}
   @keyframes sobeT{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}} }
 
