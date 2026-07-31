@@ -56,7 +56,6 @@ let calRef = null, selDia = null, rtDia = null, blocoAberto = null;
 let dataAlvo = null, tipoSel = "saida", catSel = null, natSel = "essencial", membroSel = null, dig = "";
 let importados = [];
 const avisados = new Set();
-const recentes = [];
 
 const db = { lancamentos:[], contas:[], habitos:[], marcas:[], fechados:[], eventos:[],
              membros:[], blocos:[], tarefas:[], orcamentos:[], recorrencias:[], metas:[] };
@@ -386,7 +385,8 @@ function caminhoSuave(pts, tn=0.32){
   return d;
 }
 function grafArea(series, rotulos, alt){
-  const W=1000, H=alt||280, pt=14, pb=8;
+  const vazioAntes = !series.flatMap(s=>s.dados).some(v=>v!==0);
+  const W=1000, H=vazioAntes ? 120 : (alt||280), pt=14, pb=8;
   const todos = series.flatMap(s=>s.dados);
   const vMax = Math.max(...todos, 1), vMin = Math.min(...todos, 0);
   const amp = (vMax-vMin) || 1, n = rotulos.length;
@@ -409,35 +409,40 @@ function grafArea(series, rotulos, alt){
   }).join("");
   const passo = Math.max(1, Math.ceil(n/7));
   const eixoX = rotulos.map((r,i)=> (i%passo===0 || i===n-1) ? `<span>${esc(r)}</span>` : "").filter(Boolean).join("");
-  return `<div class="com-y">
-    <div class="eixo-y"><span>${din0(vMax)}</span><span>${din0(vMin+amp*.5)}</span><span>${din0(vMin)}</span></div>
+  const eixoY = temDado
+    ? `<div class="eixo-y"><span>${din0(vMax)}</span><span>${din0(vMin+amp*.5)}</span><span>${din0(vMin)}</span></div>`
+    : "";
+  return `<div class="${temDado?"com-y":""}">
+    ${eixoY}
     <div class="graf">
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="height:${H}px" role="img">${grades}${temDado?camadas:""}</svg>
       ${!temDado?`<div class="graf-vazio">${t("vazio.grafico")}</div>`:""}
     </div>
-    <div class="graf-x">${eixoX}</div></div>`;
+    ${temDado?`<div class="graf-x">${eixoX}</div>`:""}</div>`;
 }
 function grafBarras(dias, ins, outs, alt){
-  const W=1000, H=alt||250, l=W/Math.max(dias.length,1);
-  const mx = Math.max(...ins, ...outs, 1);
   const vazio = !ins.some(v=>v>0) && !outs.some(v=>v>0);
+  const W=1000, H=vazio ? 120 : (alt||250), l=W/Math.max(dias.length,1);
+  const mx = Math.max(...ins, ...outs, 1);
   const cE=cor("--verde"), cS=cor("--vermelho");
   const barras = dias.map((d,i)=>{
     const x=i*l, hi=(ins[i]/mx)*(H-30), ho=(outs[i]/mx)*(H-30), w=l*.30;
     return (ins[i]>0?`<rect x="${(x+l*.14).toFixed(1)}" y="${(H-20-hi).toFixed(1)}" width="${w.toFixed(1)}" height="${hi.toFixed(1)}" rx="3" fill="${cE}"/>`:"")
          + (outs[i]>0?`<rect x="${(x+l*.52).toFixed(1)}" y="${(H-20-ho).toFixed(1)}" width="${w.toFixed(1)}" height="${ho.toFixed(1)}" rx="3" fill="${cS}"/>`:"");
   }).join("");
-  return `<div class="com-y">
-    <div class="eixo-y" style="bottom:44px"><span>${din0(mx)}</span><span>${din0(mx/2)}</span><span>${din0(0)}</span></div>
+  const eixoY = vazio ? ""
+    : `<div class="eixo-y" style="bottom:40px"><span>${din0(mx)}</span><span>${din0(mx/2)}</span><span>${din0(0)}</span></div>`;
+  return `<div class="${vazio?"":"com-y"}">
+    ${eixoY}
     <div class="graf">
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="height:${H}px" role="img">
         <line x1="0" y1="${H-20}" x2="${W}" y2="${H-20}" stroke="${cor("--linha")}" stroke-width="1"/>${vazio?"":barras}</svg>
       ${vazio?`<div class="graf-vazio">${t("vazio.grafico")}</div>`:""}
     </div>
-    <div class="graf-x"><span>${curto(dias[0])}</span><span>${t("dia.hoje")}</span></div></div>`;
+    ${vazio?"":`<div class="graf-x"><span>${curto(dias[0])}</span><span>${t("dia.hoje")}</span></div>`}</div>`;
 }
 function grafRosca(pares, centroR, centroV){
-  if(!pares.length) return `<div class="graf" style="height:230px"><div class="graf-vazio">${t("vazio.categorias")}</div></div>`;
+  if(!pares.length) return `<div class="graf" style="height:130px"><div class="graf-vazio">${t("vazio.categorias")}</div></div>`;
   const total = pares.reduce((s,[,v])=>s+v,0), R=64, C=2*Math.PI*R;
   const paleta = [cor("--laranja"), cor("--ambar"), cor("--verde"), cor("--azul"), cor("--violeta"), "#EC4899", "#14B8A6", cor("--txt3")];
   let off=0;
@@ -532,14 +537,14 @@ function vPainel(){
   <div class="card pad" style="--d:60ms">
     ${secH(t("sec.evolucao"), t("sec.evolucao.sub"),
       `<div class="legenda"><span><i class="pt" style="background:${cor("--laranja")}"></i>${t("leg.disponivel")}</span></div>`)}
-    ${grafArea([{dados:serie.length?serie:[0], cor:cor("--laranja")}], rot.length?rot:["1"], 260)}
+    ${grafArea([{dados:serie.length?serie:[0], cor:cor("--laranja")}], rot.length?rot:["1"], 210)}
   </div>
   <div class="grade g21">
     <div class="card pad" style="--d:100ms">
       ${secH(t("sec.fluxo"), t("sec.fluxo.sub"),
         `<div class="legenda"><span><i class="pt" style="background:${cor("--verde")}"></i>${t("leg.entradas")}</span>
          <span><i class="pt" style="background:${cor("--vermelho")}"></i>${t("leg.saidas")}</span></div>`)}
-      ${grafBarras(dias, dias.map(entra), dias.map(saiu), 230)}
+      ${grafBarras(dias, dias.map(entra), dias.map(saiu), 190)}
     </div>
     <div class="card" style="--d:140ms">
       <div class="pad" style="padding-bottom:0">${secH(t("sec.contas"), t("sec.contas.sub"))}</div>
@@ -582,11 +587,11 @@ function vFluxo(){
         <span><i class="pt" style="background:${cor("--verde")}"></i>${t("leg.entradas")}</span>
         <span><i class="pt" style="background:${cor("--vermelho")}"></i>${t("leg.saidas")}</span>
         <span><i class="pt" style="background:${cor("--ambar")}"></i>${t("leg.investido")}</span></div>`)}
-    ${grafArea([{dados:acE,cor:cor("--verde")},{dados:acS,cor:cor("--vermelho")},{dados:acI,cor:cor("--ambar")}], dias.map(curto), 300)}
+    ${grafArea([{dados:acE,cor:cor("--verde")},{dados:acS,cor:cor("--vermelho")},{dados:acI,cor:cor("--ambar")}], dias.map(curto), 190)}
   </div>
   <div class="card pad" style="--d:60ms">
     ${secH(t("sec.fluxo"), t("sec.fluxo.sub"))}
-    ${grafBarras(dias.slice(-14), dias.slice(-14).map(entra), dias.slice(-14).map(saiu), 240)}
+    ${grafBarras(dias.slice(-14), dias.slice(-14).map(entra), dias.slice(-14).map(saiu), 200)}
   </div>
   <div class="card pad" style="--d:110ms">
     ${secH(t("sec.categorias"), t("sec.categorias.sub"))}
@@ -938,23 +943,9 @@ function listaLancamentos(n){
 function irPara(v){
   tela = v;
   TELAS.forEach(n => $("v-"+n).hidden = n!==v);
-  const i = recentes.indexOf(v);
-  if(i>=0) recentes.splice(i,1);
-  recentes.unshift(v);
-  if(recentes.length>3) recentes.pop();
-  renderRecentes();
   fecharGaveta();
   window.scrollTo({top:0, behavior:"instant"});
   render();
-}
-function renderRecentes(){
-  const box = $("lista-recentes");
-  $("g-recentes").hidden = recentes.length < 2;
-  box.innerHTML = recentes.slice(0,3).map(v=>{
-    const [ti] = TITULO[v];
-    return `<button class="item ${v===tela?"on":""}" data-v="${v}">${ICONES[v]}<span class="side-txt">${t(ti)}</span></button>`;
-  }).join("");
-  box.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>irPara(b.dataset.v));
 }
 const abrirGaveta = ()=>{ $("side").classList.add("aberta"); document.body.style.overflow="hidden"; };
 const fecharGaveta = ()=>{ $("side").classList.remove("aberta"); document.body.style.overflow=""; };
@@ -971,7 +962,7 @@ function fecharSheet(){
   const s = $("sheet"); if(s) s.classList.remove("on");
   $("veu").classList.remove("on");
   document.body.style.overflow="";
-  setTimeout(()=>{ $("sheets").innerHTML=""; $("veu").hidden=true; }, 260);
+  setTimeout(()=>{ $("sheets").innerHTML=""; $("veu").hidden=true; }, 210);
 }
 const cabSheet = (ico,tit) => `<div class="sh-c"><span class="ic">${ico}</span><h3>${esc(tit)}</h3>
   <button class="fechar" data-fechar>${ICO.x}</button></div>`;
