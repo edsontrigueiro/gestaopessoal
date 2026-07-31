@@ -547,12 +547,12 @@ function vPainel(){
       ${grafBarras(dias, dias.map(entra), dias.map(saiu), 190)}
     </div>
     <div class="card" style="--d:140ms">
-      <div class="pad" style="padding-bottom:0">${secH(t("sec.contas"), t("sec.contas.sub"))}</div>
+      <div class="pad">${secH(t("sec.contas"), t("sec.contas.sub"))}</div>
       ${tabelaContas()}
     </div>
   </div>
   <div class="card" style="--d:180ms">
-    <div class="pad" style="padding-bottom:0">${secH(t("sec.lancamentos"), t("sec.lancamentos.sub"))}</div>
+    <div class="pad">${secH(t("sec.lancamentos"), t("sec.lancamentos.sub"))}</div>
     ${listaLancamentos(8)}
   </div>`;
 }
@@ -598,7 +598,7 @@ function vFluxo(){
     ${grafRosca(pares, t("kpi.saidas"), din0(pares.reduce((s,[,v])=>s+v,0)))}
   </div>
   <div class="card" style="--d:160ms">
-    <div class="pad" style="padding-bottom:0">${secH(t("sec.lancamentos"), t("sec.lancamentos.sub"))}</div>
+    <div class="pad">${secH(t("sec.lancamentos"), t("sec.lancamentos.sub"))}</div>
     ${listaLancamentos(20)}
   </div>`;
 }
@@ -618,7 +618,7 @@ function vOrcamento(){
       }).join("")}</div>`;
   return `
   <div class="card">
-    <div class="pad" style="padding-bottom:0">${secH(t("sec.orcamento"), t("sec.orcamento.sub"))}</div>
+    <div class="pad">${secH(t("sec.orcamento"), t("sec.orcamento.sub"))}</div>
     ${corpo}
     <div class="form">
       <select id="orc-cat" class="fn">${cats.map(c=>`<option>${esc(c)}</option>`).join("")}</select>
@@ -654,7 +654,7 @@ function vRecorrencias(){
         }).join("")}</div>`;
   return `
   <div class="card">
-    <div class="pad" style="padding-bottom:0">${secH(t("sec.recorrencias"), t("sec.recorrencias.sub"))}</div>
+    <div class="pad">${secH(t("sec.recorrencias"), t("sec.recorrencias.sub"))}</div>
     ${corpo}
     <div class="form">
       <select id="rec-tipo" class="fh">
@@ -690,7 +690,7 @@ function vMetas(){
         </div>`; }).join("")}</div>`;
   return `
   <div class="card">
-    <div class="pad" style="padding-bottom:0">${secH(t("sec.metas"), t("sec.metas.sub"))}</div>
+    <div class="pad">${secH(t("sec.metas"), t("sec.metas.sub"))}</div>
     ${corpo}
     <div class="form">
       <input id="meta-nome" class="fn" placeholder="${t("form.nome")}">
@@ -743,7 +743,7 @@ function vRotina(){
   <div class="pbar"><i style="width:${tI?Math.round(tF/tI*100):0}%"></i></div>
   ${corpo}
   <div class="card" style="--d:60ms;margin-top:20px">
-    <div class="pad" style="padding-bottom:0">${secH(t("sec.soHoje"), t("vazio.tarefas.sub"))}</div>
+    <div class="pad">${secH(t("sec.soHoje"), t("vazio.tarefas.sub"))}</div>
     ${ts.length ? ts.map(x=>`<div class="li">
         <button class="cx ${x.feita?"on":""}" data-tarefa="${x.id}">${ICO.ok}</button>
         <span class="n" ${x.feita?'style="color:var(--txt3);text-decoration:line-through"':""}>${esc(x.titulo)}</span>
@@ -756,7 +756,7 @@ function vRotina(){
       <button class="mini lar" id="t-add">${t("form.add")}</button></div>
   </div>
   <div class="card" style="--d:110ms">
-    <div class="pad" style="padding-bottom:0">${secH(t("sec.editarRotina"), t("rot.blocosValem"))}</div>
+    <div class="pad">${secH(t("sec.editarRotina"), t("rot.blocosValem"))}</div>
     <div class="form">
       <input id="b-hora" class="fh" type="time">
       <input id="b-tit" class="fn" placeholder="${t("form.bloco")}">
@@ -799,7 +799,7 @@ function vAgenda(){
         <span><i class="pt" style="background:${cor("--verde")}"></i>${t("cal.fechado")}</span></div>
     </div>
     <div class="card" style="--d:60ms">
-      <div class="pad" style="padding-bottom:0">${secH(t("sec.compromissos"), t("vazio.compromissos.sub"))}</div>
+      <div class="pad">${secH(t("sec.compromissos"), t("vazio.compromissos.sub"))}</div>
       ${prox.length ? prox.map(e=>{
         const dd=dif(h,e.data);
         return `<div class="li">
@@ -846,10 +846,10 @@ function vRelatorios(){
         ${esc(t("disc.conclusao",{p:dsc.p, dir:t(dsc.dir==="menor"?"disc.menor":"disc.maior")}))}</div></div>`;
   return `
   <div class="card">
-    <div class="pad" style="padding-bottom:0">${secH(t("sec.fechamento"), t("sec.fechamento.sub"))}</div>
+    <div class="pad">${secH(t("sec.fechamento"), t("sec.fechamento.sub"))}</div>
     ${fechHTML}</div>
   <div class="card" style="--d:60ms">
-    <div class="pad" style="padding-bottom:0">${secH(t("sec.disciplina"), t("sec.disciplina.sub"))}</div>
+    <div class="pad">${secH(t("sec.disciplina"), t("sec.disciplina.sub"))}</div>
     ${dscHTML}</div>
   <div class="grade g2" style="--d:110ms">
     <div class="card pad">
@@ -886,7 +886,7 @@ function vAjustes(){
     </div>
   </div>
   <div class="card" style="--d:110ms">
-    <div class="pad" style="padding-bottom:0">${secH(t("sec.socios"), t("sec.socios.sub"))}</div>
+    <div class="pad">${secH(t("sec.socios"), t("sec.socios.sub"))}</div>
     <div class="pad" style="padding-top:8px">
       ${db.membros.map(m=>`<div class="li" style="padding-left:0;padding-right:0">
         <span class="n">${esc(m.nome)}</span>
