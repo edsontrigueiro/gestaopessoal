@@ -163,6 +163,19 @@ pt: {
 
   "conf.apagarBloco": "Apagar o bloco e todos os itens dele?",
   "conta.backup": "Baixar backup em JSON", "conta.sair": "Sair da conta",
+  "tema.claro": "Claro",
+  "tema.escuro": "Escuro",
+  "tema.sistema": "Sistema",
+  "sec.avisos": "Avisos",
+  "av.vazio": "Nada precisa da sua atenção agora.",
+  "av.vencida": "venceu em {d}",
+  "av.vence": "vence em {n} dias",
+  "av.venceHoje": "vence hoje",
+  "av.estourou": "passou do teto: {p}% de {v}",
+  "av.perto": "perto do teto: {p}%",
+  "av.meta": "meta atingida",
+  "av.evento": "compromisso {q}",
+  "av.permitir": "Permitir avisos do navegador",
   "sem.base": "sem base do mês passado", "sem.dados": "sem dados"
 },
 
@@ -324,6 +337,19 @@ en: {
 
   "conf.apagarBloco": "Delete the block and all its items?",
   "conta.backup": "Download JSON backup", "conta.sair": "Sign out",
+  "tema.claro": "Light",
+  "tema.escuro": "Dark",
+  "tema.sistema": "System",
+  "sec.avisos": "Alerts",
+  "av.vazio": "Nothing needs your attention right now.",
+  "av.vencida": "was due on {d}",
+  "av.vence": "due in {n} days",
+  "av.venceHoje": "due today",
+  "av.estourou": "over cap: {p}% of {v}",
+  "av.perto": "near cap: {p}%",
+  "av.meta": "goal reached",
+  "av.evento": "event {q}",
+  "av.permitir": "Allow browser alerts",
   "sem.base": "no baseline from last month", "sem.dados": "no data"
 },
 
@@ -485,6 +511,19 @@ es: {
 
   "conf.apagarBloco": "¿Borrar el bloque y todos sus ítems?",
   "conta.backup": "Descargar copia JSON", "conta.sair": "Salir de la cuenta",
+  "tema.claro": "Claro",
+  "tema.escuro": "Oscuro",
+  "tema.sistema": "Sistema",
+  "sec.avisos": "Avisos",
+  "av.vazio": "Nada requiere tu atención ahora.",
+  "av.vencida": "venció el {d}",
+  "av.vence": "vence en {n} días",
+  "av.venceHoje": "vence hoy",
+  "av.estourou": "sobre el tope: {p}% de {v}",
+  "av.perto": "cerca del tope: {p}%",
+  "av.meta": "meta alcanzada",
+  "av.evento": "evento {q}",
+  "av.permitir": "Permitir avisos del navegador",
   "sem.base": "sin base del mes pasado", "sem.dados": "sin datos"
 }
 
