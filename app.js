@@ -19,11 +19,15 @@ function fatal(msg){
 /* ================= IDIOMA ================= */
 let idioma = "pt";
 function t(k, vars){
-  let s = (window.I18N[idioma] && window.I18N[idioma][k]) || window.I18N.pt[k] || k;
-  if(vars) for(const [a,b] of Object.entries(vars)) s = s.replace("{"+a+"}", b);
+  const D = window.I18N;
+  let s = (D && ((D[idioma] && D[idioma][k]) || (D.pt && D.pt[k]))) || k;
+  if(vars) for(const [a,b] of Object.entries(vars)) s = String(s).replace("{"+a+"}", b);
   return s;
 }
-const listas = () => window.I18N_LISTAS[idioma] || window.I18N_LISTAS.pt;
+const VAZIO_LISTAS = { cat:{ pessoal:{saida:[],entrada:[],investimento:[]},
+                             empresa:{saida:[],entrada:[],investimento:[]} },
+                       dias:["","","","","","",""], diasCurto:["","","","","","",""] };
+const listas = () => (window.I18N_LISTAS && (window.I18N_LISTAS[idioma] || window.I18N_LISTAS.pt)) || VAZIO_LISTAS;
 const CATS   = () => listas().cat;
 const DIAS   = () => listas().dias;
 const DIASC  = () => listas().diasCurto;
@@ -130,12 +134,20 @@ function aplicarTema(x){
 
 /* ================= ABERTURA ================= */
 async function boot(){
+  // Os arquivos irmãos são conferidos ANTES de qualquer coisa usar tradução.
+  if(!window.I18N || !window.I18N.pt)
+    return fatal("O i18n.js não carregou. Confira se o arquivo está na raiz do repositório, "
+               + "com o nome exato i18n.js, e se o commit chegou na Vercel.");
+  if(!window.I18N_LISTAS)
+    return fatal("O i18n.js carregou incompleto: falta o bloco I18N_LISTAS no fim do arquivo. "
+               + "Cole o arquivo inteiro, do começo ao fim.");
+  if(!window.CONFIG)
+    return fatal("O config.js não carregou. Confira se o arquivo está na raiz do repositório.");
+
   try{ idioma = localStorage.getItem("nexvot:idioma") || (navigator.language||"pt").slice(0,2); }catch(e){}
   if(!["pt","en","es"].includes(idioma)) idioma = "pt";
   aplicarTextos();
 
-  if(!window.CONFIG) return fatal("O config.js não carregou.");
-  if(!window.I18N)   return fatal("O i18n.js não carregou. Confira se o arquivo está na raiz do repo.");
   const url = String(window.CONFIG.SUPABASE_URL||"").trim();
   const key = String(window.CONFIG.SUPABASE_ANON_KEY||"").trim();
   if(!/^https:\/\/[a-z0-9-]+\.supabase\.(co|in)\/?$/i.test(url)) return fatal("SUPABASE_URL inválida: \""+url+"\"");
