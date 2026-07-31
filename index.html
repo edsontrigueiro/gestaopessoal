@@ -122,7 +122,32 @@ body.recolhido .side .lg{justify-content:center}
 .ib svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .lang{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:var(--r3);font-size:13px;font-weight:600;color:var(--txt2)}
 .lang:hover{background:var(--card2);color:var(--txt)}
-.perfil{display:flex;align-items:center;gap:11px;padding-left:14px;margin-left:6px;border-left:1px solid var(--linha)}
+.tb-item{position:relative}
+.ib.aberto,.lang.aberto{background:color-mix(in srgb,var(--laranja) 14%,transparent);color:var(--laranja)}
+.pop{position:absolute;top:calc(100% + 10px);right:0;z-index:100;min-width:236px;
+  background:var(--card);border:1px solid var(--linha);border-radius:14px;box-shadow:var(--sombra2);
+  padding:7px;opacity:0;transform:translateY(-7px) scale(.97);pointer-events:none;transform-origin:top right}
+.pop.on{opacity:1;transform:none;pointer-events:auto}
+@media (prefers-reduced-motion:no-preference){ .pop{transition:opacity .16s var(--mola),transform .18s var(--mola)} }
+.pop-t{font-size:15.5px;font-weight:700;padding:9px 11px 10px;letter-spacing:-.015em}
+.pop-h{padding:11px;margin-bottom:6px;border-bottom:1px solid var(--linha)}
+.pop-h .nm{font-size:14.5px;font-weight:600;line-height:1.3}
+.pop-h .em{font-size:13px;color:var(--txt3);margin-top:2px;line-height:1.3;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pop-i{display:flex;align-items:center;gap:12px;width:100%;padding:11px;border-radius:9px;
+  font-size:14.5px;font-weight:500;color:var(--txt2);text-align:left}
+.pop-i:hover{background:var(--card2);color:var(--txt)}
+.pop-i.on{color:var(--txt)}
+.pop-i svg{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.pop-i .rd{width:16px;height:16px;flex:none;border-radius:99px;border:1.6px solid var(--linha);display:grid;place-items:center}
+.pop-i.on .rd{border-color:var(--laranja)}
+.pop-i.on .rd::after{content:"";width:8px;height:8px;border-radius:99px;background:var(--laranja)}
+.pop-i.perigo{color:var(--laranja)}
+.pop-i.perigo:hover{background:color-mix(in srgb,var(--laranja) 12%,transparent);color:var(--laranja)}
+.pop-sep{height:1px;background:var(--linha);margin:6px 4px}
+
+.perfil{display:flex;align-items:center;gap:11px;padding-left:14px;margin-left:6px;border-left:1px solid var(--linha);cursor:pointer;border-radius:10px}
+.perfil:hover{background:var(--card2)}
 .avatar{width:38px;height:38px;border-radius:99px;background:color-mix(in srgb,var(--laranja) 18%,transparent);
   color:var(--laranja);display:grid;place-items:center;font-weight:700;font-size:15px;flex:none}
 .perfil .nm{font-size:14px;font-weight:600;line-height:1.25}
@@ -488,12 +513,54 @@ body.recolhido .side .lg{justify-content:center}
           <button data-e="pessoal" class="on" data-i="esp.pessoal">Pessoal</button>
           <button data-e="empresa" data-i="esp.empresa">Empresa</button>
         </div>
-        <button class="lang" id="bt-lang"><span id="lang-atual">PT</span>
-          <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.4"><path d="M6 9l6 6 6-6"/></svg></button>
-        <button class="ib" id="bt-tema" aria-label="Tema"><svg id="ic-tema" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></button>
-        <button class="ib" id="bt-avisos" aria-label="Avisos"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg></button>
-        <div class="perfil"><span class="avatar" id="avatar">N</span>
-          <div><div class="nm" id="perfil-nome"></div><div class="em" id="perfil-email"></div></div></div>
+        <div class="tb-item">
+          <button class="lang" id="bt-lang" aria-haspopup="true"><span id="lang-atual">PT</span>
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.4"><path d="M6 9l6 6 6-6"/></svg></button>
+          <div class="pop" id="pop-lang" role="menu">
+            <div class="pop-t" data-i="sec.idioma">Idioma</div>
+            <button class="pop-i" data-lang="pt"><span class="rd"></span>Português — PT</button>
+            <button class="pop-i" data-lang="en"><span class="rd"></span>English — EN</button>
+            <button class="pop-i" data-lang="es"><span class="rd"></span>Español — ES</button>
+          </div>
+        </div>
+
+        <div class="tb-item">
+          <button class="ib" id="bt-tema" aria-label="Tema" aria-haspopup="true"><svg id="ic-tema" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></button>
+          <div class="pop" id="pop-tema" role="menu" style="min-width:190px">
+            <button class="pop-i" data-tema="claro">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>
+              <span data-i="tema.claro">Claro</span></button>
+            <button class="pop-i" data-tema="escuro">
+              <svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+              <span data-i="tema.escuro">Escuro</span></button>
+            <button class="pop-i" data-tema="sistema">
+              <svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8.5 21h7M12 17v4"/></svg>
+              <span data-i="tema.sistema">Sistema</span></button>
+          </div>
+        </div>
+
+        <div class="tb-item">
+          <button class="ib" id="bt-avisos" aria-label="Avisos" aria-haspopup="true"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg></button>
+          <div class="pop" id="pop-avisos" role="menu" style="min-width:300px">
+            <div class="pop-t" data-i="sec.avisos">Avisos</div>
+            <div id="lista-avisos"></div>
+          </div>
+        </div>
+
+        <div class="tb-item">
+          <div class="perfil" id="bt-perfil" aria-haspopup="true"><span class="avatar" id="avatar">N</span>
+            <div><div class="nm" id="perfil-nome"></div><div class="em" id="perfil-email"></div></div></div>
+          <div class="pop" id="pop-perfil" role="menu" style="min-width:250px">
+            <div class="pop-h"><div class="nm" id="pop-nome"></div><div class="em" id="pop-email"></div></div>
+            <button class="pop-i" data-ir="ajustes">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20a7.5 7.5 0 0115 0"/></svg>
+              <span data-i="nav.ajustes">Ajustes</span></button>
+            <div class="pop-sep"></div>
+            <button class="pop-i perigo" id="pop-sair">
+              <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+              <span data-i="nav.sair">Sair</span></button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -548,7 +615,10 @@ setTimeout(function(){
   }
 },10000);
 try{
-  var t=localStorage.getItem("nexvot:tema"); if(t) document.documentElement.dataset.tema=t;
+  var t=localStorage.getItem("nexvot:tema")||"escuro";
+  var real = t==="sistema"
+    ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "escuro" : "claro") : t;
+  document.documentElement.dataset.tema = real;
   if(localStorage.getItem("nexvot:recolhido")==="1") document.body.classList.add("recolhido");
 }catch(e){}
 </script>
