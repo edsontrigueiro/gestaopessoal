@@ -40,6 +40,7 @@ function aplicarTextos(){
   const la = $("lang-atual"); if(la) la.textContent = idioma.toUpperCase();
   document.documentElement.lang = idioma === "pt" ? "pt-BR" : idioma;
   $$("#auth-lang button").forEach(b => b.classList.toggle("on", b.dataset.l === idioma));
+  $$("#pop-lang [data-lang]").forEach(b => b.classList.toggle("on", b.dataset.lang === idioma));
 }
 async function trocarIdioma(l){
   idioma = l;
@@ -117,19 +118,29 @@ const ICO = { seta:'<svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/
               ok:'<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>' };
 
 /* ================= TEMA ================= */
-const temaAtual = () => document.documentElement.dataset.tema || "escuro";
-function aplicarTema(x){
-  document.documentElement.dataset.tema = x;
-  try{ localStorage.setItem("nexvot:tema", x); }catch(e){}
+/* preferência guardada: claro · escuro · sistema. O que a tela usa é o resolvido. */
+let temaPref = "escuro";
+const mqEscuro = window.matchMedia("(prefers-color-scheme: dark)");
+const resolverTema = () => temaPref === "sistema" ? (mqEscuro.matches ? "escuro" : "claro") : temaPref;
+const SOL  = '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/>';
+const LUA  = '<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>';
+const TELA = '<rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8.5 21h7M12 17v4"/>';
+
+function aplicarTema(pref, salvar){
+  temaPref = pref;
+  const real = resolverTema();
+  document.documentElement.dataset.tema = real;
+  try{ localStorage.setItem("nexvot:tema", pref); }catch(e){}
   const meta = document.querySelector('meta[name="theme-color"]');
-  if(meta) meta.setAttribute("content", x==="escuro" ? "#0A0A0B" : "#F7F8FA");
+  if(meta) meta.setAttribute("content", real==="escuro" ? "#0A0A0B" : "#F7F8FA");
   const ic = $("ic-tema");
-  if(ic) ic.innerHTML = x==="escuro"
-    ? '<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>'
-    : '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/>';
-  if(user && sb) sb.from("perfil").upsert({ user_id:user.id, tema:x, atualizado:new Date().toISOString() }).then(()=>{});
+  if(ic) ic.innerHTML = pref==="sistema" ? TELA : (real==="escuro" ? LUA : SOL);
+  $$("#pop-tema .pop-i").forEach(b => b.classList.toggle("on", b.dataset.tema===pref));
+  if(salvar!==false && user && sb)
+    sb.from("perfil").upsert({ user_id:user.id, tema: real, atualizado:new Date().toISOString() }).then(()=>{});
   if(!$("app").hidden) render();
 }
+mqEscuro.addEventListener("change", ()=>{ if(temaPref==="sistema") aplicarTema("sistema", false); });
 
 /* ================= ABERTURA ================= */
 async function boot(){
@@ -162,7 +173,9 @@ async function boot(){
     ses = r.data.session;
   }catch(e){ return fatal("Não consegui falar com o Supabase ("+e.message+")."); }
 
-  aplicarTema(temaAtual());
+  let prefSalva = "escuro";
+  try{ prefSalva = localStorage.getItem("nexvot:tema") || "escuro"; }catch(e){}
+  aplicarTema(prefSalva, false);
   $("splash").hidden = true;
   if(ses && !ses.user.is_anonymous){ user = ses.user; return entrar(); }
   if(ses){ try{ await sb.auth.signOut(); }catch(e){} }
@@ -213,6 +226,8 @@ async function entrar(){
   $("avatar").textContent = (nome[0]||"N").toUpperCase();
   $("perfil-nome").textContent = cap(nome);
   $("perfil-email").textContent = user.email || "";
+  $("pop-nome").textContent = cap(nome);
+  $("pop-email").textContent = user.email || "";
   selDia = hoje(); rtDia = hoje(); dataAlvo = hoje();
   calRef = { a:+selDia.slice(0,4), m:+selDia.slice(5,7) };
   try{ espaco = localStorage.getItem("nexvot:espaco") || "pessoal"; }catch(e){}
@@ -947,6 +962,62 @@ function irPara(v){
   window.scrollTo({top:0, behavior:"instant"});
   render();
 }
+/* ---------- popovers da barra superior ---------- */
+let popAberto = null;
+function fecharPop(){
+  if(!popAberto) return;
+  $(popAberto.pop).classList.remove("on");
+  const g = $(popAberto.gatilho); if(g) g.classList.remove("aberto");
+  popAberto = null;
+}
+function alternarPop(gatilho, pop){
+  const jaAberto = popAberto && popAberto.pop === pop;
+  fecharPop();
+  if(jaAberto) return;
+  if(pop === "pop-avisos") montarAvisos();
+  $(pop).classList.add("on");
+  $(gatilho).classList.add("aberto");
+  popAberto = { gatilho, pop };
+}
+
+/* o sino agora lista o que precisa de atenção, em vez de só pedir permissão */
+function montarAvisos(){
+  const h = hoje(), y = mesDe(h), itens = [];
+  contasOrd().forEach(c=>{
+    if(c.ultimo_pago === mesDe(h)) return;
+    const d = dif(h, venc(c));
+    if(d < 0)      itens.push({ c:"--vermelho", t:c.nome, s:t("av.vencida",{d:curto(venc(c))}) });
+    else if(d===0) itens.push({ c:"--ambar",    t:c.nome, s:t("av.venceHoje") });
+    else if(d<=3)  itens.push({ c:"--ambar",    t:c.nome, s:t("av.vence",{n:d}) });
+  });
+  usoOrcamento().forEach(o=>{
+    if(o.pct > 100)      itens.push({ c:"--vermelho", t:o.categoria, s:t("av.estourou",{p:Math.round(o.pct), v:din0(o.valor_mes)}) });
+    else if(o.pct >= 80) itens.push({ c:"--ambar",    t:o.categoria, s:t("av.perto",{p:Math.round(o.pct)}) });
+  });
+  metas().forEach(m=>{ if(progressoMeta(m).pct >= 100) itens.push({ c:"--verde", t:m.nome, s:t("av.meta") }); });
+  evts().filter(e=>e.data===h || e.data===mais(h,1)).forEach(e=>
+    itens.push({ c:"--laranja", t:e.titulo, s:t("av.evento",{q: e.data===h ? t("dia.hoje") : t("dia.amanha")}) }));
+
+  const box = $("lista-avisos");
+  const permissao = ("Notification" in window && Notification.permission !== "granted")
+    ? `<div class="pop-sep"></div><button class="pop-i" id="pedir-aviso">
+         <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+         <span>${t("av.permitir")}</span></button>` : "";
+  box.innerHTML = (itens.length
+    ? itens.slice(0,8).map(x=>`<div class="pop-i" style="cursor:default;align-items:flex-start">
+        <i class="pt" style="background:var(${x.c});margin-top:6px"></i>
+        <span style="flex:1;min-width:0"><b style="color:var(--txt);font-weight:600;display:block">${esc(x.t)}</b>
+        <span style="font-size:13px;color:var(--txt3)">${esc(x.s)}</span></span></div>`).join("")
+    : `<div class="pop-i" style="cursor:default;color:var(--txt3)">${t("av.vazio")}</div>`) + permissao;
+
+  const pa = $("pedir-aviso");
+  if(pa) pa.onclick = async ()=>{
+    const p = await Notification.requestPermission();
+    toast(p==="granted" ? t("msg.avisosOn") : t("msg.avisosOff"), p!=="granted");
+    montarAvisos();
+  };
+}
+
 const abrirGaveta = ()=>{ $("side").classList.add("aberta"); document.body.style.overflow="hidden"; };
 const fecharGaveta = ()=>{ $("side").classList.remove("aberta"); document.body.style.overflow=""; };
 
@@ -1340,19 +1411,21 @@ function ligar(){
   });
   $$("#seg-periodo button").forEach(b => b.onclick = ()=>{ periodo=b.dataset.p; vibra(6); render(); });
   $("bt-menu").onclick = ()=>{ vibra(8); abrirGaveta(); };
-  $("bt-tema").onclick = ()=>aplicarTema(temaAtual()==="escuro"?"claro":"escuro");
-  $("bt-lang").onclick = ()=>{ const o=["pt","en","es"]; trocarIdioma(o[(o.indexOf(idioma)+1)%3]); };
+  $("bt-lang").onclick   = e=>{ e.stopPropagation(); alternarPop("bt-lang","pop-lang"); };
+  $("bt-tema").onclick   = e=>{ e.stopPropagation(); alternarPop("bt-tema","pop-tema"); };
+  $("bt-avisos").onclick = e=>{ e.stopPropagation(); alternarPop("bt-avisos","pop-avisos"); };
+  $("bt-perfil").onclick = e=>{ e.stopPropagation(); alternarPop("bt-perfil","pop-perfil"); };
+  $$("#pop-lang [data-lang]").forEach(b => b.onclick = ()=>{ fecharPop(); trocarIdioma(b.dataset.lang); });
+  $$("#pop-tema [data-tema]").forEach(b => b.onclick = ()=>{ fecharPop(); aplicarTema(b.dataset.tema); });
+  $$("#pop-perfil [data-ir]").forEach(b => b.onclick = ()=>{ fecharPop(); irPara(b.dataset.ir); });
+  $("pop-sair").onclick = async ()=>{ await sb.auth.signOut(); location.reload(); };
+  $$(".pop").forEach(p => p.addEventListener("click", e=>e.stopPropagation()));
   $("bt-novo").onclick = ()=>abrirLanc(hoje());
   $("fab").onclick = ()=>{ vibra(10); abrirLanc(hoje()); };
   $("bt-sair").onclick = async ()=>{ await sb.auth.signOut(); location.reload(); };
   $("bt-recolher").onclick = ()=>{
     document.body.classList.toggle("recolhido");
     try{ localStorage.setItem("nexvot:recolhido", document.body.classList.contains("recolhido")?"1":"0"); }catch(e){}
-  };
-  $("bt-avisos").onclick = async ()=>{
-    if(!("Notification" in window)) return toast(t("msg.avisosOff"), true);
-    const p = await Notification.requestPermission();
-    toast(p==="granted"?t("msg.avisosOn"):t("msg.avisosOff"), p!=="granted");
   };
   $("veu").onclick = fecharSheet;
   $("busca").addEventListener("input", e=>{
@@ -1363,9 +1436,10 @@ function ligar(){
   });
   document.addEventListener("keydown", e=>{
     if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="k"){ e.preventDefault(); abrirGaveta(); $("busca").focus(); }
-    if(e.key==="Escape"){ fecharSheet(); fecharGaveta(); }
+    if(e.key==="Escape"){ fecharSheet(); fecharGaveta(); fecharPop(); }
   });
   document.addEventListener("click", e=>{
+    fecharPop();
     if(window.innerWidth<=1000 && $("side").classList.contains("aberta")
        && !e.target.closest("#side") && !e.target.closest("#bt-menu")) fecharGaveta();
   });
