@@ -89,6 +89,45 @@ svg{display:block}
 .msg{font-size:13.5px;margin-top:14px;min-height:19px;line-height:1.55;text-align:center}
 .msg.erro{color:var(--vermelho)} .msg.ok{color:var(--verde)}
 .auth-pe{margin-top:22px;text-align:center;font-size:13px;color:var(--txt3);line-height:1.6}
+.auth-box h2{font-size:23px;letter-spacing:-.025em}
+.auth-box .sub{font-size:14px;color:var(--txt2);margin:6px 0 24px;line-height:1.5}
+.btn-social{width:100%;display:flex;align-items:center;justify-content:center;gap:12px;
+  background:var(--card2);border:1px solid var(--linha);border-radius:var(--r2);
+  padding:14px;font-size:15px;font-weight:600;margin-bottom:11px}
+.btn-social:hover{border-color:var(--txt3)}
+.btn-social svg{width:20px;height:20px;flex:none}
+.btn-social[disabled]{opacity:.45;cursor:not-allowed}
+.ou{display:flex;align-items:center;gap:14px;margin:20px 0;color:var(--txt3);font-size:13px}
+.ou::before,.ou::after{content:"";flex:1;height:1px;background:var(--linha)}
+.campo-g{margin-bottom:13px}
+.campo-g label{display:block;font-size:13px;font-weight:600;color:var(--txt2);margin-bottom:6px}
+.campo-g .campo{margin-bottom:0}
+.campo-g .erro{font-size:12.5px;color:var(--vermelho);margin-top:5px;display:none}
+.campo-g.ruim .campo{border-color:var(--vermelho)}
+.campo-g.ruim .erro{display:block}
+.dois{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+@media (max-width:460px){ .dois{grid-template-columns:1fr} }
+.tel-linha{display:flex;gap:9px}
+.tel-linha select{flex:0 0 132px;background:var(--campo);border:1px solid var(--linha);
+  border-radius:var(--r2);padding:14px 10px;font-size:15px;color-scheme:dark light}
+.tel-linha input{flex:1;min-width:0;margin-bottom:0}
+.aceite{display:flex;align-items:flex-start;gap:11px;margin:18px 0;font-size:13.5px;
+  color:var(--txt2);line-height:1.55;cursor:pointer}
+.aceite input{appearance:none;width:21px;height:21px;flex:none;margin-top:1px;border:1.8px solid var(--linha);
+  border-radius:6px;background:var(--card2);display:grid;place-items:center;cursor:pointer}
+.aceite input:checked{background:var(--laranja);border-color:var(--laranja)}
+.aceite input:checked::after{content:"";width:11px;height:6px;border-left:2.4px solid #fff;
+  border-bottom:2.4px solid #fff;transform:rotate(-45deg) translate(1px,-1px)}
+.aceite a{color:var(--laranja);text-decoration:underline;text-underline-offset:2px}
+.aceite.ruim input{border-color:var(--vermelho)}
+.lgpd{font-size:12px;color:var(--txt3);line-height:1.6;margin:16px 0 18px;
+  padding:13px;border:1px solid var(--linha);border-radius:var(--r3);background:var(--card2)}
+.voltar{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--txt2);
+  margin-bottom:20px;padding:6px 0}
+.voltar:hover{color:var(--txt)}
+.voltar svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2.2}
+.troca{text-align:center;margin-top:18px;font-size:14px;color:var(--txt2)}
+.troca button{color:var(--laranja);font-weight:600}
 .auth-lang{display:flex;gap:6px;justify-content:center;margin-top:20px}
 .auth-lang button{padding:7px 13px;border-radius:99px;border:1px solid var(--linha);font-size:12.5px;font-weight:600;color:var(--txt3)}
 .auth-lang button.on{border-color:var(--laranja);color:var(--laranja)}
@@ -302,6 +341,10 @@ body.recolhido .side .lg{justify-content:center}
 .zero .tt{font-size:15px;font-weight:700;letter-spacing:-.015em}
 .zero .ss{font-size:13px;color:var(--txt3);max-width:380px;line-height:1.55}
 .status{display:flex;align-items:center;gap:18px;padding:20px}
+.card.alerta-vrm{border-color:color-mix(in srgb,var(--vermelho) 45%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--vermelho) 7%,transparent),transparent 70%)}
+.card.alerta-amb{border-color:color-mix(in srgb,var(--ambar) 45%,transparent);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--ambar) 7%,transparent),transparent 70%)}
 .status .txt{flex:1;min-width:0}
 .status .tt{font-size:18px;font-weight:700;letter-spacing:-.024em}
 .status .ss{font-size:13.5px;color:var(--txt2);margin-top:4px;line-height:1.5}
@@ -457,15 +500,62 @@ body.recolhido .side .lg{justify-content:center}
   <div class="auth-box">
     <div class="auth-logo"><span class="mk"><i></i></span>
       <div><h1 data-i="app.nome">NexVot</h1><p data-i="app.sub">Gestão Inteligente</p></div></div>
-    <div class="tabs" id="auth-tabs">
-      <button data-m="entrar" class="on" data-i="auth.entrar">Entrar</button>
-      <button data-m="criar" data-i="auth.criar">Criar conta</button>
+
+    <!-- ENTRAR ou CRIAR -->
+    <div id="et-email">
+      <div id="bloco-entrar">
+        <h2 data-i="auth.entrar"></h2>
+        <p class="sub" data-i="auth.rodape"></p>
+        <div class="campo-g"><label data-i="cad.email"></label>
+          <input id="a-email" class="campo" type="email" autocomplete="email" inputmode="email"></div>
+        <div class="campo-g"><label data-i="cad.senha"></label>
+          <input id="a-senha" class="campo" type="password" autocomplete="current-password"></div>
+        <button id="bt-entrar" class="btn" data-i="auth.entrar"></button>
+        <div class="troca"><span data-i="ac.criarNova"></span>
+          <button id="ir-criar" data-i="auth.criar"></button></div>
+      </div>
+
+      <div id="bloco-criar" hidden>
+        <h2 data-i="cad.titulo"></h2>
+        <p class="sub" data-i="cad.sub"></p>
+
+        <div class="campo-g" id="g-nome"><label data-i="cad.usuario"></label>
+          <input id="c-nome-completo" class="campo" autocomplete="username" maxlength="60">
+          <div class="erro" data-i="err.usuario"></div></div>
+
+        <div class="campo-g" id="g-email"><label data-i="cad.email"></label>
+          <input id="c-email" class="campo" type="email" autocomplete="email" inputmode="email">
+          <div class="erro" data-i="err.email"></div></div>
+
+        <div class="campo-g" id="g-tel"><label data-i="cad.tel"></label>
+          <div class="tel-linha">
+            <select id="c-pais" aria-label="País"></select>
+            <input id="c-tel" class="campo" inputmode="tel" autocomplete="tel-national" maxlength="18">
+          </div>
+          <div class="erro" id="erro-tel"></div></div>
+
+        <div class="dois">
+          <div class="campo-g" id="g-senha"><label data-i="cad.senha"></label>
+            <input id="c-senha" class="campo" type="password" autocomplete="new-password">
+            <div class="erro" data-i="auth.senhaCurta"></div></div>
+          <div class="campo-g" id="g-senha2"><label data-i="cad.senha2"></label>
+            <input id="c-senha2" class="campo" type="password" autocomplete="new-password">
+            <div class="erro" data-i="err.senha2"></div></div>
+        </div>
+
+        <label class="aceite" id="g-termos">
+          <input type="checkbox" id="c-termos">
+          <span><span data-i="cad.termos1"></span>
+            <a href="./termos.html" target="_blank" rel="noopener" data-i="cad.termos2"></a>.</span>
+        </label>
+
+        <button id="bt-criar" class="btn" data-i="cad.criar"></button>
+        <div class="troca"><span data-i="ac.jaTenho"></span>
+          <button id="ir-entrar" data-i="auth.entrar"></button></div>
+      </div>
     </div>
-    <input id="a-email" class="campo" type="email" autocomplete="email" inputmode="email" data-ip="auth.email">
-    <input id="a-senha" class="campo" type="password" autocomplete="current-password" data-ip="auth.senha">
-    <button id="a-ok" class="btn" data-i="auth.entrar">Entrar</button>
+
     <div id="a-msg" class="msg" role="status"></div>
-    <div class="auth-pe" data-i="auth.rodape"></div>
     <div class="auth-lang" id="auth-lang">
       <button data-l="pt">PT</button><button data-l="en">EN</button><button data-l="es">ES</button>
     </div>
