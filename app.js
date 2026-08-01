@@ -890,7 +890,7 @@ function vPainel(){
   const disp=iM-oM-vM, fol=folego();
   const fut = soma(noMes(y,"saida").filter(x=>x.natureza==="futil"));
   const pFut = oM>0 ? Math.round(fut/oM*100) : 0;
-  const proj = d>0 ? oM/d*ultDia(+y.slice(0,4),+y.slice(5,7)) : 0;
+  const projSaida = d>0 ? oM/d*ultDia(+y.slice(0,4),+y.slice(5,7)) : 0;
   const rot=[], serie=[]; let acc=0;
   for(let k=1;k<=d;k++){ const dd=dtMes(+y.slice(0,4),+y.slice(5,7),k); acc+=entra(dd)-saiu(dd)-investe(dd); serie.push(acc); rot.push(String(k)); }
   const dias=[]; for(let i=13;i>=0;i--) dias.push(mais(h,-i));
@@ -918,7 +918,7 @@ function vPainel(){
   <div class="grade g3">
     ${kpi(t("kpi.entradas"), din(iM), noMes(y,"entrada").length+" ×",
       '<svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>', "ic-ver", cor("--verde"))}
-    ${kpi(t("kpi.saidas"), din(oM), t("kpi.saidas.pe")+": "+din0(proj),
+    ${kpi(t("kpi.saidas"), din(oM), t("kpi.saidas.pe")+": "+din0(projSaida),
       '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>', "ic-vrm", cor("--vermelho"))}
     ${kpi(t("kpi.investido"), din(vM), t("kpi.investido.pe"),
       '<svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-7 4 4"/><path d="M3 21h18"/></svg>', "ic-amb", cor("--ambar"))}
