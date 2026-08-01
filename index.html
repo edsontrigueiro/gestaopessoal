@@ -57,6 +57,7 @@ ul{list-style:none;margin:0;padding:0}
 svg{display:block}
 [hidden]{display:none !important}
 :focus-visible{outline:2px solid var(--laranja);outline-offset:2px;border-radius:6px}
+button,[data-acao],.item,.chip{ -webkit-user-select:none; user-select:none }
 ::placeholder{color:var(--txt3)}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-thumb{background:var(--linha);border-radius:99px;border:3px solid var(--bg)}
@@ -86,6 +87,7 @@ svg{display:block}
 .campo:focus{border-color:var(--laranja);outline:none}
 .btn{width:100%;background:var(--laranja);color:#fff;border-radius:var(--r2);padding:15px;font-size:15px;font-weight:600;transition:filter .15s}
 .btn:hover{filter:brightness(1.08)}
+.btn:disabled,.btn-pri:disabled,.mini:disabled{opacity:.45;cursor:not-allowed;filter:none}
 .msg{font-size:13.5px;margin-top:14px;min-height:19px;line-height:1.55;text-align:center}
 .msg.erro{color:var(--vermelho)} .msg.ok{color:var(--verde)}
 .auth-pe{margin-top:22px;text-align:center;font-size:13px;color:var(--txt3);line-height:1.6}
@@ -291,13 +293,16 @@ body.recolhido .side .lg{justify-content:center}
 .tag.vrm{color:#fff;border-color:var(--vermelho);background:var(--vermelho)}
 .li .tag.lar{font-size:11px}
 .tag.lar{color:var(--laranja);border-color:color-mix(in srgb,var(--laranja) 38%,transparent);background:color-mix(in srgb,var(--laranja) 10%,transparent)}
-.x{color:var(--txt3);padding:7px;border-radius:8px;line-height:0;flex:none}
+.x{color:var(--txt3);padding:9px;border-radius:8px;line-height:0;flex:none;
+  min-width:36px;min-height:36px;display:grid;place-items:center}
 .x:hover{color:var(--vermelho);background:var(--card3)}
 .x svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
 .mini{border:1px solid var(--linha);border-radius:9px;padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--txt2);background:var(--card2)}
 .mini:hover{color:var(--txt);border-color:var(--txt3)}
 .mini.lar{color:var(--laranja);border-color:color-mix(in srgb,var(--laranja) 40%,transparent)}
-.cx{width:22px;height:22px;flex:none;border:1.8px solid var(--linha);border-radius:7px;display:grid;place-items:center;color:transparent;background:var(--card2)}
+.cx{width:24px;height:24px;flex:none;border:1.8px solid var(--linha);border-radius:7px;
+  display:grid;place-items:center;color:transparent;background:var(--card2);cursor:pointer}
+.cx:hover{border-color:var(--txt3)}
 .cx svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .cx.on{background:var(--verde);border-color:var(--verde);color:#fff}
 .card{container-type:inline-size}
@@ -336,6 +341,7 @@ body.recolhido .side .lg{justify-content:center}
 .zero{margin:18px 20px 20px;border:1.5px dashed var(--linha);border-radius:var(--r2);padding:26px 22px;
   display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;width:calc(100% - 40px);
   background:color-mix(in srgb,var(--card2) 55%,transparent)}
+.zero{cursor:pointer}
 .zero:hover{border-color:color-mix(in srgb,var(--laranja) 50%,transparent)}
 .zero .mais{width:40px;height:40px;border-radius:99px;background:color-mix(in srgb,var(--laranja) 14%,transparent);
   color:var(--laranja);display:grid;place-items:center;font-size:21px;line-height:0}
@@ -400,6 +406,7 @@ body.recolhido .side .lg{justify-content:center}
 .blk{background:var(--card);border:1px solid var(--linha);border-radius:var(--r);margin-bottom:11px;overflow:hidden}
 .blk.agora{border-color:color-mix(in srgb,var(--laranja) 55%,transparent)}
 .blk-c{display:flex;align-items:center;gap:14px;width:100%;padding:15px 20px;text-align:left}
+.blk-c{cursor:pointer}
 .blk-c:hover{background:var(--card2)}
 .blk-h{font-size:15px;font-weight:700;color:var(--laranja);width:56px;flex:none;font-variant-numeric:tabular-nums}
 .blk.ok .blk-h{color:var(--verde)}
@@ -423,6 +430,7 @@ body.recolhido .side .lg{justify-content:center}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
 .dia{aspect-ratio:1;border:1px solid var(--linha);border-radius:var(--r3);position:relative;overflow:hidden;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:var(--card2)}
+.dia{cursor:pointer}
 .dia:hover{border-color:var(--txt3)}
 .dia .n{font-size:14.5px;font-weight:600;color:var(--txt2);position:relative;z-index:1;font-variant-numeric:tabular-nums}
 .dia .f{position:absolute;inset:0;background:var(--vermelho);opacity:0}
