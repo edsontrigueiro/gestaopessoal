@@ -62,9 +62,10 @@ const avisados = new Set();
 const db = { lancamentos:[], contas:[], habitos:[], marcas:[], fechados:[], eventos:[],
              membros:[], blocos:[], tarefas:[], orcamentos:[], recorrencias:[], metas:[] };
 
-const TELAS = ["painel","fluxo","orcamento","recorrencias","metas","rotina","agenda","relatorios","ajustes"];
+const TELAS = ["painel","consolidado","fluxo","orcamento","recorrencias","metas","rotina","agenda","relatorios","ajustes"];
 const ICONES = {
   painel:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/></svg>',
+  consolidado:'<svg viewBox="0 0 24 24"><path d="M7 8h10l-3-3M17 16H7l3 3"/><rect x="2.5" y="3" width="19" height="18" rx="3"/></svg>',
   fluxo:'<svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-7 4 4"/><path d="M3 21h18"/></svg>',
   orcamento:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6 3"/></svg>',
   recorrencias:'<svg viewBox="0 0 24 24"><path d="M4 10a8 8 0 0113.7-5.6L20 7"/><path d="M20 4v4h-4"/><path d="M20 14a8 8 0 01-13.7 5.6L4 17"/><path d="M4 20v-4h4"/></svg>',
@@ -74,7 +75,7 @@ const ICONES = {
   relatorios:'<svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>',
   ajustes:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>'
 };
-const TITULO = { painel:["painel.titulo","painel.sub"], fluxo:["nav.fluxo","sec.fluxo.sub"],
+const TITULO = { painel:["painel.titulo","painel.sub"], consolidado:["con.titulo","con.sub"], fluxo:["nav.fluxo","sec.fluxo.sub"],
   orcamento:["nav.orcamento","sec.orcamento.sub"], recorrencias:["nav.recorrencias","sec.recorrencias.sub"],
   metas:["nav.metas","sec.metas.sub"], rotina:["nav.rotinaDia","sec.rotinaHoje"],
   agenda:["nav.agenda","sec.compromissos"], relatorios:["nav.relatorios","sec.fechamento.sub"],
@@ -503,16 +504,20 @@ function fechamento(){
    médio de gasto variável dos últimos 30 dias.
    Sem IA — é aritmética, e por isso não erra número.
    ============================================================ */
-function projecao(dias){
+function projecao(dias, esp){
   dias = dias || 60;
+  const E = esp || espaco;
   const h = hoje(), y = mesDe(h);
-  let saldo = soma(noMes(y,"entrada")) - soma(noMes(y,"saida")) - soma(noMes(y,"investimento"));
+  const todos = db.lancamentos.filter(x => x.espaco === E);
+  const doMes = tp => todos.filter(x => mesDe(x.data)===y && x.tipo===tp);
+  let saldo = soma(doMes("entrada")) - soma(doMes("saida")) - soma(doMes("investimento"));
 
   const desde = mais(h,-30);
-  const avulsas = lancs().filter(x => x.tipo==="saida" && x.data>=desde && x.data<=h && !x.recorrencia_id);
+  const avulsas = todos.filter(x => x.tipo==="saida" && x.data>=desde && x.data<=h && !x.recorrencia_id);
   const ritmoDia = soma(avulsas) / 30;
 
-  const cs = contas(), rs = recs().filter(r => r.ativo);
+  const cs = db.contas.filter(x=>x.espaco===E);
+  const rs = db.recorrencias.filter(x=>x.espaco===E && x.ativo);
   const temBase = cs.length > 0 || rs.length > 0;
 
   const linha = [];
@@ -777,7 +782,7 @@ function render(){
   $$("#seg-espaco button").forEach(b=>b.classList.toggle("on", b.dataset.e===espaco));
   $$("#seg-periodo button").forEach(b=>b.classList.toggle("on", b.dataset.p===periodo));
   $$(".side .item[data-v]").forEach(b=>b.classList.toggle("on", b.dataset.v===tela));
-  const fn = { painel:vPainel, fluxo:vFluxo, orcamento:vOrcamento, recorrencias:vRecorrencias,
+  const fn = { painel:vPainel, consolidado:vConsolidado, fluxo:vFluxo, orcamento:vOrcamento, recorrencias:vRecorrencias,
                metas:vMetas, rotina:vRotina, agenda:vAgenda, relatorios:vRelatorios, ajustes:vAjustes }[tela];
   $("v-"+tela).innerHTML = fn();
   ligarTela();
@@ -816,6 +821,65 @@ function primeiraVez(){
       </button>`).join("")}
     <button class="mini" data-acao="pular-inicio" style="width:100%;margin-top:8px">${esc(t("ini.pular"))}</button>
   </div>`;
+}
+
+/* ============================================================
+   A PONTE — pró-labore e retirada saem da empresa e entram na
+   vida pessoal. Duas linhas amarradas por espelho_id, não dois
+   lançamentos soltos que ninguém liga depois.
+   ============================================================ */
+const TRANSFERIVEIS = ["prolabore","retirada"];
+const ehTransferivel = (esp,tipo,cat) => esp==="empresa" && tipo==="saida" && TRANSFERIVEIS.includes(cat);
+
+/* Cria o par: a saída na empresa e a entrada pessoal, cada uma
+   apontando para a outra. */
+async function lancarComEspelho(base){
+  const { data: emp, error: e1 } = await sb.from("lancamentos").insert(base).select().single();
+  if(e1){ falhou(e1); return null; }
+
+  const { data: pes, error: e2 } = await sb.from("lancamentos").insert({
+    user_id: user.id, espaco: "pessoal", tipo: "entrada", data: base.data,
+    valor: base.valor, categoria: base.categoria,
+    nota: base.nota || t("esp.veioDaEmpresa"), espelho_id: emp.id
+  }).select().single();
+  if(e2){ falhou(e2); return [emp]; }
+
+  await sb.from("lancamentos").update({ espelho_id: pes.id }).eq("id", emp.id);
+  emp.espelho_id = pes.id;
+  return [emp, pes];
+}
+
+/* Caixa consolidado: os dois lados e o quanto já atravessou a ponte. */
+function consolidado(){
+  const y = mesDe(hoje());
+  const caixa = esp => {
+    const t2 = db.lancamentos.filter(x => x.espaco===esp && mesDe(x.data)===y);
+    const por = tp => soma(t2.filter(x=>x.tipo===tp));
+    return por("entrada") - por("saida") - por("investimento");
+  };
+  const transferido = soma(db.lancamentos.filter(x =>
+    x.espaco==="empresa" && x.tipo==="saida" && TRANSFERIVEIS.includes(x.categoria) && mesDe(x.data)===y));
+  const pares = db.lancamentos
+    .filter(x => x.espaco==="empresa" && x.espelho_id)
+    .sort((a,b)=>b.data.localeCompare(a.data));
+  return { empresa: caixa("empresa"), pessoal: caixa("pessoal"),
+           total: caixa("empresa") + caixa("pessoal"), transferido, pares };
+}
+
+/* Simulador: quanto dá para retirar hoje sem furar a reserva de giro
+   em nenhum dos próximos 60 dias. É o pior saldo previsto menos a reserva. */
+function podeRetirar(){
+  const p = projecao(60, "empresa");
+  const y = mesDe(hoje());
+  // reserva sugerida: uma média mensal de saída da empresa nos últimos 3 meses
+  const meses = [y, mesAnt(y), mesAnt(mesAnt(y))];
+  const gastos = meses.map(m => soma(db.lancamentos.filter(x =>
+    x.espaco==="empresa" && x.tipo==="saida" && mesDe(x.data)===m)));
+  const usados = gastos.filter(g => g > 0);
+  const sugerida = usados.length ? usados.reduce((a,b)=>a+b,0) / usados.length : 0;
+  const reserva = (perfil && perfil.reserva_giro != null) ? Number(perfil.reserva_giro) : sugerida;
+  const disponivel = Math.max(0, p.menorSaldo - reserva);
+  return { ...p, reserva, sugerida, disponivel, automatica: !(perfil && perfil.reserva_giro != null) };
 }
 
 /* ---------- PAINEL ---------- */
@@ -1041,6 +1105,67 @@ function vMetas(){
       <select id="meta-cat" class="fh"><option value="">${t("form.todoDia")}</option>${cats.map(c=>`<option value="${esc(c)}">${esc(rotCat(c))}</option>`).join("")}</select>
       <input id="meta-alvo" class="fx" inputmode="decimal" placeholder="${t("form.alvo")}">
       <button class="mini lar" id="meta-add">${t("form.add")}</button></div>
+  </div>`;
+}
+
+/* ---------- CONSOLIDADO ---------- */
+function vConsolidado(){
+  const c = consolidado();
+  const r = podeRetirar();
+  const cor3 = v => v < 0 ? cor("--vermelho") : v > 0 ? cor("--verde") : "";
+
+  const simulador = !r.temBase
+    ? `<div class="pad t3" style="font-size:14.5px">${esc(t("con.semBase"))}</div>`
+    : `<div class="pad">
+        <div class="faixa" style="grid-template-columns:repeat(3,1fr)">
+          <div><div class="r">${t("con.podeRetirar")}</div>
+            <div class="v" style="font-size:26px;color:${r.disponivel>0?cor("--verde"):cor("--vermelho")}">${din0(r.disponivel)}</div>
+            <div class="t3" style="font-size:12.5px;margin-top:6px">${esc(t("con.podeRetirar.pe"))}</div></div>
+          <div><div class="r">${t("con.folga")}</div>
+            <div class="v" style="color:${cor3(r.menorSaldo)}">${din0(r.menorSaldo)}</div>
+            <div class="t3" style="font-size:12.5px;margin-top:6px">${esc(t("con.folga.pe"))}</div></div>
+          <div><div class="r">${t("con.reserva")}</div>
+            <div class="v">${din0(r.reserva)}</div>
+            <div class="t3" style="font-size:12.5px;margin-top:6px">${
+              r.automatica ? esc(t("con.reservaAuto")) : esc(t("con.reserva.pe"))}</div></div>
+        </div>
+        ${r.disponivel <= 0 ? `<p style="margin:18px 0 0;font-size:15px;color:var(--ambar)">${esc(t("con.semRetirar"))}</p>` : ""}
+      </div>
+      <div class="form">
+        <input id="res-valor" class="fx" inputmode="decimal" placeholder="${t("con.reserva")}"
+          value="${(perfil && perfil.reserva_giro != null) ? String(perfil.reserva_giro).replace(".",",") : ""}">
+        <button class="mini lar" id="res-salvar">${t("con.definirReserva")}</button>
+      </div>`;
+
+  return `
+  <div class="grade g3">
+    ${kpi(t("con.caixaEmp"), din(c.empresa), t("nav.fluxo"),
+      '<svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>',
+      "ic-azu", cor3(c.empresa))}
+    ${kpi(t("con.caixaPes"), din(c.pessoal), t("kpi.disponivel"),
+      '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20a7.5 7.5 0 0115 0"/></svg>',
+      "ic-vio", cor3(c.pessoal))}
+    ${kpi(t("con.caixaTot"), din(c.total), t("con.transferido")+": "+din0(c.transferido),
+      '<svg viewBox="0 0 24 24"><path d="M7 8h10l-3-3M17 16H7l3 3"/></svg>',
+      "ic-lar", cor3(c.total))}
+  </div>
+
+  <div class="card" style="--d:60ms">
+    <div class="pad">${secH(t("con.sim"), t("con.simSub"))}</div>
+    ${simulador}
+  </div>
+
+  <div class="card" style="--d:110ms">
+    <div class="pad">${secH(t("con.ponte"), t("con.ponteSub"))}</div>
+    ${c.pares.length
+      ? c.pares.slice(0,12).map(x=>`<div class="li">
+          <i class="pt" style="background:${cor("--laranja")}"></i>
+          <span class="n">${esc(rotCat(x.categoria))}<small>${esc(x.nota||"")}</small></span>
+          <span class="tag">${curto(x.data)}</span>
+          <span class="tag lar">${esc(t("esp.espelhado"))}</span>
+          <span class="v" style="color:${cor("--laranja")}">${num(x.valor)}</span>
+          <button class="x" data-del-lanc="${x.id}">${ICO.x}</button></div>`).join("")
+      : zero(t("con.vazio"), t("con.vazioSub"), "nova-transf")}
   </div>`;
 }
 
@@ -1402,6 +1527,9 @@ function abrirLanc(data, tipo){
       <button data-n="essencial">${t("lanc.essencial")}</button>
       <button data-n="futil">${t("lanc.futil")}</button></div>
     <div id="rl-membro" class="rolo" hidden></div>
+    <label class="aceite" id="lin-espelho" hidden style="margin:0 0 16px">
+      <input type="checkbox" id="ck-espelho" checked>
+      <span>${t("esp.espelhar")}</span></label>
     <div class="tec">
       ${[1,2,3,4,5,6,7,8,9].map(k=>`<button data-k="${k}">${k}</button>`).join("")}
       <button data-k="00" class="aux">00</button><button data-k="0">0</button>
@@ -1409,8 +1537,8 @@ function abrirLanc(data, tipo){
     <input id="nota" class="campo" placeholder="${t("lanc.nota")}">
     <div id="lanc-msg" class="msg erro"></div>
     <button id="bt-lancar" class="btn">${t("lanc.botao")}</button>`);
-  pintaTipo(); pintaData(); pintaCat(); pintaNat(); pintaMembro(); pintaValor();
-  $$("#dp-tipo button").forEach(b=>b.onclick=()=>{ tipoSel=b.dataset.t; vibra(); pintaTipo(); pintaCat(); pintaNat(); pintaMembro(); pintaValor(); });
+  pintaTipo(); pintaData(); pintaCat(); pintaNat(); pintaMembro(); pintaEspelho(); pintaValor();
+  $$("#dp-tipo button").forEach(b=>b.onclick=()=>{ tipoSel=b.dataset.t; vibra(); pintaTipo(); pintaCat(); pintaNat(); pintaMembro(); pintaEspelho(); pintaValor(); });
   $$("#dp-nat button").forEach(b=>b.onclick=()=>{ natSel=b.dataset.n; vibra(); pintaNat(); });
   $$(".tec button").forEach(b=>b.onclick=()=>tecla(b.dataset.k));
   $("bt-lancar").onclick = lancar;
@@ -1439,8 +1567,12 @@ function pintaCat(){
   $$("#rl-cat button").forEach(b=>b.onclick=()=>{
     catSel=b.dataset.c;
     if(espaco==="pessoal"&&tipoSel==="saida") natSel = FUTEIS.has(catSel) ? "futil" : "essencial";
-    vibra(); pintaCat(); pintaNat(); pintaValor();
+    vibra(); pintaCat(); pintaNat(); pintaEspelho(); pintaValor();
   });
+}
+function pintaEspelho(){
+  const el = $("lin-espelho"); if(!el) return;
+  el.hidden = !ehTransferivel(espaco, tipoSel, catSel);
 }
 function pintaNat(){
   const m = espaco==="pessoal" && tipoSel==="saida";
@@ -1568,6 +1700,17 @@ function toastDesfazer(txt, aoDesfazer){
 
 async function apagar(tabela, id, local){
   const linha = (db[MAPA_TABELA[tabela]]||[]).find(x=>x.id===id);
+
+  // lançamento espelhado: oferece apagar os dois lados
+  if(tabela==="lancamentos" && linha && linha.espelho_id){
+    const par = db.lancamentos.find(x=>x.id===linha.espelho_id);
+    if(par && confirm(t("esp.apagarPar"))){
+      const { error } = await sb.from("lancamentos").delete().in("id",[id, par.id]);
+      if(error) return falhou(error);
+      db.lancamentos = db.lancamentos.filter(x=>x.id!==id && x.id!==par.id);
+      limparMemo(); render(); return toast(t("msg.removido"));
+    }
+  }
   const { error } = await sb.from(tabela).delete().eq("id", id);
   if(error) return falhou(error);
   local(); limparMemo(); render();
@@ -1595,17 +1738,29 @@ async function lancar(){
   const v = valorDig();
   if(v<=0){ $("lanc-msg").textContent=t("lanc.digite"); return; }
   if(!catSel){ $("lanc-msg").textContent=t("lanc.categoria"); return; }
-  const { data, error } = await sb.from("lancamentos").insert({
+
+  const base = {
     user_id:user.id, espaco, tipo:tipoSel, data:dataAlvo, valor:v, categoria:catSel,
     nota:$("nota").value.trim(),
     natureza:(espaco==="pessoal"&&tipoSel==="saida")?natSel:null,
     membro_id:(espaco==="empresa"&&tipoSel==="saida")?membroSel:null
-  }).select().single();
-  if(error) return falhou(error);
-  db.lancamentos.unshift({...data, valor:Number(data.valor)});
+  };
+
+  const espelhar = ehTransferivel(espaco, tipoSel, catSel) && $("ck-espelho") && $("ck-espelho").checked;
+  let novos;
+  if(espelhar){
+    novos = await lancarComEspelho(base);
+    if(!novos) return;
+  }else{
+    const { data, error } = await sb.from("lancamentos").insert(base).select().single();
+    if(error) return falhou(error);
+    novos = [data];
+  }
+
+  db.lancamentos.unshift(...novos.map(x=>({...x, valor:Number(x.valor)})));
   db.lancamentos.sort((a,b)=>b.data.localeCompare(a.data));
   vibra(14); fecharSheet(); limparMemo(); render();
-  toast(`${tipoSel==="entrada"?"+":"−"} ${din(v)}`);
+  toast(espelhar ? t("msg.espelhado") : `${tipoSel==="entrada"?"+":"−"} ${din(v)}`);
 }
 async function pagarConta(c){
   const mes = mesDe(venc(c));
@@ -1867,6 +2022,10 @@ function ligarTela(){
     else if(a==="seed-rotina") instalarRotina();
     else if(a==="abrir-hoje") abrirDia(hoje());
     else if(a==="pular-inicio"){ pulouInicio = true; render(); }
+    else if(a==="nova-transf"){
+      if(espaco!=="empresa"){ espaco="empresa"; try{ localStorage.setItem("nexvot:espaco","empresa"); }catch(e){} }
+      abrirLanc(hoje());
+    }
     else if(a.startsWith("foco-")){
       const alvo = { "foco-orc":"orc-valor","foco-rec":"rec-desc","foco-meta":"meta-nome",
                      "foco-conta":"c-nome","foco-tarefa":"t-tit" }[a];
@@ -1989,6 +2148,16 @@ function ligarTela(){
     db.blocos.push(data); blocoAberto=data.id; render(); toast(t("msg.salvo"));
   });
   add("rt-seed", instalarRotina);
+  add("res-salvar", async ()=>{
+    const v = numBR($("res-valor").value);
+    const { error } = await sb.from("perfil").upsert({
+      user_id:user.id, reserva_giro: v > 0 ? v : null, atualizado:new Date().toISOString()
+    }, { onConflict:"user_id" });
+    if(error) return falhou(error);
+    if(!perfil) perfil = {};
+    perfil.reserva_giro = v > 0 ? v : null;
+    limparMemo(); render(); toast(t("msg.salvo"));
+  });
   add("m-add", async ()=>{
     const n=$("m-nome").value.trim(); if(!n) return;
     const { data, error } = await sb.from("membros").insert({ user_id:user.id, nome:n, eh_voce:false }).select().single();
