@@ -56,6 +56,7 @@ let espaco = "pessoal", tela = "painel", periodo = "mes";
 let calRef = null, selDia = null, rtDia = null, blocoAberto = null;
 let dataAlvo = null, tipoSel = "saida", catSel = null, natSel = "essencial", membroSel = null, dig = "";
 let importados = [];
+let pulouInicio = false;
 const avisados = new Set();
 
 const db = { lancamentos:[], contas:[], habitos:[], marcas:[], fechados:[], eventos:[],
@@ -182,51 +183,170 @@ async function boot(){
   telaAuth();
 }
 
-let modoAuth = "entrar";
-function telaAuth(){
-  $("auth").hidden = false;
-  $$("#auth-tabs button").forEach(b => b.onclick = ()=>{
-    modoAuth = b.dataset.m;
-    $$("#auth-tabs button").forEach(x => x.classList.toggle("on", x.dataset.m===modoAuth));
-    $("a-ok").textContent = t(modoAuth==="entrar" ? "auth.entrar" : "auth.criar");
-    $("a-senha").setAttribute("autocomplete", modoAuth==="entrar" ? "current-password" : "new-password");
-    $("a-msg").textContent = "";
-  });
-  $$("#auth-lang button").forEach(b => b.onclick = ()=>trocarIdioma(b.dataset.l));
-  $("a-ok").onclick = autenticar;
-  ["a-email","a-senha"].forEach(k => $(k).addEventListener("keydown", e=>{ if(e.key==="Enter") autenticar(); }));
+/* ============================================================
+   ACESSO — entrar e criar conta por e-mail
+   ============================================================ */
+const soDigito = v => String(v||"").replace(/\D/g,"");
+const emailValido = v => /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(String(v||"").trim());
+const usuarioValido = v => String(v||"").trim().replace(/\s+/g," ").length >= 2;
+
+const PAISES = () => window.PAISES || [];
+const acharPais = iso => PAISES().find(p => p.iso === iso) || PAISES()[0];
+
+/* Validação por comprimento do número nacional, dentro da faixa do país. */
+function telValido(iso, numero){
+  const p = acharPais(iso); if(!p) return false;
+  const d = soDigito(numero);
+  if(d.length < p.min || d.length > p.max) return false;
+  if(iso === "BR" && d.length === 11 && d[2] !== "9") return false;   // celular brasileiro
+  if(iso === "BR" && +d.slice(0,2) < 11) return false;                // DDD válido
+  return true;
+}
+const faixaPais = iso => { const p = acharPais(iso); return p.min === p.max ? String(p.min) : `${p.min}–${p.max}`; };
+
+function mascaraTel(iso, v){
+  const p = acharPais(iso), d = soDigito(v).slice(0, p.max);
+  if(iso === "BR"){
+    if(d.length <= 2)  return d.length ? "("+d : d;
+    if(d.length <= 6)  return `(${d.slice(0,2)}) ${d.slice(2)}`;
+    if(d.length <= 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+    return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+  }
+  // agrupamento por comprimento, para nunca sobrar um dígito solto no fim
+  const g = { 7:[3,4], 8:[4,4], 9:[3,3,3], 10:[3,3,4], 11:[3,4,4], 12:[4,4,4] }[d.length];
+  if(!g) return d.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
+  const partes = []; let i = 0;
+  for(const n of g){ if(i >= d.length) break; partes.push(d.slice(i, i+n)); i += n; }
+  return partes.join(" ");
 }
 
-async function autenticar(){
-  const msg = $("a-msg"), email = $("a-email").value.trim(), senha = $("a-senha").value;
-  if(!email || !senha){ msg.className="msg erro"; msg.textContent=t("auth.preencha"); return; }
-  if(modoAuth==="criar" && senha.length < 6){ msg.className="msg erro"; msg.textContent=t("auth.senhaCurta"); return; }
-  msg.className="msg"; msg.textContent = t(modoAuth==="entrar" ? "auth.entrando" : "auth.criando");
-  $("a-ok").disabled = true;
-  const r = modoAuth==="entrar"
-    ? await sb.auth.signInWithPassword({ email, password:senha })
-    : await sb.auth.signUp({ email, password:senha });
-  $("a-ok").disabled = false;
-  if(r.error){
-    msg.className="msg erro";
-    msg.textContent = r.error.message.includes("Invalid login") ? t("auth.invalido") : r.error.message;
-    return;
+function montarPaises(){
+  const sel = $("c-pais"); if(!sel) return;
+  const lista = [...PAISES()].sort((a,b)=>{
+    if(a.iso === "BR") return -1; if(b.iso === "BR") return 1;
+    return a.nome[idioma].localeCompare(b.nome[idioma], locale());
+  });
+  sel.innerHTML = lista.map(p =>
+    `<option value="${p.iso}">${p.b} +${p.ddi}</option>`).join("");
+  sel.title = lista.map(p=>p.nome[idioma]).join(", ");
+}
+
+const marcar = (grupo, ruim) => { const g = $(grupo); if(g) g.classList.toggle("ruim", !!ruim); };
+function mostrarBloco(qual){
+  $("bloco-entrar").hidden = qual !== "entrar";
+  $("bloco-criar").hidden  = qual !== "criar";
+  $("a-msg").textContent = "";
+  if(qual === "criar"){ montarPaises(); atualizarDicaTel(); }
+}
+function aviso(txt, ok){
+  const m = $("a-msg");
+  m.className = "msg " + (ok ? "ok" : "erro");
+  m.textContent = txt || "";
+}
+function atualizarDicaTel(){
+  const iso = $("c-pais").value || "BR";
+  $("c-tel").placeholder = iso === "BR" ? "(00) 00000-0000" : "0".repeat(acharPais(iso).min);
+  $("erro-tel").textContent = t("err.telPais", { n: faixaPais(iso) });
+}
+
+function telaAuth(){
+  $("auth").hidden = false;
+  mostrarBloco("entrar");
+  $$("#auth-lang button").forEach(b => b.onclick = ()=>trocarIdioma(b.dataset.l));
+  $("ir-criar").onclick  = ()=>mostrarBloco("criar");
+  $("ir-entrar").onclick = ()=>mostrarBloco("entrar");
+  $("bt-entrar").onclick = entrarPorEmail;
+  $("bt-criar").onclick  = criarConta;
+
+  $("c-pais").onchange = ()=>{ $("c-tel").value = ""; atualizarDicaTel(); marcar("g-tel", false); };
+  $("c-tel").addEventListener("input", ()=>{
+    const el = $("c-tel"), fim = el.selectionStart === el.value.length;
+    el.value = mascaraTel($("c-pais").value, el.value);
+    if(fim) el.selectionStart = el.selectionEnd = el.value.length;
+  });
+  $("c-termos").addEventListener("change", ()=>marcar("g-termos", false));
+
+  ["a-email","a-senha"].forEach(k => $(k).addEventListener("keydown", e=>{ if(e.key==="Enter") entrarPorEmail(); }));
+  $("c-senha2").addEventListener("keydown", e=>{ if(e.key==="Enter") criarConta(); });
+}
+
+async function entrarPorEmail(){
+  const email = $("a-email").value.trim(), senha = $("a-senha").value;
+  if(!email || !senha) return aviso(t("auth.preencha"));
+  aviso(t("auth.entrando"), true);
+  $("bt-entrar").disabled = true;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password:senha });
+  $("bt-entrar").disabled = false;
+  if(error) return aviso(error.message.includes("Invalid login") ? t("auth.invalido") : error.message);
+  user = data.user; $("auth").hidden = true; entrar();
+}
+
+/* Cria a conta, grava o lead e devolve para a tela de login. */
+async function criarConta(){
+  const nome  = $("c-nome-completo").value.trim().replace(/\s+/g," ");
+  const email = $("c-email").value.trim();
+  const iso   = $("c-pais").value || "BR";
+  const tel   = soDigito($("c-tel").value);
+  const s1    = $("c-senha").value, s2 = $("c-senha2").value;
+  const ok    = $("c-termos").checked;
+
+  const erros = [
+    [ "g-nome",   !usuarioValido(nome) ],
+    [ "g-email",  !emailValido(email) ],
+    [ "g-tel",    !telValido(iso, tel) ],
+    [ "g-senha",  s1.length < 6 ],
+    [ "g-senha2", s1 !== s2 || !s2 ],
+    [ "g-termos", !ok ]
+  ];
+  erros.forEach(([g,ruim]) => marcar(g, ruim));
+  if(erros.some(([,ruim]) => ruim)) return aviso(ok ? "" : t("err.termos"));
+
+  aviso(t("auth.criando"), true);
+  $("bt-criar").disabled = true;
+
+  const p = acharPais(iso);
+  const { data, error } = await sb.auth.signUp({
+    email, password: s1,
+    options: { data: { full_name: nome, phone: tel, tel_pais: iso, tel_ddi: p.ddi } }
+  });
+  if(error){ $("bt-criar").disabled = false; return aviso(error.message); }
+
+  // grava o cadastro enquanto a sessão do signUp ainda existe
+  if(data.session){
+    await sb.from("perfil").upsert({
+      user_id: data.user.id, nome_completo: nome, telefone: tel,
+      tel_pais: iso, tel_ddi: p.ddi, origem: "email", idioma,
+      aceite_termos: true, aceite_em: new Date().toISOString(), aceite_versao: "1.0",
+      cadastro_completo: true, atualizado: new Date().toISOString()
+    }, { onConflict: "user_id" });
+    await sb.auth.signOut();          // volta para o login, como você pediu
   }
-  if(!r.data.session){ msg.className="msg ok"; msg.textContent = t("auth.confirme"); return; }
-  user = r.data.user; msg.textContent = "";
-  $("auth").hidden = true;
-  entrar();
+
+  $("bt-criar").disabled = false;
+  ["c-nome-completo","c-email","c-tel","c-senha","c-senha2"].forEach(k => $(k).value = "");
+  $("c-termos").checked = false;
+  mostrarBloco("entrar");
+  $("a-email").value = email;
+  $("a-senha").focus();
+  aviso(data.session ? t("cad.contaCriada") : t("auth.confirme"), true);
 }
 
 async function entrar(){
   $("auth").hidden = true;
   $("app").hidden = false;
   $("fab").hidden = false;
-  const nome = (user.email||"").split("@")[0];
-  $("avatar").textContent = (nome[0]||"N").toUpperCase();
-  $("perfil-nome").textContent = cap(nome);
+  if(!perfil){
+    const { data:p } = await sb.from("perfil").select("*").eq("user_id", user.id).maybeSingle();
+    perfil = p || null;
+  }
+  const bruto = (perfil && perfil.nome_completo)
+    || (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name))
+    || (user.email||"").split("@")[0];
+  const curtoNome = String(bruto).trim().split(/\s+/)[0];
+  $("avatar").textContent = (String(bruto).trim()[0] || "N").toUpperCase();
+  $("perfil-nome").textContent = cap(curtoNome);
   $("perfil-email").textContent = user.email || "";
-  $("pop-nome").textContent = cap(nome);
+  $("pop-nome").textContent = String(bruto).trim();
   $("pop-email").textContent = user.email || "";
   selDia = hoje(); rtDia = hoje(); dataAlvo = hoje();
   calRef = { a:+selDia.slice(0,4), m:+selDia.slice(5,7) };
@@ -376,6 +496,114 @@ function fechamento(){
     saldoA:a.entrada-a.saida-a.invest, saldoB:b.entrada-b.saida-b.invest,
     alta:deltas[0], queda:deltas[deltas.length-1] };
 }
+/* ============================================================
+   PROJEÇÃO DE CAIXA
+   Saldo dia a dia daqui para frente, somando o que já se sabe:
+   contas fixas com vencimento, recorrências ativas e o ritmo
+   médio de gasto variável dos últimos 30 dias.
+   Sem IA — é aritmética, e por isso não erra número.
+   ============================================================ */
+function projecao(dias){
+  dias = dias || 60;
+  const h = hoje(), y = mesDe(h);
+  let saldo = soma(noMes(y,"entrada")) - soma(noMes(y,"saida")) - soma(noMes(y,"investimento"));
+
+  const desde = mais(h,-30);
+  const avulsas = lancs().filter(x => x.tipo==="saida" && x.data>=desde && x.data<=h && !x.recorrencia_id);
+  const ritmoDia = soma(avulsas) / 30;
+
+  const cs = contas(), rs = recs().filter(r => r.ativo);
+  const temBase = cs.length > 0 || rs.length > 0;
+
+  const linha = [];
+  let primeiroNegativo = null, menorSaldo = saldo, diaMenor = h, cobertos = dias;
+
+  for(let i = 1; i <= dias; i++){
+    const dt = mais(h, i);
+    const a = +dt.slice(0,4), m = +dt.slice(5,7);
+    const eventos = [];
+
+    cs.forEach(c=>{
+      if(dtMes(a,m,c.dia) !== dt) return;
+      if(c.ultimo_pago === mesDe(dt)) return;
+      if(c.valor > 0){ saldo -= c.valor; eventos.push({ nome:c.nome, v:-c.valor }); }
+    });
+
+    rs.forEach(r=>{
+      if(dtMes(a,m,r.dia) !== dt) return;
+      if(r.ultimo_gerado === mesDe(dt)) return;
+      const sinal = r.tipo === "entrada" ? 1 : -1;
+      saldo += sinal * r.valor;
+      eventos.push({ nome: r.descricao || rotCat(r.categoria), v: sinal * r.valor });
+    });
+
+    saldo -= ritmoDia;
+    if(saldo < menorSaldo){ menorSaldo = saldo; diaMenor = dt; }
+    if(saldo < 0 && !primeiroNegativo){ primeiroNegativo = dt; cobertos = i - 1; }
+    linha.push({ data: dt, saldo, eventos });
+  }
+
+  let aPagarAte = 0;
+  if(primeiroNegativo) linha.forEach(p=>{
+    if(p.data > primeiroNegativo) return;
+    p.eventos.forEach(e => { if(e.v < 0) aPagarAte += -e.v; });
+  });
+
+  return { linha, temBase, ritmoDia, primeiroNegativo, cobertos, aPagarAte,
+           menorSaldo, diaMenor, saldoFim: linha.length ? linha[linha.length-1].saldo : saldo };
+}
+
+/* ============================================================
+   LEITURA DO MÊS — transforma variação em frases.
+   Regra, não modelo: o texto sai dos números reais, então
+   nunca inventa valor.
+   ============================================================ */
+function leituraMes(){
+  const f = fechamento();
+  if(!f.temAnterior) return null;
+  const frases = [];
+  const pct = (a,b) => b === 0 ? null : Math.round(Math.abs(a/b - 1) * 100);
+
+  const pe = pct(f.a.entrada, f.b.entrada);
+  if(pe !== null && pe >= 5)
+    frases.push(t(f.a.entrada < f.b.entrada ? "lei.entradaCaiu" : "lei.entradaSubiu",
+      { p:pe, a:din0(f.b.entrada), b:din0(f.a.entrada) }));
+
+  const ps = pct(f.a.saida, f.b.saida);
+  if(ps !== null && ps >= 5)
+    frases.push(t(f.a.saida > f.b.saida ? "lei.saidaSubiu" : "lei.saidaCaiu",
+      { p:ps, a:din0(f.b.saida), b:din0(f.a.saida) }));
+
+  if(f.alta && f.alta.d > 0)
+    frases.push(t("lei.culpado", { cat: rotCat(f.alta.cat), v: din0(f.alta.d) }));
+  else if(f.queda && f.queda.d < 0)
+    frases.push(t("lei.alivio", { cat: rotCat(f.queda.cat), v: din0(-f.queda.d) }));
+
+  const dEnt = f.a.entrada - f.b.entrada, dSai = f.a.saida - f.b.saida;
+  if(f.saldoA < f.saldoB && (dEnt !== 0 || dSai !== 0))
+    frases.push(t(Math.abs(dEnt) > Math.abs(dSai) ? "lei.causaEntrada" : "lei.causaSaida"));
+
+  if(espaco === "pessoal"){
+    const futMes = ym => { const sd = noMes(ym,"saida"), tot = soma(sd);
+      return tot > 0 ? Math.round(soma(sd.filter(x=>x.natureza==="futil"))/tot*100) : null; };
+    const fa = futMes(mesDe(hoje())), fb = futMes(mesAnt(mesDe(hoje())));
+    if(fa !== null && fb !== null && Math.abs(fa - fb) >= 4)
+      frases.push(t(fa > fb ? "lei.futilSubiu" : "lei.futilCaiu", { a:fb, b:fa }));
+  }else{
+    const mg = (e,s2,i2) => e > 0 ? Math.round((e-s2-i2)/e*100) : null;
+    const ma = mg(f.a.entrada, f.a.saida, f.a.invest), mb = mg(f.b.entrada, f.b.saida, f.b.invest);
+    if(ma !== null && mb !== null && Math.abs(ma - mb) >= 3)
+      frases.push(t(ma < mb ? "lei.margemCaiu" : "lei.margemSubiu", { a:mb, b:ma }));
+  }
+
+  const dRes = f.saldoA - f.saldoB;
+  if(Math.abs(dRes) < Math.max(50, Math.abs(f.saldoB) * 0.03)) frases.push(t("lei.estavel"));
+  else frases.push(t(dRes < 0 ? "lei.resultadoPior" : "lei.resultadoMelhor", { v: din0(Math.abs(dRes)) }));
+
+  return frases;
+}
+
+
 function disciplina(){
   const fech = new Set(db.fechados), dias = {};
   lancs().filter(x=>x.tipo==="saida").forEach(x=>{
@@ -502,6 +730,37 @@ const kpi = (rot,val,pe,ico,classe,corV) => `
     <div class="kpi-f">${ICO.seta}<span>${esc(pe)}</span></div></div>`;
 const secH = (tit,sub,dir) => `
   <div class="sec-h"><div><h2>${esc(tit)}</h2><p>${esc(sub)}</p></div>${dir?`<div class="dir">${dir}</div>`:""}</div>`;
+/* Cartão de alerta: a coisa mais vendável do app. Diz a data, o valor
+   previsto e quanto ainda há para pagar até lá. */
+function cartaoProjecao(p){
+  if(!p.temBase) return `
+    <div class="card" style="--d:20ms;margin-bottom:18px"><div class="status">
+      <div class="txt"><div class="tt">${esc(t("proj.titulo"))}</div>
+        <div class="ss">${esc(t("proj.semBase"))}</div></div>
+      <button class="btn-pri" data-acao="foco-conta">${esc(t("proj.semBaseCta"))}</button></div></div>`;
+
+  const dia = d => ext(d, { day:"2-digit", month:"long" });
+  let tt, ss, classe = "", ico = "ic-ver";
+  if(p.primeiroNegativo){
+    classe = "alerta-vrm"; ico = "ic-vrm";
+    tt = t("proj.falta", { d: dia(p.primeiroNegativo) });
+    ss = t("proj.faltaSub", { v: din(p.menorSaldo), c: din0(p.aPagarAte) });
+  }else if(p.menorSaldo < p.ritmoDia * 7){
+    classe = "alerta-amb"; ico = "ic-amb";
+    tt = t("proj.apertado", { d: dia(p.diaMenor) });
+    ss = t("proj.apertadoSub", { v: din(p.menorSaldo) });
+  }else{
+    tt = t("proj.ok", { n: p.linha.length });
+    ss = t("proj.okSub", { d: dia(p.linha[p.linha.length-1].data) });
+  }
+  return `
+  <div class="card ${classe}" style="--d:20ms;margin-bottom:18px"><div class="status">
+    <div class="kpi-ic ${ico}" style="position:static;flex:none">
+      <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L2.4 17.5A2 2 0 004.1 20.5h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div>
+    <div class="txt"><div class="tt">${esc(tt)}</div><div class="ss">${esc(ss)}</div></div>
+    <button class="btn-sec" data-acao="fluxo">${esc(t("nav.projecao"))}</button></div></div>`;
+}
+
 const zero = (tt,ss,acao) => `
   <button class="zero" data-acao="${acao}"><span class="mais">+</span>
     <span class="tt">${esc(tt)}</span><span class="ss">${esc(ss)}</span></button>`;
@@ -530,8 +789,38 @@ function rotuloPeriodo(){
   return `${curto(i)} – ${curto(f)}`;
 }
 
+/* Primeira execução: sem lançamento e sem conta, o painel inteiro seria
+   oito caixas tracejadas. Melhor uma tela com três passos. */
+function primeiraVez(){
+  const passos = [
+    ["p1", "foco-conta", contas().length > 0],
+    ["p2", "relatorios", lancs().length > 0],
+    ["p3", "entrada",    noMes(mesDe(hoje()),"entrada").length > 0]
+  ];
+  return `
+  <div class="card pad" style="max-width:720px;margin-inline:auto">
+    <div style="text-align:center;padding:14px 0 26px">
+      <div class="ph-ic" style="margin:0 auto 18px">${ICONES.painel}</div>
+      <h2 style="font-size:26px;letter-spacing:-.03em">${esc(t("ini.titulo"))}</h2>
+      <p class="t2" style="margin-top:8px;font-size:15px;max-width:440px;margin-inline:auto">${esc(t("ini.sub"))}</p>
+    </div>
+    ${passos.map(([k, acao, feito], i)=>`
+      <button class="li" data-acao="${acao}" style="width:100%;text-align:left;border:1px solid var(--linha);
+        border-radius:var(--r2);margin-bottom:11px;padding:18px 20px;${feito?"opacity:.55":""}">
+        <span class="kpi-ic ${feito?"ic-ver":"ic-lar"}" style="position:static;flex:none;width:38px;height:38px">
+          ${feito ? ICO.ok : `<b style="font-size:16px">${i+1}</b>`}</span>
+        <span class="n" style="white-space:normal">
+          <b style="font-size:16px;display:block;margin-bottom:3px">${esc(t("ini."+k))}</b>
+          <span class="t3" style="font-size:13.5px;line-height:1.5">${esc(t("ini."+k+"s"))}</span></span>
+        ${feito ? `<span class="tag ver">${esc(t("ini.feito"))}</span>` : ""}
+      </button>`).join("")}
+    <button class="mini" data-acao="pular-inicio" style="width:100%;margin-top:8px">${esc(t("ini.pular"))}</button>
+  </div>`;
+}
+
 /* ---------- PAINEL ---------- */
 function vPainel(){
+  if(!pulouInicio && !lancs().length && !contas().length && !recs().length) return primeiraVez();
   const h=hoje(), y=mesDe(h), d=+h.slice(8,10);
   const iM=soma(noMes(y,"entrada")), oM=soma(noMes(y,"saida")), vM=soma(noMes(y,"investimento"));
   const disp=iM-oM-vM, fol=folego();
@@ -542,8 +831,10 @@ function vPainel(){
   for(let k=1;k<=d;k++){ const dd=dtMes(+y.slice(0,4),+y.slice(5,7),k); acc+=entra(dd)-saiu(dd)-investe(dd); serie.push(acc); rot.push(String(k)); }
   const dias=[]; for(let i=13;i>=0;i--) dias.push(mais(h,-i));
 
+  const proj = projecao(60);
   return `
   ${statusHTML(iM,oM,vM,disp,pFut)}
+  ${cartaoProjecao(proj)}
   <div class="grade g3">
     ${kpi(t("kpi.disponivel"), din(disp), t("kpi.disponivel.pe"),
       '<svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="3"/><path d="M2 11h20M6 15h4"/></svg>',
@@ -552,9 +843,13 @@ function vPainel(){
       fol.dias==null?t("kpi.semLimite"):t("kpi.folego.pe"),
       '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
       fol.dias!=null&&fol.dias<7?"ic-vrm":"ic-azu")}
-    ${kpi(t("kpi.futil"), pFut+"%", t("kpi.futil.pe"),
-      '<svg viewBox="0 0 24 24"><path d="M3 6h18l-2 13H5z"/><path d="M9 10v5M15 10v5"/></svg>',
-      pFut>=30?"ic-amb":"ic-vio")}
+    ${proj.temBase
+      ? kpi(t("kpi.diasCobertos"), `${proj.cobertos} <small>${t("kpi.dias")}</small>`, t("kpi.diasCobertos.pe"),
+          '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+          proj.primeiroNegativo ? "ic-vrm" : "ic-ver")
+      : kpi(t("kpi.futil"), pFut+"%", t("kpi.futil.pe"),
+          '<svg viewBox="0 0 24 24"><path d="M3 6h18l-2 13H5z"/><path d="M9 10v5M15 10v5"/></svg>',
+          pFut>=30?"ic-amb":"ic-vio")}
   </div>
   <div class="grade g3">
     ${kpi(t("kpi.entradas"), din(iM), noMes(y,"entrada").length+" ×",
@@ -610,7 +905,23 @@ function vFluxo(){
   const acE=[],acS=[],acI=[]; let a=0,b=0,c=0;
   dias.forEach(d=>{ a+=entra(d); b+=saiu(d); c+=investe(d); acE.push(a); acS.push(b); acI.push(c); });
   const pares = rank(y);
+  const p = projecao(60);
+  const projHTML = !p.temBase ? "" : `
+  <div class="card pad" style="margin-bottom:18px">
+    ${secH(t("proj.titulo"), t("proj.sub"),
+      `<div class="legenda"><span><i class="pt" style="background:${p.primeiroNegativo?cor("--vermelho"):cor("--verde")}"></i>${t("proj.previsto")}</span></div>`)}
+    ${grafArea([{ dados: p.linha.map(x=>x.saldo), cor: p.primeiroNegativo?cor("--vermelho"):cor("--verde") }],
+               p.linha.map(x=>curto(x.data)), 250)}
+    <div class="faixa" style="grid-template-columns:repeat(3,1fr);margin-top:20px">
+      <div><div class="r">${t("kpi.diasCobertos")}</div><div class="v">${p.cobertos}</div></div>
+      <div><div class="r">${t("kpi.projFim",{n:60})}</div>
+        <div class="v" style="color:${p.saldoFim<0?cor("--vermelho"):cor("--verde")}">${din0(p.saldoFim)}</div></div>
+      <div><div class="r">${t("proj.contas")}</div><div class="v inv">${din0(p.aPagarAte||0)}</div></div>
+    </div>
+  </div>`;
+
   return `
+  ${projHTML}
   <div class="card pad">
     ${secH(t("sec.evolucao"), t("sec.evolucao.sub"),
       `<div class="legenda">
@@ -877,7 +1188,17 @@ function vRelatorios(){
         <div><div class="r">${t("disc.mediaFutil")}</div><div class="v inv">${din0(dsc.mc.futil)}</div></div></div>
       <div style="margin-top:20px;font-size:16px;line-height:1.6">
         ${esc(t("disc.conclusao",{p:dsc.p, dir:t(dsc.dir==="menor"?"disc.menor":"disc.maior")}))}</div></div>`;
+  const frases = leituraMes();
   return `
+  <div class="card" style="margin-bottom:18px">
+    <div class="pad">${secH(t("lei.titulo"), t("lei.sub"))}</div>
+    <div class="pad" style="padding-top:0">
+      ${frases
+        ? frases.map(x=>`<p style="font-size:16.5px;line-height:1.65;margin:0 0 12px;color:var(--txt)">${esc(x)}</p>`).join("")
+        : `<p class="t3" style="font-size:14.5px;margin:0">${esc(t("lei.semBase"))}</p>`}
+    </div>
+  </div>
+
   <div class="card">
     <div class="pad">${secH(t("sec.fechamento"), t("sec.fechamento.sub"))}</div>
     ${fechHTML}</div>
@@ -913,6 +1234,12 @@ function vAjustes(){
     </div>
     <div class="card pad" style="--d:60ms">
       ${secH(t("sec.conta"), user.email||"")}
+      ${perfil && perfil.cadastro_completo ? `
+      <div class="faixa" style="grid-template-columns:1fr;margin-bottom:16px">
+        <div><div class="r">${t("cad.usuario")}</div><div class="v" style="font-size:15px">${esc(perfil.nome_completo||"—")}</div></div>
+        <div><div class="r">${t("cad.tel")}</div><div class="v" style="font-size:15px">${
+          perfil.telefone ? esc("+"+(perfil.tel_ddi||"")+" "+mascaraTel(perfil.tel_pais||"BR", perfil.telefone)) : "—"}</div></div>
+      </div>` : ""}
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="mini" id="bt-backup">${t("conta.backup")}</button>
         <button class="mini" id="bt-sair2">${t("conta.sair")}</button></div>
@@ -1539,6 +1866,7 @@ function ligarTela(){
     else if(a==="entrada") abrirLanc(hoje(),"entrada");
     else if(a==="seed-rotina") instalarRotina();
     else if(a==="abrir-hoje") abrirDia(hoje());
+    else if(a==="pular-inicio"){ pulouInicio = true; render(); }
     else if(a.startsWith("foco-")){
       const alvo = { "foco-orc":"orc-valor","foco-rec":"rec-desc","foco-meta":"meta-nome",
                      "foco-conta":"c-nome","foco-tarefa":"t-tit" }[a];
