@@ -361,6 +361,7 @@ async function entrar(){
   });
 
   ligar();
+  ligarDelegacao();
   await carregar();
   await materializarRecorrencias();
   irPara("painel");
@@ -1019,7 +1020,7 @@ function vOrcamento(){
         return `<div class="linha-b"><span class="n">${esc(rotCat(o.categoria))}</span>
           <span><span class="barra"><i class="${cl}" style="width:${Math.min(100,o.pct).toFixed(1)}%"></i></span></span>
           <span class="v">${din0(o.gasto)} / ${din0(o.valor_mes)} ${tag}
-            <button class="x" data-del-orc="${o.id}">${ICO.x}</button></span></div>`;
+            <button class="x" aria-label="${esc(t('form.apagar'))}" data-del-orc="${o.id}">${ICO.x}</button></span></div>`;
       }).join("")}</div>`;
   return `
   <div class="card">
@@ -1055,7 +1056,7 @@ function vRecorrencias(){
             <span class="dir-fim">
               <span class="tag ${x.ativo?"ver":""}">${x.ativo?t("rec.ativa"):t("rec.pausada")}</span>
               <button class="mini" data-toggle-rec="${x.id}">${x.ativo?t("rec.pausar"):t("rec.retomar")}</button>
-              <button class="x" data-del-rec="${x.id}">${ICO.x}</button></span></div>`;
+              <button class="x" aria-label="${esc(t('form.apagar'))}" data-del-rec="${x.id}">${ICO.x}</button></span></div>`;
         }).join("")}</div>`;
   return `
   <div class="card">
@@ -1092,7 +1093,7 @@ function vMetas(){
             <b style="font-size:16px;flex:1;min-width:120px">${esc(x.nome)}</b>
             <span class="num t2">${din0(p.feito)} / ${din0(x.alvo)}</span>
             <span class="tag ${p.pct>=100?"ver":"lar"}">${Math.round(p.pct)}%</span>
-            <button class="x" data-del-meta="${x.id}">${ICO.x}</button></div>
+            <button class="x" aria-label="${esc(t('form.apagar'))}" data-del-meta="${x.id}">${ICO.x}</button></div>
           <span class="barra"><i class="${cl}" style="width:${Math.min(100,p.pct).toFixed(1)}%"></i></span>
           <div class="t3" style="font-size:13.5px;margin-top:9px">${esc(pe)}${x.categoria?" · "+esc(rotCat(x.categoria)):""}</div>
         </div>`; }).join("")}</div>`;
@@ -1164,7 +1165,7 @@ function vConsolidado(){
           <span class="tag">${curto(x.data)}</span>
           <span class="tag lar">${esc(t("esp.espelhado"))}</span>
           <span class="v" style="color:${cor("--laranja")}">${num(x.valor)}</span>
-          <button class="x" data-del-lanc="${x.id}">${ICO.x}</button></div>`).join("")
+          <button class="x" aria-label="${esc(t('form.apagar'))}" data-del-lanc="${x.id}">${ICO.x}</button></div>`).join("")
       : zero(t("con.vazio"), t("con.vazioSub"), "nova-transf")}
   </div>`;
 }
@@ -1217,7 +1218,7 @@ function vRotina(){
         <button class="cx ${x.feita?"on":""}" data-tarefa="${x.id}">${ICO.ok}</button>
         <span class="n" ${x.feita?'style="color:var(--txt3);text-decoration:line-through"':""}>${esc(x.titulo)}</span>
         <span class="tag">${hm(x.hora)||"—"}</span>
-        <button class="x" data-del-tarefa="${x.id}">${ICO.x}</button></div>`).join("")
+        <button class="x" aria-label="${esc(t('form.apagar'))}" data-del-tarefa="${x.id}">${ICO.x}</button></div>`).join("")
       : zero(t("vazio.tarefas"), t("vazio.tarefas.sub"), "foco-tarefa")}
     <div class="form">
       <input id="t-tit" class="fn" placeholder="${t("form.lembrete")}">
@@ -1275,7 +1276,7 @@ function vAgenda(){
           <span class="tag ${dd<=1?"lar":""}">${dd===0?t("dia.hoje"):dd===1?t("dia.amanha"):curto(e.data)}</span>
           <span class="n">${esc(e.titulo)}${e.lembrete_min?`<small>${e.lembrete_min} min</small>`:""}</span>
           <span class="v t2">${hm(e.hora)}</span>
-          <button class="x" data-del-evt="${e.id}">${ICO.x}</button></div>`;
+          <button class="x" aria-label="${esc(t('form.apagar'))}" data-del-evt="${e.id}">${ICO.x}</button></div>`;
       }).join("") : zero(t("vazio.compromissos"), t("vazio.compromissos.sub"), "abrir-hoje")}
     </div>
   </div>`;
@@ -1375,7 +1376,7 @@ function vAjustes(){
     <div class="pad" style="padding-top:8px">
       ${db.membros.map(m=>`<div class="li" style="padding-left:0;padding-right:0">
         <span class="n">${esc(m.nome)}</span>
-        ${!m.eh_voce?`<button class="x" data-del-membro="${m.id}">${ICO.x}</button>`:""}</div>`).join("")}
+        ${!m.eh_voce?`<button class="x" aria-label="${esc(t('form.apagar'))}" data-del-membro="${m.id}">${ICO.x}</button>`:""}</div>`).join("")}
     </div>
     <div class="form">
       <input id="m-nome" class="fn" placeholder="${t("form.socio")}">
@@ -1405,7 +1406,7 @@ function tabelaContas(){
         <button class="cx ${pago?"on":""}" data-pagar="${c.id}">${ICO.ok}</button>
         <span class="n">${esc(c.nome)}<small>${t("rec.todoDia",{d:c.dia})}</small></span>
         <span class="v">${c.valor?num(c.valor):"—"}</span>
-        <span class="dir-fim">${tag}<button class="x" data-del-conta="${c.id}">${ICO.x}</button></span></div>`;
+        <span class="dir-fim">${tag}<button class="x" aria-label="${esc(t('form.apagar'))}" data-del-conta="${c.id}">${ICO.x}</button></span></div>`;
     }).join("")}</div>` + formulario;
 }
 function listaLancamentos(n){
@@ -1420,13 +1421,14 @@ function listaLancamentos(n){
       ${l.natureza==="futil"?`<span class="tag amb">${t("leg.futil")}</span>`:""}
       <span class="tag">${l.data===h?t("dia.hoje"):curto(l.data)}</span>
       <span class="v" style="color:${c}">${sinal} ${num(l.valor)}</span>
-      <button class="x" data-del-lanc="${l.id}">${ICO.x}</button></div>`;
+      <button class="x" aria-label="${esc(t('form.apagar'))}" data-del-lanc="${l.id}">${ICO.x}</button></div>`;
   }).join("");
 }
 
 /* ================= NAVEGAÇÃO ================= */
 function irPara(v){
   tela = v;
+  fecharSheet();
   TELAS.forEach(n => $("v-"+n).hidden = n!==v);
   fecharGaveta();
   window.scrollTo({top:0, behavior:"instant"});
@@ -1602,7 +1604,7 @@ function abrirDia(d){
       return `<div class="li" style="padding:12px 0"><i class="pt" style="background:${c}"></i>
         <span class="n">${esc(rotCat(l.categoria))}${l.nota?`<small>${esc(l.nota)}</small>`:""}</span>
         <span class="v" style="color:${c}">${num(l.valor)}</span>
-        <button class="x" data-dl="${l.id}">${ICO.x}</button></div>`;
+        <button class="x" aria-label="${esc(t('form.apagar'))}" data-del-lanc="${l.id}">${ICO.x}</button></div>`;
     }).join(""):`<div class="t3" style="font-size:14px;padding:8px 0">—</div>`}
     <div class="sub-sec">${t("sec.contas")}</div>
     ${cs.length?cs.map(c=>`<div class="li" style="padding:12px 0"><i class="pt" style="background:${cor("--ambar")}"></i>
@@ -1610,7 +1612,7 @@ function abrirDia(d){
       :`<div class="t3" style="font-size:14px;padding:8px 0">—</div>`}
     <div class="sub-sec">${t("sec.compromissos")}</div>
     ${es.length?es.map(e=>`<div class="li" style="padding:12px 0"><span class="tag">${hm(e.hora)||"—"}</span>
-      <span class="n">${esc(e.titulo)}</span><button class="x" data-de="${e.id}">${ICO.x}</button></div>`).join("")
+      <span class="n">${esc(e.titulo)}</span><button class="x" aria-label="${esc(t('form.apagar'))}" data-del-evt="${e.id}">${ICO.x}</button></div>`).join("")
       :`<div class="t3" style="font-size:14px;padding:8px 0">—</div>`}
     <div class="form" style="border:none;background:none;padding:16px 0 0">
       <input id="e-tit" class="fn" placeholder="${t("form.compromisso")}">
@@ -1622,14 +1624,12 @@ function abrirDia(d){
     <button class="btn" style="margin-top:16px" id="dia-lanc">${t("lanc.botao")}</button>`);
   $("e-add").onclick = addEvento;
   $("dia-lanc").onclick = ()=>{ const x=selDia; fecharSheet(); setTimeout(()=>abrirLanc(x),240); };
-  $$("#sheets [data-dl]").forEach(b=>b.onclick=()=>apagar("lancamentos", b.dataset.dl, ()=>{
-    db.lancamentos=db.lancamentos.filter(z=>z.id!==b.dataset.dl); fecharSheet(); }));
-  $$("#sheets [data-de]").forEach(b=>b.onclick=()=>apagar("eventos", b.dataset.de, ()=>{
-    db.eventos=db.eventos.filter(z=>z.id!==b.dataset.de); fecharSheet(); }));
 }
 
 /* --- edição de bloco --- */
+let blocoEditando = null;
 function abrirBloco(bl){
+  blocoEditando = bl;
   const itens = db.habitos.filter(x=>x.bloco_id===bl.id).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
   const semanas = [["",t("form.todoDia")],["1",t("form.soSeg")],["2",t("form.soTer")],["3",t("form.soQua")],
                    ["4",t("form.soQui")],["5",t("form.soSex")],["6",t("form.soSab")],["0",t("form.soDom")]];
@@ -1639,7 +1639,7 @@ function abrirBloco(bl){
     ${itens.length?itens.map(it=>`<div class="li" style="padding:12px 0">
       <span class="n">${esc(it.nome)}</span>
       ${it.dia_semana!=null?`<span class="tag">${DIAS()[it.dia_semana]}</span>`:""}
-      <button class="x" data-di="${it.id}">${ICO.x}</button></div>`).join("")
+      <button class="x" aria-label="${esc(t('form.apagar'))}" data-di="${it.id}">${ICO.x}</button></div>`).join("")
       :`<div class="t3" style="font-size:14px;padding:8px 0">—</div>`}
     <div class="form" style="border:none;background:none;padding:16px 0 0">
       <input id="bl-novo" class="fn" placeholder="${t("form.item")}">
@@ -1674,13 +1674,6 @@ function abrirBloco(bl){
     db.habitos=db.habitos.filter(z=>z.bloco_id!==bl.id);
     blocoAberto=null; fecharSheet(); render(); toast(t("msg.removido"));
   };
-  $$("#sheets [data-di]").forEach(b=>b.onclick=async ()=>{
-    const id=b.dataset.di;
-    const { error } = await sb.from("habitos").delete().eq("id", id);
-    if(error) return falhou(error);
-    db.habitos=db.habitos.filter(z=>z.id!==id); db.marcas=db.marcas.filter(z=>z.habito_id!==id);
-    abrirBloco(bl); render();
-  });
 }
 
 /* ================= MUTAÇÕES ================= */
@@ -1746,14 +1739,18 @@ async function lancar(){
     membro_id:(espaco==="empresa"&&tipoSel==="saida")?membroSel:null
   };
 
+  const bt = $("bt-lancar");
+  if(bt.disabled) return;              // trava contra duplo clique
+  bt.disabled = true;
+
   const espelhar = ehTransferivel(espaco, tipoSel, catSel) && $("ck-espelho") && $("ck-espelho").checked;
   let novos;
   if(espelhar){
     novos = await lancarComEspelho(base);
-    if(!novos) return;
+    if(!novos){ bt.disabled = false; return; }
   }else{
     const { data, error } = await sb.from("lancamentos").insert(base).select().single();
-    if(error) return falhou(error);
+    if(error){ bt.disabled = false; return falhou(error); }
     novos = [data];
   }
 
@@ -2010,84 +2007,128 @@ function ligar(){
 }
 
 /* ================= EVENTOS DA TELA ================= */
+/* ============================================================
+   EVENTOS DELEGADOS
+   Um ouvinte no documento em vez de religar tudo a cada render.
+   Vale para qualquer elemento — dentro da tela, do popover ou
+   do sheet — e sobrevive a qualquer redesenho.
+   ============================================================ */
+function ligarDelegacao(){
+  document.addEventListener("click", async e=>{
+    const alvo = sel => e.target.closest(sel);
+
+    // ---- ações nomeadas ----
+    const ac = alvo("[data-acao]");
+    if(ac){
+      const a = ac.dataset.acao;
+      const focos = { "foco-orc":"orc-valor", "foco-rec":"rec-desc", "foco-meta":"meta-nome",
+                      "foco-conta":"c-nome", "foco-tarefa":"t-tit" };
+      if(a==="novo") abrirLanc(hoje());
+      else if(a==="entrada") abrirLanc(hoje(),"entrada");
+      else if(a==="seed-rotina") instalarRotina();
+      else if(a==="abrir-hoje") abrirDia(hoje());
+      else if(a==="pular-inicio"){ pulouInicio = true; render(); }
+      else if(a==="nova-transf"){
+        if(espaco!=="empresa"){ espaco="empresa"; try{ localStorage.setItem("nexvot:espaco","empresa"); }catch(x){} }
+        abrirLanc(hoje());
+      }
+      else if(focos[a]){
+        const el = $(focos[a]);
+        if(el){ el.scrollIntoView({behavior:"smooth", block:"center"}); setTimeout(()=>el.focus(), 260); }
+      }
+      else if(TELAS.includes(a)){
+        if(a === tela){                    // já estou nesta tela: rolo até a seção
+          const mapa = { painel:"l-contas", orcamento:"orc-valor", fluxo:"g-fluxo" };
+          const el = $(mapa[a]);
+          if(el) el.scrollIntoView({behavior:"smooth", block:"center"});
+        } else irPara(a);
+      }
+      return;
+    }
+
+    // ---- exclusões ----
+    const tabelas = { "del-lanc":["lancamentos","lancamentos"], "del-conta":["contas","contas"],
+      "del-orc":["orcamentos","orcamentos"], "del-rec":["recorrencias","recorrencias"],
+      "del-meta":["metas","metas"], "del-evt":["eventos","eventos"],
+      "del-tarefa":["tarefas","tarefas"], "del-membro":["membros","membros"] };
+    for(const [attr,[tab,chave]] of Object.entries(tabelas)){
+      const b = alvo(`[data-${attr}]`);
+      if(!b) continue;
+      const id = b.dataset[attr.replace(/-(\w)/g, (m,c)=>c.toUpperCase())];
+      const noSheet = !!b.closest("#sheets");
+      return apagar(tab, id, ()=>{
+        db[chave] = db[chave].filter(z=>z.id!==id);
+        if(noSheet) fecharSheet();
+      });
+    }
+
+    // ---- item de item dentro do sheet de bloco ----
+    const di = alvo("[data-di]");
+    if(di){
+      const id = di.dataset.di;
+      const { error } = await sb.from("habitos").delete().eq("id", id);
+      if(error) return falhou(error);
+      db.habitos = db.habitos.filter(z=>z.id!==id);
+      db.marcas  = db.marcas.filter(z=>z.habito_id!==id);
+      if(blocoEditando) abrirBloco(blocoEditando);
+      limparMemo(); render(); return;
+    }
+
+    // ---- interações da tela ----
+    const pg = alvo("[data-pagar]");
+    if(pg){ const c = db.contas.find(x=>x.id===pg.dataset.pagar);
+      if(c && c.ultimo_pago !== mesDe(hoje())) pagarConta(c); return; }
+
+    const dia = alvo("[data-dia]");
+    if(dia){ vibra(); return abrirDia(dia.dataset.dia); }
+
+    const cal = alvo("[data-cal]");
+    if(cal){ calRef.m += (+cal.dataset.cal);
+      if(calRef.m<1){ calRef.m=12; calRef.a--; }
+      if(calRef.m>12){ calRef.m=1; calRef.a++; }
+      return render(); }
+
+    const rt = alvo("[data-rt]");
+    if(rt){ const n = +rt.dataset.rt;
+      rtDia = n===0 ? hoje() : mais(rtDia, n);
+      blocoAberto = null; vibra(); return render(); }
+
+    const bl = alvo("[data-bloco]");
+    if(bl){ blocoAberto = blocoAberto===bl.dataset.bloco ? null : bl.dataset.bloco;
+      vibra(); return render(); }
+
+    const eb = alvo("[data-edit-bloco]");
+    if(eb){ const b2 = db.blocos.find(x=>x.id===eb.dataset.editBloco); if(b2) abrirBloco(b2); return; }
+
+    const it = alvo("[data-item]");
+    if(it) return marcarItem(it.dataset.item, marcado(it.dataset.item, rtDia), rtDia);
+
+    const tf = alvo("[data-tarefa]");
+    if(tf){ const x = db.tarefas.find(z=>z.id===tf.dataset.tarefa); if(!x) return;
+      const { error } = await sb.from("tarefas").update({ feita: !x.feita }).eq("id", x.id);
+      if(error) return falhou(error);
+      x.feita = !x.feita; limparMemo(); vibra(); return render(); }
+
+    const lg = alvo("[data-lang]");
+    if(lg){ fecharPop(); return trocarIdioma(lg.dataset.lang); }
+
+    const tm = alvo("[data-tema]");
+    if(tm){ fecharPop(); return aplicarTema(tm.dataset.tema); }
+
+    const ir = alvo("[data-ir]");
+    if(ir){ fecharPop(); return irPara(ir.dataset.ir); }
+
+    const tr = alvo("[data-toggle-rec]");
+    if(tr){ const r = db.recorrencias.find(x=>x.id===tr.dataset.toggleRec); if(!r) return;
+      const { error } = await sb.from("recorrencias").update({ ativo: !r.ativo }).eq("id", r.id);
+      if(error) return falhou(error);
+      r.ativo = !r.ativo; limparMemo(); return render(); }
+  });
+}
+
+/* Formulários: religados a cada render porque dependem do HTML novo. */
 function ligarTela(){
-  const raiz = $("v-"+tela);
-  const on = (sel, fn) => raiz.querySelectorAll(sel).forEach(fn);
   const add = (id, fn) => { const el = $(id); if(el) el.onclick = fn; };
-
-  on("[data-acao]", b => b.onclick = ()=>{
-    const a = b.dataset.acao;
-    if(a==="novo") abrirLanc(hoje());
-    else if(a==="entrada") abrirLanc(hoje(),"entrada");
-    else if(a==="seed-rotina") instalarRotina();
-    else if(a==="abrir-hoje") abrirDia(hoje());
-    else if(a==="pular-inicio"){ pulouInicio = true; render(); }
-    else if(a==="nova-transf"){
-      if(espaco!=="empresa"){ espaco="empresa"; try{ localStorage.setItem("nexvot:espaco","empresa"); }catch(e){} }
-      abrirLanc(hoje());
-    }
-    else if(a.startsWith("foco-")){
-      const alvo = { "foco-orc":"orc-valor","foco-rec":"rec-desc","foco-meta":"meta-nome",
-                     "foco-conta":"c-nome","foco-tarefa":"t-tit" }[a];
-      const el = $(alvo); if(el) el.focus();
-    }
-    else if(TELAS.includes(a)) irPara(a);
-  });
-
-  on("[data-del-lanc]", b => b.onclick = ()=>apagar("lancamentos", b.dataset.delLanc, ()=>{
-    db.lancamentos = db.lancamentos.filter(z=>z.id!==b.dataset.delLanc); }));
-  on("[data-del-conta]", b => b.onclick = ()=>apagar("contas", b.dataset.delConta, ()=>{
-    db.contas = db.contas.filter(z=>z.id!==b.dataset.delConta); }));
-  on("[data-del-orc]", b => b.onclick = ()=>apagar("orcamentos", b.dataset.delOrc, ()=>{
-    db.orcamentos = db.orcamentos.filter(z=>z.id!==b.dataset.delOrc); }));
-  on("[data-del-rec]", b => b.onclick = ()=>apagar("recorrencias", b.dataset.delRec, ()=>{
-    db.recorrencias = db.recorrencias.filter(z=>z.id!==b.dataset.delRec); }));
-  on("[data-del-meta]", b => b.onclick = ()=>apagar("metas", b.dataset.delMeta, ()=>{
-    db.metas = db.metas.filter(z=>z.id!==b.dataset.delMeta); }));
-  on("[data-del-evt]", b => b.onclick = ()=>apagar("eventos", b.dataset.delEvt, ()=>{
-    db.eventos = db.eventos.filter(z=>z.id!==b.dataset.delEvt); }));
-  on("[data-del-tarefa]", b => b.onclick = ()=>apagar("tarefas", b.dataset.delTarefa, ()=>{
-    db.tarefas = db.tarefas.filter(z=>z.id!==b.dataset.delTarefa); }));
-  on("[data-del-membro]", b => b.onclick = ()=>apagar("membros", b.dataset.delMembro, ()=>{
-    db.membros = db.membros.filter(z=>z.id!==b.dataset.delMembro); }));
-
-  on("[data-pagar]", b => b.onclick = ()=>{
-    const c = db.contas.find(x=>x.id===b.dataset.pagar);
-    if(c && c.ultimo_pago !== mesDe(hoje())) pagarConta(c);
-  });
-  on("[data-dia]", b => b.onclick = ()=>{ vibra(); abrirDia(b.dataset.dia); });
-  on("[data-cal]", b => b.onclick = ()=>{
-    calRef.m += (+b.dataset.cal);
-    if(calRef.m<1){ calRef.m=12; calRef.a--; }
-    if(calRef.m>12){ calRef.m=1; calRef.a++; }
-    render();
-  });
-  on("[data-rt]", b => b.onclick = ()=>{
-    const n = +b.dataset.rt;
-    rtDia = n===0 ? hoje() : mais(rtDia, n);
-    blocoAberto = null; vibra(); render();
-  });
-  on("[data-bloco]", b => b.onclick = ()=>{
-    blocoAberto = blocoAberto===b.dataset.bloco ? null : b.dataset.bloco;
-    vibra(); render();
-  });
-  on("[data-edit-bloco]", b => b.onclick = ()=>{
-    const bl = db.blocos.find(x=>x.id===b.dataset.editBloco); if(bl) abrirBloco(bl);
-  });
-  on("[data-item]", b => b.onclick = ()=>marcarItem(b.dataset.item, marcado(b.dataset.item, rtDia), rtDia));
-  on("[data-tarefa]", b => b.onclick = async ()=>{
-    const x = db.tarefas.find(z=>z.id===b.dataset.tarefa); if(!x) return;
-    const { error } = await sb.from("tarefas").update({ feita: !x.feita }).eq("id", x.id);
-    if(error) return falhou(error);
-    x.feita = !x.feita; limparMemo(); vibra(); render();
-  });
-  on("[data-lang]", b => b.onclick = ()=>trocarIdioma(b.dataset.lang));
-  on("[data-toggle-rec]", b => b.onclick = async ()=>{
-    const r = db.recorrencias.find(x=>x.id===b.dataset.toggleRec); if(!r) return;
-    const { error } = await sb.from("recorrencias").update({ ativo: !r.ativo }).eq("id", r.id);
-    if(error) return falhou(error);
-    r.ativo = !r.ativo; limparMemo(); render();
-  });
 
   add("c-add", async ()=>{
     const n=$("c-nome").value.trim(), d=parseInt($("c-dia").value,10);
@@ -2095,7 +2136,8 @@ function ligarTela(){
     const { data, error } = await sb.from("contas").insert({ user_id:user.id, espaco, nome:n,
       dia:Math.min(Math.max(d,1),31), valor:numBR($("c-valor").value) }).select().single();
     if(error) return falhou(error);
-    db.contas.push({...data, valor:Number(data.valor||0)}); limparMemo(); render(); toast(t("msg.contaCadastrada"));
+    db.contas.push({...data, valor:Number(data.valor||0)});
+    limparMemo(); render(); toast(t("msg.contaCadastrada"));
   });
   add("orc-add", async ()=>{
     const c=$("orc-cat").value, v=numBR($("orc-valor").value);
@@ -2112,7 +2154,6 @@ function ligarTela(){
     const d=parseInt($("rec-dia").value,10), v=numBR($("rec-valor").value);
     if(!d||!v) return toast(t("auth.preencha"), true);
     const tp=$("rec-tipo").value;
-    // "próximo mês" nasce com o mês atual já marcado como gerado, então nada é lançado retroativo
     const comecaAgora = $("rec-inicio").value === "agora";
     const { data, error } = await sb.from("recorrencias").insert({
       user_id:user.id, espaco, tipo:tp, categoria:$("rec-cat").value,
@@ -2130,14 +2171,15 @@ function ligarTela(){
     const { data, error } = await sb.from("metas").insert({ user_id:user.id, espaco, nome:n, alvo:a,
       categoria:$("meta-cat").value||null }).select().single();
     if(error) return falhou(error);
-    db.metas.push({...data, alvo:Number(data.alvo)}); render(); toast(t("msg.metaSalva"));
+    db.metas.push({...data, alvo:Number(data.alvo)});
+    limparMemo(); render(); toast(t("msg.metaSalva"));
   });
   add("t-add", async ()=>{
     const ti=$("t-tit").value.trim(); if(!ti) return;
     const { data, error } = await sb.from("tarefas").insert({ user_id:user.id, data:rtDia,
       hora:$("t-hora").value||null, titulo:ti }).select().single();
     if(error) return falhou(error);
-    db.tarefas.push(data); render(); toast(t("msg.salvo"));
+    db.tarefas.push(data); limparMemo(); render(); toast(t("msg.salvo"));
   });
   add("b-add", async ()=>{
     const h=$("b-hora").value, ti=$("b-tit").value.trim();
@@ -2145,7 +2187,7 @@ function ligarTela(){
     const { data, error } = await sb.from("blocos_rotina").insert({ user_id:user.id, hora:h, titulo:ti,
       ordem:db.blocos.length }).select().single();
     if(error) return falhou(error);
-    db.blocos.push(data); blocoAberto=data.id; render(); toast(t("msg.salvo"));
+    db.blocos.push(data); blocoAberto=data.id; limparMemo(); render(); toast(t("msg.salvo"));
   });
   add("rt-seed", instalarRotina);
   add("res-salvar", async ()=>{
@@ -2162,7 +2204,7 @@ function ligarTela(){
     const n=$("m-nome").value.trim(); if(!n) return;
     const { data, error } = await sb.from("membros").insert({ user_id:user.id, nome:n, eh_voce:false }).select().single();
     if(error) return falhou(error);
-    db.membros.push(data); render(); toast(t("msg.socioAdd"));
+    db.membros.push(data); limparMemo(); render(); toast(t("msg.socioAdd"));
   });
   add("bt-backup", ()=>{
     const a=document.createElement("a");
@@ -2172,13 +2214,21 @@ function ligarTela(){
   add("bt-sair2", async ()=>{ await sb.auth.signOut(); location.reload(); });
   add("bt-pdf", ()=>{ toast(t("exp.dica")); setTimeout(()=>window.print(), 500); });
 
+  // Enter envia o formulário da linha
+  [["c-valor","c-add"],["orc-valor","orc-add"],["rec-valor","rec-add"],["meta-alvo","meta-add"],
+   ["t-tit","t-add"],["b-tit","b-add"],["m-nome","m-add"],["res-valor","res-salvar"]]
+   .forEach(([campo,botao])=>{
+     const el = $(campo); if(!el) return;
+     el.onkeydown = e => { if(e.key==="Enter"){ e.preventDefault(); const b=$(botao); if(b) b.click(); } };
+   });
+
   const drop = $("drop"), arq = $("arq");
   if(drop && arq){
     drop.onclick = ()=>arq.click();
     arq.onchange = e => { if(e.target.files[0]) lerArquivo(e.target.files[0]); };
     ["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add("sobre"); }));
     ["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove("sobre"); }));
-    drop.addEventListener("drop", e=>{ const f=e.dataTransfer.files[0]; if(f) lerArquivo(f); });
+    drop.addEventListener("drop", e=>{ const f2=e.dataTransfer.files[0]; if(f2) lerArquivo(f2); });
   }
 }
 
