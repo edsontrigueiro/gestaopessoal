@@ -1,0 +1,10 @@
+{
+  "name": "nexvot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NexVot — funcoes de servidor para cobranca. O app em si nao tem build.",
+  "dependencies": {
+    "stripe": "^18.0.0",
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}
