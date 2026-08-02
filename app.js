@@ -51,18 +51,25 @@ async function trocarIdioma(l){
 }
 
 /* ================= ESTADO ================= */
-let user = null, perfil = null;
+let user = null, perfil = null, assinatura = null, ciclo = "anual";
 let espaco = "pessoal", tela = "painel", periodo = "mes";
 let calRef = null, selDia = null, rtDia = null, blocoAberto = null;
 let dataAlvo = null, tipoSel = "saida", catSel = null, natSel = "essencial", membroSel = null, dig = "";
 let importados = [];
 let pulouInicio = false;
+
+/* Preço mostrado na tela. Precisa bater com o que está no provedor —
+   o valor cobrado vem de lá, nunca daqui. */
+const PRECO = { mensal: 39.9, anual: 349 };
+const temPro = () => !!assinatura && assinatura.plano === "pro"
+  && ["ativa","periodo_final"].includes(assinatura.situacao)
+  && (!assinatura.vale_ate || new Date(assinatura.vale_ate) > new Date());
 const avisados = new Set();
 
 const db = { lancamentos:[], contas:[], habitos:[], marcas:[], fechados:[], eventos:[],
              membros:[], blocos:[], tarefas:[], orcamentos:[], recorrencias:[], metas:[] };
 
-const TELAS = ["painel","consolidado","fluxo","orcamento","recorrencias","metas","rotina","agenda","relatorios","ajustes"];
+const TELAS = ["painel","consolidado","fluxo","orcamento","recorrencias","metas","rotina","agenda","relatorios","planos","ajustes"];
 const ICONES = {
   painel:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/></svg>',
   consolidado:'<svg viewBox="0 0 24 24"><path d="M7 8h10l-3-3M17 16H7l3 3"/><rect x="2.5" y="3" width="19" height="18" rx="3"/></svg>',
@@ -73,13 +80,14 @@ const ICONES = {
   rotina:'<svg viewBox="0 0 24 24"><path d="M4 7h3M4 12h3M4 17h3"/><path d="M10 7h10M10 12h10M10 17h10"/></svg>',
   agenda:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
   relatorios:'<svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>',
+  planos:'<svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="3"/><path d="M2 11h20M6 15h4"/></svg>',
   ajustes:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>'
 };
 const TITULO = { painel:["painel.titulo","painel.sub"], consolidado:["con.titulo","con.sub"], fluxo:["nav.fluxo","sec.fluxo.sub"],
   orcamento:["nav.orcamento","sec.orcamento.sub"], recorrencias:["nav.recorrencias","sec.recorrencias.sub"],
   metas:["nav.metas","sec.metas.sub"], rotina:["nav.rotinaDia","sec.rotinaHoje"],
   agenda:["nav.agenda","sec.compromissos"], relatorios:["nav.relatorios","sec.fechamento.sub"],
-  ajustes:["nav.ajustes","sec.idioma.sub"] };
+  planos:["pl.titulo","pl.sub"], ajustes:["nav.ajustes","sec.idioma.sub"] };
 
 /* ================= UTILIDADES ================= */
 const isoDe = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -179,6 +187,7 @@ async function boot(){
   try{ prefSalva = localStorage.getItem("nexvot:tema") || "escuro"; }catch(e){}
   aplicarTema(prefSalva, false);
   $("splash").hidden = true;
+  if(ehRetornoDeSenha()){ telaAuth(); return; }
   if(ses && !ses.user.is_anonymous){ user = ses.user; return entrar(); }
   if(ses){ try{ await sb.auth.signOut(); }catch(e){} }
   telaAuth();
@@ -234,10 +243,37 @@ function montarPaises(){
 
 const marcar = (grupo, ruim) => { const g = $(grupo); if(g) g.classList.toggle("ruim", !!ruim); };
 function mostrarBloco(qual){
-  $("bloco-entrar").hidden = qual !== "entrar";
-  $("bloco-criar").hidden  = qual !== "criar";
+  ["entrar","criar","senha","nova"].forEach(x => $("bloco-"+x).hidden = x !== qual);
   $("a-msg").textContent = "";
   if(qual === "criar"){ montarPaises(); atualizarDicaTel(); }
+}
+
+async function pedirLinkSenha(){
+  const email = $("s-email").value.trim();
+  if(!emailValido(email)) return aviso(t("err.email"));
+  $("bt-enviar-senha").disabled = true;
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: location.origin + location.pathname + "?modo=senha"
+  });
+  $("bt-enviar-senha").disabled = false;
+  // resposta igual em qualquer caso, para não revelar quem tem conta
+  aviso(error && !/rate/i.test(error.message) ? error.message : t("sen.enviado"), !error);
+}
+
+async function salvarSenhaNova(){
+  const a = $("n-senha").value, b = $("n-senha2").value;
+  const erros = [["g-nv1", a.length < 6], ["g-nv2", a !== b || !b]];
+  erros.forEach(([g,ruim]) => marcar(g, ruim));
+  if(erros.some(([,ruim]) => ruim)) return aviso("");
+  $("bt-salvar-senha").disabled = true;
+  const { error } = await sb.auth.updateUser({ password: a });
+  $("bt-salvar-senha").disabled = false;
+  if(error) return aviso(error.message);
+  aviso(t("sen.trocada"), true);
+  history.replaceState(null, "", location.pathname);
+  const { data } = await sb.auth.getSession();
+  if(data.session){ user = data.session.user; $("auth").hidden = true; return entrar(); }
+  setTimeout(()=>location.reload(), 1200);
 }
 function aviso(txt, ok){
   const m = $("a-msg");
@@ -250,12 +286,24 @@ function atualizarDicaTel(){
   $("erro-tel").textContent = t("err.telPais", { n: faixaPais(iso) });
 }
 
+/* Link de recuperação devolve o usuário aqui com uma sessão temporária. */
+function ehRetornoDeSenha(){
+  const h = location.hash || "";
+  return h.includes("type=recovery") || new URLSearchParams(location.search).get("modo") === "senha";
+}
+
 function telaAuth(){
   $("auth").hidden = false;
-  mostrarBloco("entrar");
+  mostrarBloco(ehRetornoDeSenha() ? "nova" : "entrar");
   $$("#auth-lang button").forEach(b => b.onclick = ()=>trocarIdioma(b.dataset.l));
-  $("ir-criar").onclick  = ()=>mostrarBloco("criar");
-  $("ir-entrar").onclick = ()=>mostrarBloco("entrar");
+  $("ir-criar").onclick   = ()=>mostrarBloco("criar");
+  $("ir-entrar").onclick  = ()=>mostrarBloco("entrar");
+  $("ir-entrar2").onclick = ()=>mostrarBloco("entrar");
+  $("ir-senha").onclick   = ()=>{ mostrarBloco("senha"); $("s-email").value = $("a-email").value; };
+  $("bt-enviar-senha").onclick = pedirLinkSenha;
+  $("bt-salvar-senha").onclick = salvarSenhaNova;
+  $("s-email").addEventListener("keydown", e=>{ if(e.key==="Enter") pedirLinkSenha(); });
+  $("n-senha2").addEventListener("keydown", e=>{ if(e.key==="Enter") salvarSenhaNova(); });
   $("bt-entrar").onclick = entrarPorEmail;
   $("bt-criar").onclick  = criarConta;
 
@@ -364,7 +412,9 @@ async function entrar(){
   ligarDelegacao();
   await carregar();
   await materializarRecorrencias();
-  irPara("painel");
+  const q = new URLSearchParams(location.search);
+  irPara(TELAS.includes(q.get("tela")) ? q.get("tela") : "painel");
+  conferirRetornoPagamento();
   setInterval(checarLembretes, 30000);
 }
 
@@ -383,11 +433,12 @@ async function carregar(){
     sb.from("orcamentos").select("*"),
     sb.from("recorrencias").select("*").order("dia"),
     sb.from("metas").select("*").order("criado_em"),
-    sb.from("perfil").select("*").eq("user_id", user.id).maybeSingle()
+    sb.from("perfil").select("*").eq("user_id", user.id).maybeSingle(),
+    sb.from("assinaturas").select("*").eq("user_id", user.id).maybeSingle()
   ]);
   const err = r.find(x=>x.error);
   if(err) return falhou(err.error);
-  const [l,c,h,m,f,e,mb,bl,tf,orc,rec,mt,pf] = r;
+  const [l,c,h,m,f,e,mb,bl,tf,orc,rec,mt,pf,asn] = r;
   db.lancamentos  = (l.data||[]).map(x=>({...x, valor:Number(x.valor)}));
   db.contas       = (c.data||[]).map(x=>({...x, valor:Number(x.valor||0)}));
   db.habitos = h.data||[]; db.marcas = m.data||[];
@@ -398,6 +449,7 @@ async function carregar(){
   db.recorrencias = (rec.data||[]).map(x=>({...x, valor:Number(x.valor)}));
   db.metas        = (mt.data||[]).map(x=>({...x, alvo:Number(x.alvo)}));
   perfil = pf.data || null;
+  assinatura = asn.data || null;
   if(perfil && perfil.idioma && perfil.idioma !== idioma){ idioma = perfil.idioma; aplicarTextos(); }
   if(!db.membros.length){
     const { data:n } = await sb.from("membros").insert({ user_id:user.id, nome:"Você", eh_voce:true }).select().single();
@@ -784,8 +836,12 @@ function render(){
   $$("#seg-periodo button").forEach(b=>b.classList.toggle("on", b.dataset.p===periodo));
   $$(".side .item[data-v]").forEach(b=>b.classList.toggle("on", b.dataset.v===tela));
   const fn = { painel:vPainel, consolidado:vConsolidado, fluxo:vFluxo, orcamento:vOrcamento, recorrencias:vRecorrencias,
-               metas:vMetas, rotina:vRotina, agenda:vAgenda, relatorios:vRelatorios, ajustes:vAjustes }[tela];
-  $("v-"+tela).innerHTML = fn();
+               metas:vMetas, rotina:vRotina, agenda:vAgenda, relatorios:vRelatorios,
+               planos:vPlanos, ajustes:vAjustes }[tela];
+  // espaço empresa é do Pro. O portão fica aqui, mas o que protege
+  // de verdade é o RLS no banco — isto é só a porta da frente.
+  const travado = espaco === "empresa" && !temPro() && tela !== "planos" && tela !== "ajustes";
+  $("v-"+tela).innerHTML = travado ? paredePro() : fn();
   ligarTela();
 }
 function rotuloPeriodo(){
@@ -1348,6 +1404,84 @@ function vRelatorios(){
   </div>`;
 }
 
+/* ---------- PLANOS ---------- */
+function vPlanos(){
+  const chk = '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>';
+  const item = (k, on) => `<li class="${on?"":"off"}">${chk}<span>${esc(t(k))}</span></li>`;
+  const pro = temPro();
+  const dt = d => d ? ext(d.slice(0,10), {day:"2-digit", month:"long", year:"numeric"}) : "";
+
+  let situacao = "";
+  if(assinatura && assinatura.situacao === "em_atraso")
+    situacao = `<div class="card alerta-vrm" style="margin-bottom:18px"><div class="status">
+      <div class="txt"><div class="tt">${esc(t("pl.emAtraso"))}</div>
+        <div class="ss">${esc(t("pl.emAtrasoSub"))}</div></div>
+      <button class="btn-pri" id="bt-portal2">${esc(t("pl.gerenciar"))}</button></div></div>`;
+  else if(pro && assinatura)
+    situacao = `<div class="card" style="margin-bottom:18px"><div class="status">
+      <div class="kpi-ic ic-ver" style="position:static;flex:none">${ICO.ok}</div>
+      <div class="txt"><div class="tt">${esc(t("pl.pro"))}</div><div class="ss">${
+        esc(assinatura.cancela_no_fim
+          ? t("pl.periodoFinal", { d: dt(assinatura.vale_ate) })
+          : t("pl.ativa", { d: dt(assinatura.vale_ate) }))}</div></div>
+      <button class="btn-sec" id="bt-portal">${esc(t("pl.gerenciar"))}</button></div></div>`;
+
+  const valor = ciclo === "anual" ? PRECO.anual : PRECO.mensal;
+
+  return `
+  ${situacao}
+  <div class="ciclo" id="seg-ciclo">
+    <button data-ciclo="mensal" class="${ciclo==="mensal"?"on":""}">${t("pl.mensal")}</button>
+    <button data-ciclo="anual" class="${ciclo==="anual"?"on":""}">${t("pl.anual")}
+      <span class="eco">${t("pl.anualDica")}</span></button>
+  </div>
+
+  <div class="planos">
+    <div class="plano">
+      <h3>${esc(t("pl.gratuito"))}</h3>
+      <div class="desc">${esc(t("pl.gratuitoSub"))}</div>
+      <div class="preco"><b>${esc(t("pl.gratis"))}</b></div>
+      <div class="obs">${esc(t("pl.semCartao"))}</div>
+      ${!pro ? `<button class="btn sec" disabled style="background:var(--card2);color:var(--txt2);border:1px solid var(--linha)">${esc(t("pl.atual"))}</button>` : ""}
+      <ul>
+        ${item("pl.f1",1)}${item("pl.f2",1)}${item("pl.f3",1)}
+        ${item("pl.f4",1)}${item("pl.f5",1)}${item("pl.f6",1)}
+        ${item("pl.f7",0)}${item("pl.f8",0)}${item("pl.f9",0)}
+      </ul>
+    </div>
+
+    <div class="plano destaque">
+      <span class="selo">${esc(t("pl.pro"))}</span>
+      <h3>${esc(t("pl.pro"))}</h3>
+      <div class="desc">${esc(t("pl.proSub"))}</div>
+      <div class="preco"><b>${simb()} ${num(valor)}</b><span>${esc(t("pl."+ciclo))}</span></div>
+      <div class="obs">${ciclo === "anual"
+        ? esc(`${simb()} ${num(PRECO.anual/12)} ${t("pl.mensal")}`) : "&nbsp;"}</div>
+      ${pro
+        ? `<button class="btn" id="bt-portal3">${esc(t("pl.gerenciar"))}</button>`
+        : `<button class="btn" id="bt-assinar">${esc(t("pl.assinar"))}</button>`}
+      <ul>
+        ${item("pl.f1",1)}${item("pl.f2",1)}${item("pl.f3",1)}
+        ${item("pl.f4",1)}${item("pl.f5",1)}${item("pl.f6",1)}
+        ${item("pl.f7",1)}${item("pl.f8",1)}${item("pl.f9",1)}
+        ${item("pl.f10",1)}${item("pl.f11",1)}${item("pl.f12",1)}
+      </ul>
+      <div class="t3" style="font-size:13px;margin-top:20px;text-align:center">${esc(t("pl.cancelar"))}</div>
+    </div>
+  </div>`;
+}
+
+/* Tela mostrada quando o espaço empresa está travado. */
+function paredePro(){
+  return `<div class="trava">
+    <div class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="2.5"/>
+      <path d="M8 10V7a4 4 0 018 0v3"/></svg></div>
+    <h2>${esc(t("pl.bloqueado"))}</h2>
+    <p>${esc(t("pl.bloqueadoSub"))}</p>
+    <button class="btn-pri" data-acao="planos" style="margin:0 auto">${esc(t("pl.verPlanos"))}</button>
+  </div>`;
+}
+
 /* ---------- AJUSTES ---------- */
 function vAjustes(){
   const langs = [["pt","Português"],["en","English"],["es","Español"]];
@@ -1367,6 +1501,7 @@ function vAjustes(){
           perfil.telefone ? esc("+"+(perfil.tel_ddi||"")+" "+mascaraTel(perfil.tel_pais||"BR", perfil.telefone)) : "—"}</div></div>
       </div>` : ""}
       <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="mini lar" data-acao="planos">${t("pl.titulo")}</button>
         <button class="mini" id="bt-backup">${t("conta.backup")}</button>
         <button class="mini" id="bt-sair2">${t("conta.sair")}</button></div>
     </div>
@@ -1674,6 +1809,59 @@ function abrirBloco(bl){
     db.habitos=db.habitos.filter(z=>z.bloco_id!==bl.id);
     blocoAberto=null; fecharSheet(); render(); toast(t("msg.removido"));
   };
+}
+
+/* ============================================================
+   COBRANÇA — o navegador só pede; quem decide é o servidor.
+   ============================================================ */
+async function chamarApi(rota, corpo){
+  const { data } = await sb.auth.getSession();
+  const token = data.session && data.session.access_token;
+  const r = await fetch("/api/" + rota, {
+    method: "POST",
+    headers: { "Content-Type":"application/json", "Authorization": "Bearer " + token },
+    body: JSON.stringify(corpo || {})
+  });
+  if(!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+
+async function assinar(){
+  const bt = $("bt-assinar"); if(bt) bt.disabled = true;
+  try{
+    const { url } = await chamarApi("checkout", { ciclo });
+    if(!url) throw new Error("sem url");
+    location.href = url;
+  }catch(e){
+    console.error(e);
+    if(bt) bt.disabled = false;
+    toast(t("err.checkout"), true);
+  }
+}
+
+async function abrirPortal(){
+  try{
+    const { url } = await chamarApi("portal", {});
+    if(url) location.href = url;
+  }catch(e){ console.error(e); toast(t("err.checkout"), true); }
+}
+
+/* Depois de pagar, o provedor devolve para cá. O webhook pode
+   demorar alguns segundos, então recarregamos a assinatura. */
+async function conferirRetornoPagamento(){
+  const q = new URLSearchParams(location.search);
+  const p = q.get("pagamento");
+  if(!p) return;
+  history.replaceState(null, "", location.pathname);
+  if(p === "cancelado") return toast(t("msg.pagamentoCancelado"));
+
+  for(let i = 0; i < 6; i++){
+    const { data } = await sb.from("assinaturas").select("*").eq("user_id", user.id).maybeSingle();
+    assinatura = data || assinatura;
+    if(temPro()){ limparMemo(); render(); return toast(t("msg.pagamentoOk")); }
+    await new Promise(r => setTimeout(r, 1500));
+  }
+  render();
 }
 
 /* ================= MUTAÇÕES ================= */
@@ -2190,6 +2378,9 @@ function ligarTela(){
     db.blocos.push(data); blocoAberto=data.id; limparMemo(); render(); toast(t("msg.salvo"));
   });
   add("rt-seed", instalarRotina);
+  add("bt-assinar", assinar);
+  ["bt-portal","bt-portal2","bt-portal3"].forEach(id => add(id, abrirPortal));
+  $$("#seg-ciclo [data-ciclo]").forEach(b => b.onclick = ()=>{ ciclo = b.dataset.ciclo; render(); });
   add("res-salvar", async ()=>{
     const v = numBR($("res-valor").value);
     const { error } = await sb.from("perfil").upsert({
