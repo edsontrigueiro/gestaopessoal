@@ -56,6 +56,7 @@ input,select,textarea{font:inherit;color:inherit;font-family:var(--f)}
 ul{list-style:none;margin:0;padding:0}
 svg{display:block}
 [hidden]{display:none !important}
+.fab[hidden]{display:none !important}
 :focus-visible{outline:2px solid var(--laranja);outline-offset:2px;border-radius:6px}
 button,[data-acao],.item,.chip{ -webkit-user-select:none; user-select:none }
 ::placeholder{color:var(--txt3)}
@@ -405,10 +406,15 @@ body.recolhido .side .lg{justify-content:center}
 .fechar:hover{color:var(--txt)}
 .fechar svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2}
 .sub-sec{font-size:11.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--txt3);margin:22px 0 10px}
-.mostra{text-align:center;padding:8px 0 20px}
-.mostra .v{font-size:48px;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums;line-height:1}
-.mostra .v small{font-size:22px;color:var(--txt2);margin-right:7px;font-weight:600}
-.mostra .v.zv{color:var(--txt3)}
+.mostra{text-align:center;padding:8px 0 20px;display:flex;align-items:baseline;justify-content:center;gap:8px}
+.mostra .moeda{font-size:22px;color:var(--txt2);font-weight:600;flex:none}
+.mostra input{font-size:48px;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums;
+  line-height:1.05;background:none;border:none;outline:none;text-align:center;width:100%;max-width:340px;
+  padding:0;color:var(--txt);font-family:var(--f);min-width:0}
+.mostra input::placeholder{color:var(--txt3)}
+.mostra.zv input{color:var(--txt3)}
+.mostra input:focus{outline:none}
+.mostra input::-webkit-outer-spin-button,.mostra input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .trio{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--card2);border:1px solid var(--linha);border-radius:var(--r2);padding:5px;margin-bottom:16px}
 .trio button{padding:11px 6px;border-radius:8px;font-size:14px;font-weight:600;color:var(--txt2)}
 .trio button.on{background:var(--card);box-shadow:var(--sombra)}
@@ -507,7 +513,7 @@ body.recolhido .side .lg{justify-content:center}
   .tb-h,.tb-l,.li,.form{padding-left:18px;padding-right:18px}
   .zero{margin:18px;width:calc(100% - 36px);padding:34px 20px}
   .status{padding:22px 20px}
-  .fab{display:grid !important}
+  .fab:not([hidden]){display:grid}
   .com-y{padding-left:0} .eixo-y{display:none}
   #bt-novo{display:none}
 }
