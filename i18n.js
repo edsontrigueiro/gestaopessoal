@@ -67,6 +67,7 @@ pt: {
   "lanc.nota": "nota (opcional)", "lanc.botao": "Lançar",
   "lanc.digite": "Digite um valor.", "lanc.categoria": "Escolha uma categoria.",
   "lanc.essencial": "Essencial", "lanc.futil": "Fútil", "lanc.apagar": "apagar",
+  "lanc.dica": "toque no valor para digitar com vírgula",
 
   "form.conta": "conta", "form.dia": "dia", "form.valor": "valor",
   "form.nome": "nome", "form.alvo": "alvo", "form.add": "Adicionar",
@@ -423,6 +424,7 @@ en: {
   "lanc.nota": "note (optional)", "lanc.botao": "Save entry",
   "lanc.digite": "Enter an amount.", "lanc.categoria": "Pick a category.",
   "lanc.essencial": "Essential", "lanc.futil": "Non-essential", "lanc.apagar": "delete",
+  "lanc.dica": "tap the amount to type with a decimal point",
 
   "form.conta": "bill", "form.dia": "day", "form.valor": "amount",
   "form.nome": "name", "form.alvo": "target", "form.add": "Add",
@@ -779,6 +781,7 @@ es: {
   "lanc.nota": "nota (opcional)", "lanc.botao": "Registrar",
   "lanc.digite": "Escribe un importe.", "lanc.categoria": "Elige una categoría.",
   "lanc.essencial": "Esencial", "lanc.futil": "Superfluo", "lanc.apagar": "borrar",
+  "lanc.dica": "toca el valor para escribir con coma",
 
   "form.conta": "cuenta", "form.dia": "día", "form.valor": "importe",
   "form.nome": "nombre", "form.alvo": "objetivo", "form.add": "Agregar",
