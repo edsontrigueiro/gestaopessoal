@@ -727,6 +727,7 @@ function grafArea(series, rotulos, alt){
   const gid = "gf" + (++grafSeq);
 
   GRAFS[gid] = {
+    tipo: "area",
     rot: rotulos,
     ser: series.map(s=>({ nome: s.nome || "", cor: s.cor, dados: s.dados })),
     xp: i => (i/Math.max(n-1,1))*100,
@@ -774,43 +775,86 @@ function grafArea(series, rotulos, alt){
 }
 
 /* Tooltip dos graficos: um listener so, delegado no document.
-   Funciona com mouse e com o dedo (pointer events cobrem os dois). */
+   Cobre area, barras e rosca. Pointer events pegam mouse e dedo. */
 let grafAtivo = null;
 function limparGraf(){
-  if(grafAtivo){ grafAtivo.classList.remove("ativo"); grafAtivo = null; }
+  if(!grafAtivo) return;
+  grafAtivo.classList.remove("ativo");
+  grafAtivo.querySelectorAll(".rosca-svg circle.on").forEach(c=>c.classList.remove("on"));
+  grafAtivo = null;
+}
+function posBalao(alvo, r, xpx, ypx){
+  const bal = alvo.querySelector(".gtip"); if(!bal) return null;
+  const lg = bal.offsetWidth || 170, at = bal.offsetHeight || 70;
+  let left = xpx + 14;
+  if(left + lg > r.width) left = xpx - lg - 14;
+  let top = ypx == null ? 8 : ypx - at - 14;
+  if(top < 4) top = (ypx == null ? 8 : ypx + 18);
+  bal.style.left = Math.max(4, Math.min(left, r.width - lg - 4)) + "px";
+  bal.style.top  = Math.max(4, top) + "px";
+  return bal;
 }
 function moverGraf(e){
   const alvo = e.target && e.target.closest ? e.target.closest(".graf[data-gid]") : null;
   if(!alvo){ limparGraf(); return; }
-  const g = GRAFS[alvo.dataset.gid]; if(!g || !g.rot.length) return;
-
+  const g = GRAFS[alvo.dataset.gid]; if(!g) return;
   const r = alvo.getBoundingClientRect();
-  const f = Math.min(1, Math.max(0, (e.clientX - r.left) / (r.width || 1)));
-  const i = Math.round(f * Math.max(g.rot.length - 1, 0));
-
+  const xpx = e.clientX - r.left, ypx = e.clientY - r.top;
   if(grafAtivo && grafAtivo !== alvo) limparGraf();
+
+  if(g.tipo === "rosca"){
+    const arco = e.target.closest("circle[data-i]");
+    const linha = e.target.closest(".rosca-l[data-i]");
+    const alvoI = arco || linha;
+    if(!alvoI){ limparGraf(); return; }
+    const i = +alvoI.dataset.i, it = g.itens[i];
+    if(!it){ limparGraf(); return; }
+    alvo.classList.add("ativo"); grafAtivo = alvo;
+    alvo.querySelectorAll(".rosca-svg circle").forEach(c=>c.classList.toggle("on", +c.dataset.i === i));
+    const bal = alvo.querySelector(".gtip"); if(!bal) return;
+    bal.innerHTML = `<div class="gtip-t">${esc(it.nome)}</div>
+      <div class="gtip-l"><i style="background:${it.cor}"></i><span>${it.pct}% ${esc(t("kpi.saidas"))}</span><b>${din(it.valor)}</b></div>`;
+    posBalao(alvo, r, xpx, ypx);
+    return;
+  }
+
   alvo.classList.add("ativo"); grafAtivo = alvo;
 
+  if(g.tipo === "barras"){
+    const n = g.n || 1;
+    const f = Math.min(1, Math.max(0, xpx / (r.width || 1)));
+    const i = Math.min(n-1, Math.floor(f*n));
+    const faixa = alvo.querySelector(".gband");
+    if(faixa){
+      faixa.style.left = (i*g.largura) + "%";
+      faixa.style.width = g.largura + "%";
+      faixa.style.bottom = g.fundo + "%";
+    }
+    const bal = alvo.querySelector(".gtip"); if(!bal) return;
+    const linhas = g.ser.filter(s=>(s.dados[i]||0) > 0)
+      .map(s=>`<div class="gtip-l"><i style="background:${s.cor}"></i><span>${esc(s.nome)}</span><b>${din(s.dados[i])}</b></div>`).join("");
+    bal.innerHTML = `<div class="gtip-t">${esc(g.rot[i] || "")}</div>` +
+      (linhas || `<div class="gtip-l"><span class="t3">${esc(t("vazio.grafico"))}</span></div>`);
+    posBalao(alvo, r, xpx, null);
+    return;
+  }
+
+  /* area */
+  const n = g.rot.length; if(!n) return;
+  const f = Math.min(1, Math.max(0, xpx / (r.width || 1)));
+  const i = Math.round(f * Math.max(n-1, 0));
   const xp = g.xp(i);
   const cruz = alvo.querySelector(".gcross");
   if(cruz) cruz.style.left = xp + "%";
-
   alvo.querySelectorAll(".gdot").forEach((d,k)=>{
     const v = g.ser[k] ? g.ser[k].dados[i] : null;
     if(v == null){ d.style.display = "none"; return; }
     d.style.display = ""; d.style.left = xp + "%"; d.style.top = g.yp(v) + "%";
   });
-
   const bal = alvo.querySelector(".gtip"); if(!bal) return;
   bal.innerHTML = `<div class="gtip-t">${esc(g.rot[i] || "")}</div>` +
     g.ser.map(s=>`<div class="gtip-l"><i style="background:${s.cor}"></i><span>${esc(s.nome || "")}</span><b>${din(s.dados[i] || 0)}</b></div>`).join("");
-
-  /* nao deixa o balao sair do cartao */
-  const larg = bal.offsetWidth || 160;
-  let left = (xp/100) * r.width + 14;
-  if(left + larg > r.width) left = (xp/100) * r.width - larg - 14;
-  bal.style.left = Math.max(4, left) + "px";
-  bal.style.top  = "8px";
+  posBalao(alvo, r, (xp/100)*r.width, null);
 }
 document.addEventListener("pointermove", moverGraf, {passive:true});
 document.addEventListener("pointerdown", moverGraf, {passive:true});
@@ -821,6 +865,18 @@ function grafBarras(dias, ins, outs, alt){
   const W=1000, H=vazio ? 120 : (alt||250), l=W/Math.max(dias.length,1);
   const mx = Math.max(...ins, ...outs, 1);
   const cE=cor("--verde"), cS=cor("--vermelho");
+  const gid = "gf" + (++grafSeq);
+  const n = dias.length;
+
+  GRAFS[gid] = {
+    tipo: "barras", n,
+    rot: dias.map(d=>curto(d)),
+    ser: [{ nome: t("leg.entradas"), cor: cE, dados: ins },
+          { nome: t("leg.saidas"),   cor: cS, dados: outs }],
+    largura: 100/Math.max(n,1),
+    fundo: (20/H)*100
+  };
+
   const barras = dias.map((d,i)=>{
     const x=i*l, hi=(ins[i]/mx)*(H-30), ho=(outs[i]/mx)*(H-30), w=l*.30;
     return (ins[i]>0?`<rect x="${(x+l*.14).toFixed(1)}" y="${(H-20-hi).toFixed(1)}" width="${w.toFixed(1)}" height="${hi.toFixed(1)}" rx="3" fill="${cE}"/>`:"")
@@ -828,11 +884,14 @@ function grafBarras(dias, ins, outs, alt){
   }).join("");
   const eixoY = vazio ? ""
     : `<div class="eixo-y" style="bottom:40px"><span>${din0(mx)}</span><span>${din0(mx/2)}</span><span>${din0(0)}</span></div>`;
+  const overlay = vazio ? ""
+    : `<div class="graf-ov"><div class="gband"></div></div><div class="gtip"></div>`;
   return `<div class="${vazio?"":"com-y"}">
     ${eixoY}
-    <div class="graf">
+    <div class="graf" ${vazio?"":`data-gid="${gid}"`}>
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="height:${H}px" role="img">
         <line x1="0" y1="${H-20}" x2="${W}" y2="${H-20}" stroke="${cor("--linha")}" stroke-width="1"/>${vazio?"":barras}</svg>
+      ${overlay}
       ${vazio?`<div class="graf-vazio">${t("vazio.grafico")}</div>`:""}
     </div>
     ${vazio?"":`<div class="graf-x"><span>${curto(dias[0])}</span><span>${t("dia.hoje")}</span></div>`}</div>`;
@@ -841,24 +900,37 @@ function grafRosca(pares, centroR, centroV){
   if(!pares.length) return `<div class="graf" style="height:130px"><div class="graf-vazio">${t("vazio.categorias")}</div></div>`;
   const total = pares.reduce((s,[,v])=>s+v,0), R=64, C=2*Math.PI*R;
   const paleta = [cor("--laranja"), cor("--ambar"), cor("--verde"), cor("--azul"), cor("--violeta"), "#EC4899", "#14B8A6", cor("--txt3")];
+  const gid = "gf" + (++grafSeq);
+
+  GRAFS[gid] = {
+    tipo: "rosca",
+    itens: pares.map(([c,v],i)=>({ nome: rotCat(c), valor: v,
+      pct: Math.round(v/total*100), cor: paleta[i%paleta.length] }))
+  };
+
   let off=0;
   const arcos = pares.map(([c,v],i)=>{
     const len=(v/total)*C;
-    const el=`<circle cx="90" cy="90" r="${R}" fill="none" stroke="${paleta[i%paleta.length]}" stroke-width="20"
+    const el=`<circle data-i="${i}" cx="90" cy="90" r="${R}" fill="none" stroke="${paleta[i%paleta.length]}" stroke-width="20"
       stroke-dasharray="${Math.max(len-2,.5).toFixed(2)} ${(C-len+2).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 90 90)"/>`;
     off+=len; return el;
   }).join("");
+
   const leg = pares.slice(0,7).map(([c,v],i)=>
-    `<div style="display:flex;align-items:center;gap:12px;padding:9px 0;font-size:14.5px">
+    `<div class="rosca-l" data-i="${i}">
       <i class="pt" style="background:${paleta[i%paleta.length]}"></i>
-      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" class="t2">${esc(rotCat(c))}</span>
+      <span class="nm t2">${esc(rotCat(c))}</span>
       <b class="num">${Math.round(v/total*100)}%</b>
-      <span class="t3 num" style="width:86px;text-align:right">${din0(v)}</span></div>`).join("");
-  return `<div style="display:flex;gap:32px;align-items:center;flex-wrap:wrap">
-    <svg viewBox="0 0 180 180" style="width:180px;height:180px;flex:none" role="img">${arcos}
-      <text x="90" y="84" text-anchor="middle" font-size="11" fill="${cor("--txt3")}" font-family="Inter">${esc(centroR)}</text>
-      <text x="90" y="107" text-anchor="middle" font-size="22" font-weight="700" fill="${cor("--txt")}" font-family="Inter">${esc(centroV)}</text></svg>
-    <div style="flex:1;min-width:250px">${leg}</div></div>`;
+      <span class="t3 num vl">${din0(v)}</span></div>`).join("");
+
+  return `<div class="graf rosca-wrap" data-gid="${gid}">
+    <div style="display:flex;gap:32px;align-items:center;flex-wrap:wrap">
+      <svg class="rosca-svg" viewBox="0 0 180 180" style="width:180px;height:180px;flex:none" role="img">${arcos}
+        <text x="90" y="84" text-anchor="middle" font-size="11" fill="${cor("--txt3")}" font-family="Inter">${esc(centroR)}</text>
+        <text x="90" y="107" text-anchor="middle" font-size="22" font-weight="700" fill="${cor("--txt")}" font-family="Inter">${esc(centroV)}</text></svg>
+      <div class="rosca-leg">${leg}</div>
+    </div>
+    <div class="gtip"></div></div>`;
 }
 
 /* ================= BLOCOS ================= */
