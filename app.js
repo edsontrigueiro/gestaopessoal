@@ -710,6 +710,11 @@ function caminhoSuave(pts, tn=0.32){
   }
   return d;
 }
+/* Um registro por grafico. render() troca o innerHTML inteiro, mas o listener
+   e delegado no document, entao nada precisa ser religado depois. */
+const GRAFS = {};
+let grafSeq = 0;
+
 function grafArea(series, rotulos, alt){
   const vazioAntes = !series.flatMap(s=>s.dados).some(v=>v!==0);
   const W=1000, H=vazioAntes ? 120 : (alt||280), pt=14, pb=8;
@@ -719,33 +724,98 @@ function grafArea(series, rotulos, alt){
   const px = i => (i/Math.max(n-1,1))*W;
   const py = v => pt + (1-(v-vMin)/amp)*(H-pt-pb);
   const temDado = todos.some(v=>v!==0);
+  const gid = "gf" + (++grafSeq);
+
+  GRAFS[gid] = {
+    rot: rotulos,
+    ser: series.map(s=>({ nome: s.nome || "", cor: s.cor, dados: s.dados })),
+    xp: i => (i/Math.max(n-1,1))*100,
+    yp: v => (py(v)/H)*100
+  };
+
   const grades = [0,.25,.5,.75,1].map(f=>{
     const y = pt + f*(H-pt-pb);
     return `<line x1="0" y1="${y.toFixed(1)}" x2="${W}" y2="${y.toFixed(1)}" stroke="${cor("--linha")}" stroke-width="1" ${f<1?'stroke-dasharray="3 6"':""}/>`;
   }).join("");
+
   const camadas = series.map((s,k)=>{
     const pts = s.dados.map((v,i)=>[px(i), py(v)]);
-    const d = caminhoSuave(pts);
+    /* com 3 pontos ou menos a spline desenha curva onde nao existe dado */
+    const d = pts.length > 3
+      ? caminhoSuave(pts)
+      : pts.map((p,i)=>`${i?"L":"M"} ${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(" ");
     const base = py(Math.max(vMin,0));
-    return `<defs><linearGradient id="gr${k}" x1="0" y1="0" x2="0" y2="1">
+    /* o id do gradiente precisa do gid: com dois graficos na mesma tela os
+       ids colidiam e o segundo pintava com a cor do primeiro */
+    return `<defs><linearGradient id="${gid}g${k}" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="${s.cor}" stop-opacity=".30"/>
         <stop offset="100%" stop-color="${s.cor}" stop-opacity="0"/></linearGradient></defs>
-      <path d="${d} L ${px(n-1).toFixed(2)} ${base.toFixed(2)} L 0 ${base.toFixed(2)} Z" fill="url(#gr${k})"/>
+      <path d="${d} L ${px(n-1).toFixed(2)} ${base.toFixed(2)} L 0 ${base.toFixed(2)} Z" fill="url(#${gid}g${k})"/>
       <path d="${d}" fill="none" stroke="${s.cor}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
   }).join("");
+
   const passo = Math.max(1, Math.ceil(n/7));
   const eixoX = rotulos.map((r,i)=> (i%passo===0 || i===n-1) ? `<span>${esc(r)}</span>` : "").filter(Boolean).join("");
   const eixoY = temDado
     ? `<div class="eixo-y"><span>${din0(vMax)}</span><span>${din0(vMin+amp*.5)}</span><span>${din0(vMin)}</span></div>`
     : "";
+  const overlay = temDado
+    ? `<div class="graf-ov"><div class="gcross"></div>${series.map(s=>`<div class="gdot" style="background:${s.cor}"></div>`).join("")}</div><div class="gtip"></div>`
+    : "";
+
   return `<div class="${temDado?"com-y":""}">
     ${eixoY}
-    <div class="graf">
+    <div class="graf" ${temDado?`data-gid="${gid}"`:""}>
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="height:${H}px" role="img">${grades}${temDado?camadas:""}</svg>
+      ${overlay}
       ${!temDado?`<div class="graf-vazio">${t("vazio.grafico")}</div>`:""}
     </div>
     ${temDado?`<div class="graf-x">${eixoX}</div>`:""}</div>`;
 }
+
+/* Tooltip dos graficos: um listener so, delegado no document.
+   Funciona com mouse e com o dedo (pointer events cobrem os dois). */
+let grafAtivo = null;
+function limparGraf(){
+  if(grafAtivo){ grafAtivo.classList.remove("ativo"); grafAtivo = null; }
+}
+function moverGraf(e){
+  const alvo = e.target && e.target.closest ? e.target.closest(".graf[data-gid]") : null;
+  if(!alvo){ limparGraf(); return; }
+  const g = GRAFS[alvo.dataset.gid]; if(!g || !g.rot.length) return;
+
+  const r = alvo.getBoundingClientRect();
+  const f = Math.min(1, Math.max(0, (e.clientX - r.left) / (r.width || 1)));
+  const i = Math.round(f * Math.max(g.rot.length - 1, 0));
+
+  if(grafAtivo && grafAtivo !== alvo) limparGraf();
+  alvo.classList.add("ativo"); grafAtivo = alvo;
+
+  const xp = g.xp(i);
+  const cruz = alvo.querySelector(".gcross");
+  if(cruz) cruz.style.left = xp + "%";
+
+  alvo.querySelectorAll(".gdot").forEach((d,k)=>{
+    const v = g.ser[k] ? g.ser[k].dados[i] : null;
+    if(v == null){ d.style.display = "none"; return; }
+    d.style.display = ""; d.style.left = xp + "%"; d.style.top = g.yp(v) + "%";
+  });
+
+  const bal = alvo.querySelector(".gtip"); if(!bal) return;
+  bal.innerHTML = `<div class="gtip-t">${esc(g.rot[i] || "")}</div>` +
+    g.ser.map(s=>`<div class="gtip-l"><i style="background:${s.cor}"></i><span>${esc(s.nome || "")}</span><b>${din(s.dados[i] || 0)}</b></div>`).join("");
+
+  /* nao deixa o balao sair do cartao */
+  const larg = bal.offsetWidth || 160;
+  let left = (xp/100) * r.width + 14;
+  if(left + larg > r.width) left = (xp/100) * r.width - larg - 14;
+  bal.style.left = Math.max(4, left) + "px";
+  bal.style.top  = "8px";
+}
+document.addEventListener("pointermove", moverGraf, {passive:true});
+document.addEventListener("pointerdown", moverGraf, {passive:true});
+document.addEventListener("pointercancel", limparGraf, {passive:true});
+window.addEventListener("scroll", limparGraf, {passive:true});
 function grafBarras(dias, ins, outs, alt){
   const vazio = !ins.some(v=>v>0) && !outs.some(v=>v>0);
   const W=1000, H=vazio ? 120 : (alt||250), l=W/Math.max(dias.length,1);
@@ -994,7 +1064,7 @@ function vPainel(){
   <div class="card pad" style="--d:60ms">
     ${secH(t("sec.evolucao"), t("sec.evolucao.sub"),
       `<div class="legenda"><span><i class="pt" style="background:${cor("--laranja")}"></i>${t("leg.disponivel")}</span></div>`)}
-    ${grafArea([{dados:serie.length?serie:[0], cor:cor("--laranja")}], rot.length?rot:["1"], 210)}
+    ${grafArea([{dados:serie.length?serie:[0], cor:cor("--laranja"), nome:t("kpi.saidas")}], rot.length?rot:["1"], 210)}
   </div>
   <div class="grade g21">
     <div class="card pad" style="--d:100ms">
@@ -1042,7 +1112,8 @@ function vFluxo(){
   <div class="card pad" style="margin-bottom:18px">
     ${secH(t("proj.titulo"), t("proj.sub"),
       `<div class="legenda"><span><i class="pt" style="background:${p.primeiroNegativo?cor("--vermelho"):cor("--verde")}"></i>${t("proj.previsto")}</span></div>`)}
-    ${grafArea([{ dados: p.linha.map(x=>x.saldo), cor: p.primeiroNegativo?cor("--vermelho"):cor("--verde") }],
+    ${grafArea([{ dados: p.linha.map(x=>x.saldo), nome: t("fech.saldo"),
+                  cor: p.primeiroNegativo?cor("--vermelho"):cor("--verde") }],
                p.linha.map(x=>curto(x.data)), 250)}
     <div class="faixa" style="grid-template-columns:repeat(3,1fr);margin-top:20px">
       <div><div class="r">${t("kpi.diasCobertos")}</div><div class="v">${p.cobertos}</div></div>
@@ -1060,7 +1131,9 @@ function vFluxo(){
         <span><i class="pt" style="background:${cor("--verde")}"></i>${t("leg.entradas")}</span>
         <span><i class="pt" style="background:${cor("--vermelho")}"></i>${t("leg.saidas")}</span>
         <span><i class="pt" style="background:${cor("--ambar")}"></i>${t("leg.investido")}</span></div>`)}
-    ${grafArea([{dados:acE,cor:cor("--verde")},{dados:acS,cor:cor("--vermelho")},{dados:acI,cor:cor("--ambar")}], dias.map(curto), 190)}
+    ${grafArea([{dados:acE,cor:cor("--verde"),nome:t("leg.entradas")},
+                {dados:acS,cor:cor("--vermelho"),nome:t("leg.saidas")},
+                {dados:acI,cor:cor("--ambar"),nome:t("leg.investido")}], dias.map(curto), 190)}
   </div>
   <div class="card pad" style="--d:60ms">
     ${secH(t("sec.fluxo"), t("sec.fluxo.sub"))}
@@ -1695,6 +1768,7 @@ function abrirLanc(data, tipo){
       <span class="moeda">${simb()}</span>
       <input id="valor" inputmode="decimal" autocomplete="off" placeholder="0,00"
              aria-label="${esc(t("form.valor"))}"></div>
+    <div class="mostra-dica">${esc(t("lanc.dica", null, "toque no valor para digitar com vírgula"))}</div>
     <div id="rl-data" class="rolo"></div>
     <div id="rl-cat" class="rolo"></div>
     <div class="dup" id="dp-nat" hidden>
