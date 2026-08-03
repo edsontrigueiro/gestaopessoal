@@ -105,7 +105,18 @@ const din0  = n => { const a=Math.abs(n);
           : a>=1000 ? (a/1000).toFixed(a>=10000?0:1).replace(".",",")+"k" : String(Math.round(a));
   return (n<0?"-":"") + simb() + " " + s; };
 const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const numBR = s => { const x=String(s).replace(/[^\d,.-]/g,"").replace(/\.(?=\d{3}\b)/g,"").replace(",","."); const n=parseFloat(x); return isFinite(n)?n:0; };
+/* Usada nos campos de conta, orçamento, meta e reserva.
+   Mesma regra do campo de lançamento: ponto ou vírgula, com milhar. */
+const numBR = v => {
+  let x = String(v == null ? "" : v).trim().replace(/[^\d.,-]/g, "");
+  if(!x) return 0;
+  const p = x.lastIndexOf("."), c = x.lastIndexOf(",");
+  if(p > -1 && c > -1)      x = c > p ? x.replace(/\./g,"").replace(",",".") : x.replace(/,/g,"");
+  else if(c > -1){ const d = x.length - c - 1; x = (d===1||d===2) ? x.replace(",",".") : x.replace(/,/g,""); }
+  else if(p > -1){ const d = x.length - p - 1; if(d===3 && x.replace(/\./g,"").length>3) x = x.replace(/\./g,""); }
+  const n = parseFloat(x);
+  return isFinite(n) ? n : 0;
+};
 const ext = (s,o) => new Date(s+"T00:00:00").toLocaleDateString(locale(), o||{weekday:"long",day:"2-digit",month:"long"});
 const curto = s => new Date(s+"T00:00:00").toLocaleDateString(locale(), {day:"2-digit",month:"2-digit"});
 const hm = h => h ? h.slice(0,5) : "";
@@ -1646,7 +1657,30 @@ const cabSheet = (ico,tit) => `<div class="sh-c"><span class="ic">${ico}</span><
   <button class="fechar" data-fechar>${ICO.x}</button></div>`;
 
 /* --- lançamento --- */
-const valorDig = () => dig ? parseInt(dig,10)/100 : 0;
+/* O valor agora vem de um campo de verdade.
+   Aceita "12,50", "12.50", "1.234,56" e "1,234.56".
+   O teclado da tela continua funcionando, alimentando o mesmo campo. */
+function lerValor(txt){
+  let v = String(txt == null ? (($("valor") && $("valor").value) || "") : txt).trim();
+  if(!v) return 0;
+  v = v.replace(/[^\d.,-]/g, "");
+  const ultPonto = v.lastIndexOf("."), ultVirg = v.lastIndexOf(",");
+  if(ultPonto > -1 && ultVirg > -1){
+    // o separador decimal é o que aparece por último; o outro é de milhar
+    if(ultVirg > ultPonto) v = v.replace(/\./g, "").replace(",", ".");
+    else                   v = v.replace(/,/g, "");
+  }else if(ultVirg > -1){
+    // só vírgula: decimal se sobrarem 1 ou 2 dígitos depois dela
+    const dep = v.length - ultVirg - 1;
+    v = (dep === 1 || dep === 2) ? v.replace(",", ".") : v.replace(/,/g, "");
+  }else if(ultPonto > -1){
+    const dep = v.length - ultPonto - 1;
+    if(dep === 3 && v.replace(/\./g,"").length > 3) v = v.replace(/\./g, "");  // 1.234 é milhar
+  }
+  const n = parseFloat(v);
+  return isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0;
+}
+const valorDig = () => lerValor();
 function abrirLanc(data, tipo){
   dig=""; catSel=null; tipoSel=tipo||"saida"; natSel="essencial";
   membroSel = (db.membros.find(m=>m.eh_voce)||db.membros[0]||{}).id||null;
@@ -1657,7 +1691,10 @@ function abrirLanc(data, tipo){
       <button data-t="saida">${t("lanc.saida")}</button>
       <button data-t="entrada">${t("lanc.entrada")}</button>
       <button data-t="investimento">${t("lanc.investir")}</button></div>
-    <div class="mostra"><div id="mostra" class="v zv"><small>${simb()}</small>0,00</div></div>
+    <div class="mostra zv" id="mostra">
+      <span class="moeda">${simb()}</span>
+      <input id="valor" inputmode="decimal" autocomplete="off" placeholder="0,00"
+             aria-label="${esc(t("form.valor"))}"></div>
     <div id="rl-data" class="rolo"></div>
     <div id="rl-cat" class="rolo"></div>
     <div class="dup" id="dp-nat" hidden>
@@ -1678,16 +1715,44 @@ function abrirLanc(data, tipo){
   $$("#dp-tipo button").forEach(b=>b.onclick=()=>{ tipoSel=b.dataset.t; vibra(); pintaTipo(); pintaCat(); pintaNat(); pintaMembro(); pintaEspelho(); pintaValor(); });
   $$("#dp-nat button").forEach(b=>b.onclick=()=>{ natSel=b.dataset.n; vibra(); pintaNat(); });
   $$(".tec button").forEach(b=>b.onclick=()=>tecla(b.dataset.k));
+
+  // teclado físico: digita direto, e Enter lança
+  const campo = $("valor");
+  campo.addEventListener("input", ()=>{
+    // mantém o teclado da tela em sincronia com o que foi digitado
+    const cent = Math.round(lerValor(campo.value) * 100);
+    dig = cent > 0 ? String(cent) : "";
+    pintaValor();
+  });
+  campo.addEventListener("keydown", e=>{
+    if(e.key === "Enter"){ e.preventDefault(); if(!$("bt-lancar").disabled) lancar(); }
+  });
+  campo.addEventListener("blur", ()=>{
+    const v = valorDig();
+    if(v > 0) campo.value = num(v);          // ao sair, mostra formatado
+  });
+  if(window.matchMedia("(min-width:1000px)").matches) setTimeout(()=>campo.focus(), 120);
   $("bt-lancar").onclick = lancar;
 }
 function pintaValor(){
-  const v=valorDig(), el=$("mostra"); if(!el) return;
-  el.innerHTML = `<small>${simb()}</small>${num(v)}`;
-  el.className = "v"+(v<=0?" zv":"");
-  el.style.color = v<=0?"":tipoSel==="entrada"?cor("--verde"):tipoSel==="investimento"?cor("--ambar"):cor("--vermelho");
-  const b=$("bt-lancar"); if(b){ b.disabled = v<=0||!catSel; b.style.opacity = b.disabled?".5":"1"; }
+  const v = valorDig(), caixa = $("mostra"), campo = $("valor");
+  if(!caixa || !campo) return;
+  caixa.classList.toggle("zv", v <= 0);
+  campo.style.color = v <= 0 ? "" :
+    tipoSel === "entrada" ? cor("--verde") :
+    tipoSel === "investimento" ? cor("--ambar") : cor("--vermelho");
+  const b = $("bt-lancar");
+  if(b){ b.disabled = v <= 0 || !catSel; b.style.opacity = b.disabled ? ".5" : "1"; }
 }
-function tecla(k){ if(k==="del") dig=dig.slice(0,-1); else if(dig.length<9) dig+=k; vibra(6); pintaValor(); }
+/* Teclado da tela: monta em centavos e escreve no mesmo campo,
+   para os dois caminhos nunca divergirem. */
+function tecla(k){
+  const campo = $("valor"); if(!campo) return;
+  if(k === "del") dig = dig.slice(0, -1);
+  else if(dig.length < 11) dig += k;
+  campo.value = dig ? num(parseInt(dig, 10) / 100) : "";
+  vibra(6); pintaValor();
+}
 function pintaTipo(){ $$("#dp-tipo button").forEach(b=>b.classList.toggle("on", b.dataset.t===tipoSel)); }
 function pintaData(){
   const h=hoje();
