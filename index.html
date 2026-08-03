@@ -53,6 +53,13 @@ body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--f);font-si
 h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:-.02em;line-height:1.2}
 button{font:inherit;color:inherit;cursor:pointer;border:none;background:none;font-family:var(--f)}
 input,select,textarea{font:inherit;color:inherit;font-family:var(--f)}
+/* iOS Safari da zoom em input com font-size < 16px ao receber foco.
+   Mexer no meta viewport nao resolve: user-scalable=no e maximum-scale
+   sao ignorados pelo Safari do iOS desde o iOS 10. */
+@media (max-width:1000px){
+  input,select,textarea,.campo,.fx,.busca input{font-size:16px}
+}
+button,.chip,.tec button,.trio button,.dup button,[data-acao]{touch-action:manipulation}
 ul{list-style:none;margin:0;padding:0}
 svg{display:block}
 [hidden]{display:none !important}
@@ -360,7 +367,20 @@ body.recolhido .side .lg{justify-content:center}
 .linha-b .n{font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .linha-b .v{font-size:14px;text-align:right;color:var(--txt2);font-variant-numeric:tabular-nums;white-space:nowrap}
 @media (max-width:600px){ .linha-b{grid-template-columns:1fr;gap:8px} .linha-b .v{text-align:left} }
-.graf{position:relative}
+.graf{position:relative;touch-action:pan-y}
+.graf-ov{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .12s}
+.graf.ativo .graf-ov{opacity:1}
+.gcross{position:absolute;top:0;bottom:0;width:1px;background:var(--txt3);opacity:.55}
+.gdot{position:absolute;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%);
+  border:2px solid var(--bg);box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.gtip{position:absolute;z-index:5;pointer-events:none;min-width:150px;max-width:230px;padding:10px 12px;
+  background:var(--card);border:1px solid var(--linha);border-radius:var(--r2);
+  box-shadow:0 10px 30px rgba(0,0,0,.35);font-size:12.5px;opacity:0;transition:opacity .12s}
+.graf.ativo .gtip{opacity:1}
+.gtip-t{font-weight:700;font-size:11.5px;color:var(--txt2);margin-bottom:7px;letter-spacing:.05em;text-transform:uppercase}
+.gtip-l{display:flex;align-items:center;gap:7px;margin-top:4px;white-space:nowrap}
+.gtip-l i{width:8px;height:8px;border-radius:50%;flex:none}
+.gtip-l b{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700}
 .graf svg{width:100%;display:block;overflow:visible}
 .graf-x{display:flex;justify-content:space-between;margin-top:10px;font-size:12px;color:var(--txt3);font-weight:500}
 .graf-vazio{position:absolute;inset:0;display:grid;place-items:center;padding:0 24px;text-align:center;
@@ -412,6 +432,9 @@ body.recolhido .side .lg{justify-content:center}
   line-height:1.05;background:none;border:none;outline:none;text-align:center;width:100%;max-width:340px;
   padding:0;color:var(--txt);font-family:var(--f);min-width:0}
 .mostra input::placeholder{color:var(--txt3)}
+.mostra input{border-bottom:2px dashed var(--linha);padding-bottom:4px;transition:border-color .18s,border-style .18s}
+.mostra input:focus{border-bottom-color:var(--laranja);border-bottom-style:solid}
+.mostra-dica{text-align:center;font-size:12px;color:var(--txt3);margin:-12px 0 16px}
 .mostra.zv input{color:var(--txt3)}
 .mostra input:focus{outline:none}
 .mostra input::-webkit-outer-spin-button,.mostra input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -514,7 +537,7 @@ body.recolhido .side .lg{justify-content:center}
   .zero{margin:18px;width:calc(100% - 36px);padding:34px 20px}
   .status{padding:22px 20px}
   .fab:not([hidden]){display:grid}
-  .com-y{padding-left:0} .eixo-y{display:none}
+  .com-y{padding-left:44px} .eixo-y{width:42px;font-size:10.5px}
   #bt-novo{display:none}
 }
 @media (max-width:1000px) and (prefers-reduced-motion:no-preference){ .side{transition:transform .3s var(--mola)} }
