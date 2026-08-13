@@ -391,6 +391,64 @@ async function criarConta(){
   aviso(data.session ? t("cad.contaCriada") : t("auth.confirme"), true);
 }
 
+/* ============================================================
+   ADMIN · CONTA SUSPENSA · CONFIGURAÇÃO DO SISTEMA
+   Quem decide se alguém é admin é o servidor (/api/admin).
+   O navegador só obedece à resposta.
+   ============================================================ */
+async function desviarSeAdmin(){
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session) return false;
+    const r = await fetch("/api/admin?acao=eu", {
+      headers:{ Authorization: "Bearer " + session.access_token } });
+    if(!r.ok) return false;
+    const j = await r.json();
+    if(j && j.admin){ location.replace("./admin.html"); return true; }
+  }catch(e){}
+  return false;
+}
+
+function telaSuspensa(){
+  $("auth").hidden = true; $("app").hidden = true;
+  const fab = $("fab"); if(fab) fab.hidden = true;
+  const d = document.createElement("div");
+  d.style.cssText = "position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:24px;background:var(--bg)";
+  d.innerHTML = '<div style="max-width:420px;text-align:center">'
+    + '<div style="width:46px;height:46px;margin:0 auto 16px;border-radius:12px;background:var(--laranja)"></div>'
+    + '<h2 style="font-size:19px;font-weight:600;margin-bottom:8px">Conta suspensa</h2>'
+    + '<p style="color:var(--txt2);font-size:14px;line-height:1.6">Seus dados estão salvos e intactos, mas esta conta '
+    + 'está temporariamente suspensa e não aceita novos lançamentos. Fale com o suporte para reativar.</p>'
+    + '<button id="susp-sair" style="margin-top:20px;background:none;border:1px solid var(--linha);color:var(--txt2);'
+    + 'border-radius:9px;padding:9px 18px;font:inherit;font-size:14px;cursor:pointer">Sair</button></div>';
+  document.body.appendChild(d);
+  const b = document.getElementById("susp-sair");
+  if(b) b.onclick = async ()=>{ try{ await sb.auth.signOut(); }catch(e){} location.reload(); };
+}
+
+async function aplicarConfigSistema(){
+  try{
+    const { data } = await sb.from("config_sistema").select("chave,valor");
+    if(!data) return;
+    const m = {}; data.forEach(r => { m[r.chave] = r.valor; });
+
+    const flags = m.flags || {};
+    Object.keys(flags).forEach(k => {
+      if(flags[k] === false)
+        document.querySelectorAll('[data-v="' + k + '"]').forEach(el => { el.style.display = "none"; });
+    });
+
+    const av = m.aviso || {};
+    if(av.ativo && av.texto){
+      const b = document.createElement("div");
+      b.style.cssText = "position:relative;z-index:40;background:var(--laranja);color:#0A0A0B;"
+        + "font-size:13.5px;font-weight:500;padding:9px 16px;text-align:center";
+      b.textContent = av.texto;
+      document.body.insertBefore(b, document.body.firstChild);
+    }
+  }catch(e){}
+}
+
 async function entrar(){
   $("auth").hidden = true;
   $("app").hidden = false;
@@ -399,6 +457,10 @@ async function entrar(){
     const { data:p } = await sb.from("perfil").select("*").eq("user_id", user.id).maybeSingle();
     perfil = p || null;
   }
+
+  if(await desviarSeAdmin()) return;                 // admin não vê o painel do usuário
+  if(perfil && perfil.ativo === false){ telaSuspensa(); return; }
+  aplicarConfigSistema();
   const bruto = (perfil && perfil.nome_completo)
     || (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name))
     || (user.email||"").split("@")[0];
