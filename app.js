@@ -1,5 +1,5 @@
 // ============================================================
-//  NEXVOT — Gestão Inteligente · app.js (v12)
+//  ZORVEL — Gestão Inteligente · app.js (v12)
 //  Requer: schema.sql → schema2 → schema3 → schema4 → schema5
 //  e i18n.js carregado antes deste arquivo.
 // ============================================================
@@ -13,7 +13,7 @@ const $$ = s  => Array.from(document.querySelectorAll(s));
 function fatal(msg){
   const el = $("splash-txt");
   if(el){ el.className = "st erro"; el.textContent = msg; }
-  console.error("[NexVot]", msg);
+  console.error("[Zorvel]", msg);
 }
 
 /* ================= IDIOMA ================= */
@@ -44,7 +44,7 @@ function aplicarTextos(){
 }
 async function trocarIdioma(l){
   idioma = l;
-  try{ localStorage.setItem("nexvot:idioma", l); }catch(e){}
+  try{ localStorage.setItem("zorvel:idioma", l); }catch(e){}
   aplicarTextos();
   if(user && sb) sb.from("perfil").upsert({ user_id:user.id, idioma:l, atualizado:new Date().toISOString() }).then(()=>{});
   if(!$("app").hidden) render();
@@ -151,7 +151,7 @@ function aplicarTema(pref, salvar){
   temaPref = pref;
   const real = resolverTema();
   document.documentElement.dataset.tema = real;
-  try{ localStorage.setItem("nexvot:tema", pref); }catch(e){}
+  try{ localStorage.setItem("zorvel:tema", pref); }catch(e){}
   const meta = document.querySelector('meta[name="theme-color"]');
   if(meta) meta.setAttribute("content", real==="escuro" ? "#0A0A0B" : "#F7F8FA");
   const ic = $("ic-tema");
@@ -175,7 +175,7 @@ async function boot(){
   if(!window.CONFIG)
     return fatal("O config.js não carregou. Confira se o arquivo está na raiz do repositório.");
 
-  try{ idioma = localStorage.getItem("nexvot:idioma") || (navigator.language||"pt").slice(0,2); }catch(e){}
+  try{ idioma = localStorage.getItem("zorvel:idioma") || (navigator.language||"pt").slice(0,2); }catch(e){}
   if(!["pt","en","es"].includes(idioma)) idioma = "pt";
   aplicarTextos();
 
@@ -195,7 +195,7 @@ async function boot(){
   }catch(e){ return fatal("Não consegui falar com o Supabase ("+e.message+")."); }
 
   let prefSalva = "escuro";
-  try{ prefSalva = localStorage.getItem("nexvot:tema") || "escuro"; }catch(e){}
+  try{ prefSalva = localStorage.getItem("zorvel:tema") || "escuro"; }catch(e){}
   aplicarTema(prefSalva, false);
   $("splash").hidden = true;
   if(ehRetornoDeSenha()){ telaAuth(); return; }
@@ -410,7 +410,7 @@ async function entrar(){
   $("pop-email").textContent = user.email || "";
   selDia = hoje(); rtDia = hoje(); dataAlvo = hoje();
   calRef = { a:+selDia.slice(0,4), m:+selDia.slice(5,7) };
-  try{ espaco = localStorage.getItem("nexvot:espaco") || "pessoal"; }catch(e){}
+  try{ espaco = localStorage.getItem("zorvel:espaco") || "pessoal"; }catch(e){}
   // A sessão pode cair com o app aberto, ou o usuário sair em outra aba.
   sb.auth.onAuthStateChange((evento, ses)=>{
     if(evento === "SIGNED_OUT" || (!ses && evento !== "INITIAL_SESSION")){
@@ -2354,7 +2354,7 @@ function checarLembretes(){
       avisados.add(e.id);
       toast(`${e.titulo} · ${hm(e.hora)}`);
       try{ if("Notification" in window && Notification.permission==="granted")
-        new Notification("NexVot", { body:`${e.titulo} — ${hm(e.hora)}` }); }catch(x){}
+        new Notification("Zorvel", { body:`${e.titulo} — ${hm(e.hora)}` }); }catch(x){}
       vibra(30);
     }
   });
@@ -2366,7 +2366,7 @@ function ligar(){
   $$("#seg-espaco button").forEach(b => b.onclick = ()=>{
     if(espaco===b.dataset.e) return;
     espaco = b.dataset.e;
-    try{ localStorage.setItem("nexvot:espaco", espaco); }catch(e){}
+    try{ localStorage.setItem("zorvel:espaco", espaco); }catch(e){}
     vibra(10); render();
   });
   $$("#seg-periodo button").forEach(b => b.onclick = ()=>{ periodo=b.dataset.p; vibra(6); render(); });
@@ -2385,7 +2385,7 @@ function ligar(){
   $("bt-sair").onclick = async ()=>{ await sb.auth.signOut(); location.reload(); };
   $("bt-recolher").onclick = ()=>{
     document.body.classList.toggle("recolhido");
-    try{ localStorage.setItem("nexvot:recolhido", document.body.classList.contains("recolhido")?"1":"0"); }catch(e){}
+    try{ localStorage.setItem("zorvel:recolhido", document.body.classList.contains("recolhido")?"1":"0"); }catch(e){}
   };
   $("veu").onclick = fecharSheet;
   $("busca").addEventListener("input", e=>{
@@ -2428,7 +2428,7 @@ function ligarDelegacao(){
       else if(a==="abrir-hoje") abrirDia(hoje());
       else if(a==="pular-inicio"){ pulouInicio = true; render(); }
       else if(a==="nova-transf"){
-        if(espaco!=="empresa"){ espaco="empresa"; try{ localStorage.setItem("nexvot:espaco","empresa"); }catch(x){} }
+        if(espaco!=="empresa"){ espaco="empresa"; try{ localStorage.setItem("zorvel:espaco","empresa"); }catch(x){} }
         abrirLanc(hoje());
       }
       else if(focos[a]){
@@ -2611,7 +2611,7 @@ function ligarTela(){
   add("bt-backup", ()=>{
     const a=document.createElement("a");
     a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:"application/json"}));
-    a.download=`nexvot-${hoje()}.json`; a.click();
+    a.download=`zorvel-${hoje()}.json`; a.click();
   });
   add("bt-sair2", async ()=>{ await sb.auth.signOut(); location.reload(); });
   add("bt-pdf", ()=>{ toast(t("exp.dica")); setTimeout(()=>window.print(), 500); });
