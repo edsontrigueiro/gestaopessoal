@@ -1,5 +1,5 @@
 // ============================================================
-//  NEXVOT — helpers das funções de servidor
+//  ZORVEL — helpers das funções de servidor
 //  Nada aqui vai para o navegador. As chaves ficam só na Vercel.
 // ============================================================
 import Stripe from "stripe";
