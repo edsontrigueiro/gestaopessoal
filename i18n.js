@@ -1,5 +1,5 @@
 // ============================================================
-//  NEXVOT — i18n
+//  ZORVEL — i18n
 //  Três idiomas. A chave é sempre em português enxuto.
 //  Uso: t("painel.titulo")  ·  t("msg.lancado", {v:"R$ 10"})
 // ============================================================
@@ -7,7 +7,7 @@ window.I18N = {
 
 pt: {
   "idioma.nome": "Português",
-  "app.nome": "NexVot", "app.sub": "Gestão Inteligente",
+  "app.nome": "Zorvel", "app.sub": "Gestão Inteligente",
 
   "nav.recentes": "Recentes", "nav.principal": "Principal",
   "nav.dinheiro": "Dinheiro", "nav.rotina": "Rotina", "nav.sistema": "Sistema",
@@ -364,7 +364,7 @@ pt: {
 
 en: {
   "idioma.nome": "English",
-  "app.nome": "NexVot", "app.sub": "Smart Management",
+  "app.nome": "Zorvel", "app.sub": "Smart Management",
 
   "nav.recentes": "Recent", "nav.principal": "Main",
   "nav.dinheiro": "Money", "nav.rotina": "Routine", "nav.sistema": "System",
@@ -721,7 +721,7 @@ en: {
 
 es: {
   "idioma.nome": "Español",
-  "app.nome": "NexVot", "app.sub": "Gestión Inteligente",
+  "app.nome": "Zorvel", "app.sub": "Gestión Inteligente",
 
   "nav.recentes": "Recientes", "nav.principal": "Principal",
   "nav.dinheiro": "Dinero", "nav.rotina": "Rutina", "nav.sistema": "Sistema",
