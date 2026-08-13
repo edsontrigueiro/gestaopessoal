@@ -112,20 +112,31 @@ async function usuarios(sb){
 
 // ============================================================
 export default async function handler(req, res){
-  if(!mesmaOrigem(req)) return json(res, 403, { erro: "origem não permitida" });
-
-  const user = await usuarioDoToken(req);
-  if(!user)        return json(res, 401, { erro: "sem sessão" });
-  if(!ehAdmin(user)) return json(res, 403, { erro: "não autorizado" });
-
-  const sb = supabaseServico();
-
   try{
+    if(!mesmaOrigem(req)) return json(res, 403, { erro: "origem não permitida" });
+
+    /* Configuração antes de tudo: sem isso a função morre sem explicar nada. */
+    if(!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY)
+      return json(res, 500, { erro: "faltam SUPABASE_URL e/ou SUPABASE_SERVICE_KEY nas variáveis de ambiente da Vercel" });
+    if(!process.env.ADMIN_IDS)
+      return json(res, 500, { erro: "falta ADMIN_IDS nas variáveis de ambiente da Vercel" });
+
+    const user = await usuarioDoToken(req);
+    if(!user)          return json(res, 401, { erro: "sem sessão" });
+    if(!ehAdmin(user)) return json(res, 403, { erro: "não autorizado" });
+
+    const sb = supabaseServico();
+
+    /* req.query nem sempre existe dependendo do runtime; caímos na URL. */
+    const params = (req.query && Object.keys(req.query).length)
+      ? req.query
+      : Object.fromEntries(new URL(req.url, "http://x").searchParams);
+
     if(req.method === "GET"){
-      const acao = String(req.query.acao || "");
+      const acao = String(params.acao || "");
 
       if(acao === "eu")      return json(res, 200, { admin: true, email: user.email });
-      if(acao === "resumo")  return json(res, 200, await resumo(sb, String(req.query.mes || mesAtual())));
+      if(acao === "resumo")  return json(res, 200, await resumo(sb, String(params.mes || mesAtual())));
       if(acao === "usuarios")return json(res, 200, { usuarios: await usuarios(sb) });
       if(acao === "config"){
         const cfg = await lerConfig(sb);
