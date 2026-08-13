@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="escuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0A0A0B">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23FF5E04'/><path d='M9.6 9.92 H22.4 L9.6 22.08 H22.4' fill='none' stroke='%230A0A0B' stroke-width='3.9'/></svg>">
+<title>Zorvel · Administração</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A0A0B; --side:#0C0C0E; --card:#141417; --card2:#1A1A1E;
+  --linha:#232328; --txt:#FAFAFA; --txt2:#A1A1AA; --txt3:#71717A;
+  --laranja:#FF5E04; --verde:#22C55E; --ambar:#F59E0B; --vermelho:#EF4444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--txt);
+     -webkit-font-smoothing:antialiased;line-height:1.5}
+.mk{width:38px;height:38px;flex:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='23' fill='%23FF5E04'/%3E%3Cpath d='M30 31 H70 L30 69 H70' fill='none' stroke='%230C0C0E' stroke-width='12'/%3E%3C/svg%3E");background-size:contain;background-repeat:no-repeat}
+
+/* ---------- login ---------- */
+.entrada{min-height:100vh;display:grid;place-items:center;padding:24px}
+.caixa{width:100%;max-width:360px;background:var(--card);border:1px solid var(--linha);
+       border-radius:16px;padding:26px}
+.caixa .topo{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+.caixa h1{font-size:18px;font-weight:600;letter-spacing:-.02em}
+.caixa .sub{color:var(--txt2);font-size:13px;margin-bottom:20px}
+label{display:block;font-size:12.5px;color:var(--txt2);margin:12px 0 5px}
+input,select,textarea{width:100%;background:#0F0F12;border:1px solid var(--linha);color:var(--txt);
+  border-radius:9px;padding:10px 12px;font:inherit;font-size:14px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--laranja);outline-offset:-1px;border-color:transparent}
+.bt{width:100%;margin-top:18px;background:var(--laranja);color:#0A0A0B;border:0;border-radius:9px;
+    padding:11px;font:inherit;font-weight:600;font-size:14px;cursor:pointer}
+.bt:disabled{opacity:.5;cursor:default}
+.erro{color:var(--vermelho);font-size:13px;margin-top:12px;min-height:18px}
+
+/* ---------- painel ---------- */
+.painel{display:none;min-height:100vh}
+.barra{display:flex;align-items:center;gap:12px;padding:14px 22px;border-bottom:1px solid var(--linha);
+       background:var(--side);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+.barra h1{font-size:15px;font-weight:600}
+.barra .tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--laranja);
+            border:1px solid var(--laranja);border-radius:5px;padding:1px 6px}
+.barra .dir{margin-left:auto;display:flex;align-items:center;gap:10px}
+.barra .quem{font-size:13px;color:var(--txt2)}
+.link{background:none;border:1px solid var(--linha);color:var(--txt2);border-radius:8px;
+      padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}
+.link:hover{color:var(--txt);border-color:var(--txt3)}
+
+.abas{display:flex;gap:4px;padding:14px 22px 0;flex-wrap:wrap}
+.aba{background:none;border:0;color:var(--txt2);font:inherit;font-size:14px;padding:8px 14px;
+     border-radius:8px;cursor:pointer}
+.aba.on{background:var(--card2);color:var(--txt);font-weight:500}
+main{padding:18px 22px 60px;max-width:1180px}
+section[hidden]{display:none}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(184px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--linha);border-radius:12px;padding:15px 16px}
+.kpi .r{font-size:12px;color:var(--txt2)}
+.kpi .v{font-size:24px;font-weight:600;letter-spacing:-.03em;margin-top:6px;font-variant-numeric:tabular-nums}
+.kpi .p{font-size:12px;color:var(--txt3);margin-top:4px}
+.v.laranja{color:var(--laranja)} .v.verde{color:var(--verde)} .v.vermelho{color:var(--vermelho)}
+
+.bloco{background:var(--card);border:1px solid var(--linha);border-radius:12px;padding:18px;margin-bottom:14px}
+.bloco h2{font-size:14px;font-weight:600;margin-bottom:3px}
+.bloco .ajuda{font-size:12.5px;color:var(--txt2);margin-bottom:14px}
+
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--txt3);
+   font-weight:500;padding:0 10px 9px;border-bottom:1px solid var(--linha);white-space:nowrap}
+td{padding:11px 10px;border-bottom:1px solid var(--linha);font-size:13.5px;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums}
+.selo{font-size:11px;padding:2px 8px;border-radius:20px;display:inline-block;white-space:nowrap;border:1px solid}
+.selo.ativa{color:var(--verde);border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.10)}
+.selo.atraso{color:var(--ambar);border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.10)}
+.selo.off{color:var(--txt3);border-color:var(--linha)}
+.selo.susp{color:var(--vermelho);border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.10)}
+.acao{background:none;border:1px solid var(--linha);color:var(--txt2);border-radius:7px;
+      padding:5px 10px;font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.acao:hover{color:var(--txt);border-color:var(--txt3)}
+.acao.perigo:hover{color:var(--vermelho);border-color:var(--vermelho)}
+.rolar{overflow-x:auto}
+
+.linha2{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.salvar{margin-top:14px;background:var(--laranja);color:#0A0A0B;border:0;border-radius:8px;
+        padding:9px 18px;font:inherit;font-weight:600;font-size:13.5px;cursor:pointer}
+.flags{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px}
+.flag{display:flex;align-items:center;gap:9px;background:var(--card2);border:1px solid var(--linha);
+      border-radius:9px;padding:10px 12px;font-size:13.5px;cursor:pointer}
+.flag input{width:auto}
+.aviso{margin:0 22px 4px;padding:10px 14px;border-radius:9px;font-size:13px;display:none}
+.aviso.ok{background:rgba(34,197,94,.12);color:var(--verde);display:block}
+.aviso.ruim{background:rgba(239,68,68,.12);color:var(--vermelho);display:block}
+.vazio{color:var(--txt3);font-size:13px;padding:18px 0;text-align:center}
+@media(max-width:640px){ main,.abas,.barra{padding-left:14px;padding-right:14px} }
+</style>
+</head>
+<body>
+
+<!-- ---------------- LOGIN ---------------- -->
+<div class="entrada" id="entrada">
+  <div class="caixa">
+    <div class="topo"><span class="mk"></span><h1>Zorvel</h1></div>
+    <p class="sub">Área de administração</p>
+    <label for="email">E-mail</label>
+    <input id="email" type="email" autocomplete="username" inputmode="email">
+    <label for="senha">Senha</label>
+    <input id="senha" type="password" autocomplete="current-password">
+    <button class="bt" id="bt-entrar">Entrar</button>
+    <p class="erro" id="erro"></p>
+  </div>
+</div>
+
+<!-- ---------------- PAINEL ---------------- -->
+<div class="painel" id="painel">
+  <div class="barra">
+    <span class="mk" style="width:30px;height:30px"></span>
+    <h1>Zorvel</h1><span class="tag">admin</span>
+    <div class="dir">
+      <span class="quem" id="quem"></span>
+      <button class="link" id="bt-app">Ver o app</button>
+      <button class="link" id="bt-sair">Sair</button>
+    </div>
+  </div>
+
+  <div class="abas">
+    <button class="aba on" data-aba="visao">Visão geral</button>
+    <button class="aba" data-aba="usuarios">Usuários</button>
+    <button class="aba" data-aba="sistema">Sistema</button>
+  </div>
+  <div class="aviso" id="flash"></div>
+
+  <main>
+    <!-- VISÃO GERAL -->
+    <section id="s-visao">
+      <div class="kpis" id="kpis"></div>
+      <div class="bloco">
+        <h2>Assinaturas</h2>
+        <p class="ajuda">Números vindos da tabela <code>assinaturas</code>, alimentada pelo webhook do Stripe.</p>
+        <div class="rolar"><table id="t-ass"></table></div>
+      </div>
+    </section>
+
+    <!-- USUÁRIOS -->
+    <section id="s-usuarios" hidden>
+      <div class="bloco">
+        <h2>Usuários</h2>
+        <p class="ajuda">Suspender mantém os dados e bloqueia qualquer gravação no banco. O usuário entra e vê o aviso.</p>
+        <input id="filtro" placeholder="Filtrar por nome ou e-mail" style="max-width:340px;margin-bottom:14px">
+        <div class="rolar"><table id="t-users"></table></div>
+      </div>
+    </section>
+
+    <!-- SISTEMA -->
+    <section id="s-sistema" hidden>
+      <div class="bloco">
+        <h2>Planos e limites</h2>
+        <p class="ajuda">O preço aqui é o que alimenta o cálculo de faturamento. Alterar não mexe no Stripe — mude lá também.</p>
+        <div class="linha2">
+          <div><label for="p-mensal">Mensal (R$)</label><input id="p-mensal" type="number" step="0.01"></div>
+          <div><label for="p-anual">Anual (R$)</label><input id="p-anual" type="number" step="0.01"></div>
+          <div><label for="p-lanc">Limite grátis · lançamentos</label><input id="p-lanc" type="number"></div>
+          <div><label for="p-metas">Limite grátis · metas</label><input id="p-metas" type="number"></div>
+        </div>
+        <button class="salvar" id="sv-planos">Salvar planos</button>
+      </div>
+
+      <div class="bloco">
+        <h2>Investimento do mês</h2>
+        <p class="ajuda">Quanto você gastou para adquirir clientes. É o divisor do ROI.</p>
+        <div class="linha2">
+          <div><label for="i-mes">Mês</label><input id="i-mes" type="month"></div>
+          <div><label for="i-valor">Valor (R$)</label><input id="i-valor" type="number" step="0.01"></div>
+          <div><label for="i-nota">Nota</label><input id="i-nota" placeholder="ex.: Meta Ads + indicações"></div>
+        </div>
+        <button class="salvar" id="sv-inv">Salvar investimento</button>
+        <div class="rolar" style="margin-top:16px"><table id="t-inv"></table></div>
+      </div>
+
+      <div class="bloco">
+        <h2>Aviso global</h2>
+        <p class="ajuda">Aparece no topo do app para todos os usuários. Use para manutenção ou comunicado.</p>
+        <label class="flag" style="max-width:220px"><input id="a-ativo" type="checkbox"> Aviso ligado</label>
+        <label for="a-texto">Texto</label>
+        <textarea id="a-texto" rows="2" placeholder="Manutenção programada domingo às 22h."></textarea>
+        <button class="salvar" id="sv-aviso">Salvar aviso</button>
+      </div>
+
+      <div class="bloco">
+        <h2>Funcionalidades</h2>
+        <p class="ajuda">Desmarcar esconde o módulo do menu de todos os usuários. É controle de vitrine, não de segurança.</p>
+        <div class="flags" id="flags"></div>
+        <button class="salvar" id="sv-flags">Salvar funcionalidades</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="./config.js"></script>
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const $ = id => document.getElementById(id);
+const brl = n => (Number(n)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const dia = s => s ? new Date(s).toLocaleDateString("pt-BR") : "—";
+const mesAtual = () => new Date().toISOString().slice(0,7);
+
+const sb = createClient(window.CONFIG.SUPABASE_URL, window.CONFIG.SUPABASE_ANON_KEY);
+let usuarios = [];
+
+function flash(msg, ok=true){
+  const el = $("flash");
+  el.textContent = msg; el.className = "aviso " + (ok ? "ok" : "ruim");
+  setTimeout(()=>{ el.className = "aviso"; }, 3200);
+}
+
+/* Toda chamada ao servidor leva o token. O servidor decide se é admin. */
+async function api(caminho, opcoes={}){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(!session) throw new Error("sessão expirada");
+  const r = await fetch("/api/admin" + caminho, {
+    ...opcoes,
+    headers: { "Content-Type":"application/json",
+               Authorization: "Bearer " + session.access_token, ...(opcoes.headers||{}) }
+  });
+  const j = await r.json().catch(()=> ({}));
+  if(!r.ok) throw new Error(j.erro || ("erro " + r.status));
+  return j;
+}
+
+/* ---------------- entrar ---------------- */
+$("bt-entrar").onclick = async () => {
+  $("erro").textContent = ""; $("bt-entrar").disabled = true;
+  try{
+    const { error } = await sb.auth.signInWithPassword({
+      email: $("email").value.trim(), password: $("senha").value });
+    if(error) throw new Error("E-mail ou senha incorretos.");
+    await abrir();
+  }catch(e){ $("erro").textContent = e.message; }
+  $("bt-entrar").disabled = false;
+};
+$("senha").addEventListener("keydown", e => { if(e.key === "Enter") $("bt-entrar").click(); });
+
+async function abrir(){
+  let eu;
+  try{ eu = await api("?acao=eu"); }
+  catch(e){
+    await sb.auth.signOut();
+    $("erro").textContent = "Esta conta não é administradora.";
+    return;
+  }
+  $("quem").textContent = eu.email || "";
+  $("entrada").style.display = "none";
+  $("painel").style.display = "block";
+  await Promise.all([carregarVisao(), carregarUsuarios(), carregarSistema()]);
+}
+
+$("bt-sair").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+$("bt-app").onclick = () => { location.href = "./"; };
+
+/* ---------------- abas ---------------- */
+document.querySelectorAll(".aba").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".aba").forEach(x => x.classList.toggle("on", x === b));
+  ["visao","usuarios","sistema"].forEach(k => { $("s-"+k).hidden = (k !== b.dataset.aba); });
+});
+
+/* ---------------- visão geral ---------------- */
+async function carregarVisao(){
+  const d = await api("?acao=resumo&mes=" + mesAtual());
+  const roi = d.roi === null ? "—" : d.roi.toFixed(2) + "x";
+  const corRoi = d.roi === null ? "" : (d.roi >= 1 ? "verde" : "vermelho");
+  $("kpis").innerHTML = `
+    <div class="kpi"><div class="r">Receita recorrente mensal</div>
+      <div class="v laranja">${brl(d.mrr)}</div><div class="p">${brl(d.arr)} por ano</div></div>
+    <div class="kpi"><div class="r">Investimento do mês</div>
+      <div class="v">${brl(d.investimento)}</div><div class="p">definido na aba Sistema</div></div>
+    <div class="kpi"><div class="r">ROI</div>
+      <div class="v ${corRoi}">${roi}</div><div class="p">receita ÷ investimento</div></div>
+    <div class="kpi"><div class="r">Assinantes ativos</div>
+      <div class="v">${d.assinantes.ativas}</div>
+      <div class="p">${d.assinantes.mensais} mensais · ${d.assinantes.anuais} anuais</div></div>
+    <div class="kpi"><div class="r">Ticket médio</div>
+      <div class="v">${brl(d.ticket)}</div><div class="p">por assinante ativo</div></div>
+    <div class="kpi"><div class="r">Usuários</div>
+      <div class="v">${d.usuarios.total}</div>
+      <div class="p">${(d.usuarios.conversao*100).toFixed(1)}% pagando · ${d.usuarios.suspensos} suspensos</div></div>`;
+
+  $("t-ass").innerHTML = `
+    <thead><tr><th>Situação</th><th>Quantidade</th></tr></thead>
+    <tbody>
+      <tr><td><span class="selo ativa">ativas</span></td><td class="num">${d.assinantes.ativas}</td></tr>
+      <tr><td><span class="selo atraso">em atraso</span></td><td class="num">${d.assinantes.em_atraso}</td></tr>
+      <tr><td><span class="selo off">canceladas</span></td><td class="num">${d.assinantes.canceladas}</td></tr>
+      <tr><td><span class="selo atraso">cancelam no fim do ciclo</span></td><td class="num">${d.assinantes.cancelam_no_fim}</td></tr>
+    </tbody>`;
+}
+
+/* ---------------- usuários ---------------- */
+async function carregarUsuarios(){
+  const d = await api("?acao=usuarios");
+  usuarios = d.usuarios || [];
+  desenharUsuarios();
+}
+$("filtro").oninput = desenharUsuarios;
+
+function desenharUsuarios(){
+  const q = $("filtro").value.trim().toLowerCase();
+  const lista = usuarios.filter(u =>
+    !q || (u.email + " " + u.nome).toLowerCase().includes(q));
+
+  if(!lista.length){ $("t-users").innerHTML = `<tbody><tr><td class="vazio">Nenhum usuário.</td></tr></tbody>`; return; }
+
+  const selo = u => u.situacao === "ativa"    ? '<span class="selo ativa">pro</span>'
+                  : u.situacao === "em_atraso" ? '<span class="selo atraso">em atraso</span>'
+                  : '<span class="selo off">gratuito</span>';
+
+  $("t-users").innerHTML = `
+    <thead><tr><th>Usuário</th><th>Plano</th><th>Conta</th><th>Cadastro</th><th>Último acesso</th><th></th></tr></thead>
+    <tbody>${lista.map(u => `
+      <tr>
+        <td><div>${u.nome || "—"}</div><div style="color:var(--txt3);font-size:12px">${u.email}</div></td>
+        <td>${selo(u)}</td>
+        <td>${u.ativo ? '<span class="selo ativa">ativa</span>' : '<span class="selo susp">suspensa</span>'}</td>
+        <td class="num">${dia(u.criado_em)}</td>
+        <td class="num">${dia(u.ultimo_acesso)}</td>
+        <td style="text-align:right">
+          <button class="acao ${u.ativo ? "perigo" : ""}" data-id="${u.id}" data-para="${u.ativo ? 0 : 1}">
+            ${u.ativo ? "Suspender" : "Reativar"}</button></td>
+      </tr>`).join("")}</tbody>`;
+
+  $("t-users").querySelectorAll("button[data-id]").forEach(b => b.onclick = async () => {
+    const ativar = b.dataset.para === "1";
+    if(!ativar && !confirm("Suspender esta conta? Ela continua entrando, mas não consegue gravar nada.")) return;
+    b.disabled = true;
+    try{
+      await api("", { method:"POST", body: JSON.stringify({ acao:"ativo", user_id:b.dataset.id, ativo:ativar }) });
+      const u = usuarios.find(x => x.id === b.dataset.id); if(u) u.ativo = ativar;
+      desenharUsuarios(); carregarVisao();
+      flash(ativar ? "Conta reativada." : "Conta suspensa.");
+    }catch(e){ flash(e.message, false); b.disabled = false; }
+  });
+}
+
+/* ---------------- sistema ---------------- */
+const ROTULOS = { consolidado:"Consolidado", fluxo:"Fluxo", orcamento:"Orçamento",
+  recorrencias:"Recorrências", metas:"Metas", rotina:"Meu dia", agenda:"Agenda", relatorios:"Relatórios" };
+
+async function carregarSistema(){
+  const d = await api("?acao=config");
+  const c = d.config || {};
+  const p = c.planos || {}, a = c.aviso || {}, f = c.flags || {};
+
+  $("p-mensal").value = p.mensal ?? "";
+  $("p-anual").value  = p.anual ?? "";
+  $("p-lanc").value   = p.limite_gratuito_lancamentos ?? "";
+  $("p-metas").value  = p.limite_gratuito_metas ?? "";
+
+  $("a-ativo").checked = !!a.ativo;
+  $("a-texto").value   = a.texto || "";
+
+  $("flags").innerHTML = Object.keys(ROTULOS).map(k => `
+    <label class="flag"><input type="checkbox" data-flag="${k}" ${f[k] === false ? "" : "checked"}> ${ROTULOS[k]}</label>`).join("");
+
+  if(!$("i-mes").value) $("i-mes").value = mesAtual();
+  const invs = d.investimentos || [];
+  $("t-inv").innerHTML = invs.length ? `
+    <thead><tr><th>Mês</th><th>Valor</th></tr></thead>
+    <tbody>${invs.map(i => `<tr><td class="num">${i.mes}</td><td class="num">${brl(i.valor)}</td></tr>`).join("")}</tbody>`
+    : `<tbody><tr><td class="vazio">Nenhum investimento lançado ainda.</td></tr></tbody>`;
+}
+
+async function salvarConfig(chave, valor, msg){
+  try{
+    await api("", { method:"POST", body: JSON.stringify({ acao:"config", chave, valor }) });
+    flash(msg); carregarVisao();
+  }catch(e){ flash(e.message, false); }
+}
+
+$("sv-planos").onclick = () => salvarConfig("planos", {
+  mensal: Number($("p-mensal").value || 0),
+  anual: Number($("p-anual").value || 0),
+  limite_gratuito_lancamentos: Number($("p-lanc").value || 0),
+  limite_gratuito_metas: Number($("p-metas").value || 0)
+}, "Planos salvos.");
+
+$("sv-aviso").onclick = () => salvarConfig("aviso", {
+  ativo: $("a-ativo").checked, texto: $("a-texto").value.trim(), tom:"info"
+}, "Aviso salvo.");
+
+$("sv-flags").onclick = () => {
+  const f = {};
+  $("flags").querySelectorAll("input[data-flag]").forEach(i => { f[i.dataset.flag] = i.checked; });
+  salvarConfig("flags", f, "Funcionalidades salvas.");
+};
+
+$("sv-inv").onclick = async () => {
+  try{
+    await api("", { method:"POST", body: JSON.stringify({
+      acao:"investimento", mes: $("i-mes").value || mesAtual(),
+      valor: Number($("i-valor").value || 0), nota: $("i-nota").value.trim() }) });
+    flash("Investimento salvo."); carregarSistema(); carregarVisao();
+  }catch(e){ flash(e.message, false); }
+};
+
+/* Já logado? Abre direto. */
+(async () => {
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session) await abrir();
+})();
+</script>
+</body>
+</html>
