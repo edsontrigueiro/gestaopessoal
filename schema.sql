@@ -1,5 +1,5 @@
 -- ============================================================
---  NEXVOT — Gestão Inteligente — schema Supabase
+--  ZORVEL — Gestão Inteligente — schema Supabase
 --  Cole tudo no SQL Editor do Supabase e rode uma vez.
 --  Seguro rodar de novo: tudo é "if not exists" / "drop if exists".
 -- ============================================================
