@@ -5,20 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0A0A0B">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="NexVot">
+<meta name="apple-mobile-web-app-title" content="Zorvel">
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230A0A0B'/><path d='M8 22h16M8 10h16M8 16h10' stroke='%23FF5E04' stroke-width='2.8' stroke-linecap='round'/></svg>">
-<title>NexVot — Gestão Inteligente</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23FF5E04'/%3E%3Cpath d='M9.6 9.92 H22.4 L9.6 22.08 H22.4' fill='none' stroke='%230A0A0B' stroke-width='3.9'/%3E%3C/svg%3E">
+<title>Zorvel — Gestão Inteligente</title>
 <meta name="description" content="Painel de finanças e rotina: entradas, saídas, investimento, orçamento por categoria, recorrências, metas e fôlego em dias. Português, inglês e espanhol.">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="NexVot">
-<meta property="og:title" content="NexVot — Gestão Inteligente">
+<meta property="og:site_name" content="Zorvel">
+<meta property="og:title" content="Zorvel — Gestão Inteligente">
 <meta property="og:description" content="Entradas, saídas, investimento, orçamento, recorrências e metas — num painel só.">
 <meta property="og:image" content="./compartilhar.svg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="NexVot — Gestão Inteligente">
+<meta name="twitter:title" content="Zorvel — Gestão Inteligente">
 <meta name="twitter:description" content="Entradas, saídas, investimento, orçamento, recorrências e metas — num painel só.">
 <meta name="twitter:image" content="./compartilhar.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -80,10 +80,10 @@ button,[data-acao],.item,.chip{ -webkit-user-select:none; user-select:none }
 .splash .marca{display:flex;align-items:center;gap:12px}
 .splash .st{color:var(--txt2);font-size:14px;max-width:400px;line-height:1.6}
 .splash .st.erro{color:var(--vermelho)}
-.mk{width:40px;height:40px;border-radius:11px;background:var(--laranja);display:grid;place-items:center;flex:none}
-.mk i{display:block;width:18px;height:2.6px;background:#fff;border-radius:2px;box-shadow:0 -6px 0 #fff,0 6px 0 #fff}
-.mk.pq{width:34px;height:34px;border-radius:9px}
-.mk.pq i{width:15px;height:2.4px;box-shadow:0 -5px 0 #fff,0 5px 0 #fff}
+.mk{width:40px;height:40px;flex:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='23' fill='%23FF5E04'/%3E%3Cpath d='M30 31 H70 L30 69 H70' fill='none' stroke='%230C0C0E' stroke-width='12'/%3E%3C/svg%3E");background-size:contain;background-repeat:no-repeat;background-position:center}
+[data-tema="claro"] .mk{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='23' fill='%23F25400'/%3E%3Cpath d='M30 31 H70 L30 69 H70' fill='none' stroke='%23FFFFFF' stroke-width='12'/%3E%3C/svg%3E")}
+.mk i{display:none}
+.mk.pq{width:34px;height:34px}
 .auth{min-height:100dvh;display:grid;place-items:center;padding:24px}
 .auth-box{width:100%;max-width:400px}
 .auth-logo{display:flex;align-items:center;gap:13px;margin-bottom:32px}
@@ -572,14 +572,14 @@ body.recolhido .side .lg{justify-content:center}
 <body>
 
 <div id="splash" class="splash">
-  <div class="marca"><span class="mk"><i></i></span><span style="font-size:22px;font-weight:700;letter-spacing:-.03em">NexVot</span></div>
+  <div class="marca"><span class="mk"><i></i></span><span style="font-size:22px;font-weight:700;letter-spacing:-.03em">Zorvel</span></div>
   <div id="splash-txt" class="st">carregando…</div>
 </div>
 
 <section id="auth" class="auth" hidden>
   <div class="auth-box">
     <div class="auth-logo"><span class="mk"><i></i></span>
-      <div><h1 data-i="app.nome">NexVot</h1><p data-i="app.sub">Gestão Inteligente</p></div></div>
+      <div><h1 data-i="app.nome">Zorvel</h1><p data-i="app.sub">Gestão Inteligente</p></div></div>
 
     <!-- ENTRAR ou CRIAR -->
     <div id="et-email">
@@ -667,7 +667,7 @@ body.recolhido .side .lg{justify-content:center}
 <div id="app" class="app" hidden>
   <aside id="side" class="side">
     <div class="lg"><span class="mk pq"><i></i></span>
-      <div class="side-txt"><h1 data-i="app.nome">NexVot</h1><p data-i="app.sub">Gestão Inteligente</p></div></div>
+      <div class="side-txt"><h1 data-i="app.nome">Zorvel</h1><p data-i="app.sub">Gestão Inteligente</p></div></div>
 
     <div class="busca">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -829,11 +829,18 @@ setTimeout(function(){
   }
 },10000);
 try{
-  var t=localStorage.getItem("nexvot:tema")||"escuro";
+  /* migração única: chaves nexvot:* -> zorvel:* (preserva preferências de quem já usava) */
+  ["tema","idioma","espaco","recolhido"].forEach(function(k){
+    var v=localStorage.getItem("nexvot:"+k);
+    if(v!==null && localStorage.getItem("zorvel:"+k)===null){ localStorage.setItem("zorvel:"+k, v); }
+  });
+}catch(e){}
+try{
+  var t=localStorage.getItem("zorvel:tema")||"escuro";
   var real = t==="sistema"
     ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "escuro" : "claro") : t;
   document.documentElement.dataset.tema = real;
-  if(localStorage.getItem("nexvot:recolhido")==="1") document.body.classList.add("recolhido");
+  if(localStorage.getItem("zorvel:recolhido")==="1") document.body.classList.add("recolhido");
 }catch(e){}
 </script>
 <script type="module" src="./app.js"></script>
