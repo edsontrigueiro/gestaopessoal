@@ -2764,8 +2764,12 @@ function ligarDelegacao(){
       if(error) return falhou(error);
       x.feita = !x.feita; limparMemo(); vibra(); return render(); }
 
+    // cuidado: <html> também carrega um atributo data-tema (pro CSS de tema claro/escuro),
+    // então "closest" sem essa exclusão casava em QUALQUER clique da tela (o clique sempre
+    // borbulha até o <html>) — e cada clique disparava um render() que tirava o foco de
+    // qualquer campo de texto que acabou de ser clicado, antes da pessoa conseguir digitar.
     const tm = alvo("[data-tema]");
-    if(tm){ fecharPop(); return aplicarTema(tm.dataset.tema); }
+    if(tm && tm !== document.documentElement){ fecharPop(); return aplicarTema(tm.dataset.tema); }
 
     const ir = alvo("[data-ir]");
     if(ir){ fecharPop(); return irPara(ir.dataset.ir); }
