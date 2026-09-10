@@ -187,6 +187,7 @@ pt: {
   "cat.salario": "Salário",
   "cat.freela": "Freela",
   "cat.rendimento": "Rendimento",
+  "cat.cobranca": "Cobrança recebida",
   "cat.reserva": "Reserva",
   "cat.renda_fixa": "Renda fixa",
   "cat.acoes": "Ações",
@@ -323,7 +324,31 @@ pt: {
   "lanc.comprovanteTrocar": "Trocar comprovante", "lanc.comprovanteRemover": "Remover",
   "msg.comprovanteEnviando": "enviando comprovante…",
   "msg.comprovanteFalhou": "não consegui enviar o comprovante",
-  "ver.comprovante": "Ver comprovante", "ver.comprovanteFalhou": "não consegui abrir o comprovante"
+  "ver.comprovante": "Ver comprovante", "ver.comprovanteFalhou": "não consegui abrir o comprovante",
+
+  "sec.empresas": "Empresas", "sec.empresas.sub": "Cada empresa com seus próprios dados — troque a qualquer momento.",
+  "form.empresa": "nome da empresa", "form.editar": "Editar",
+  "emp.atual": "atual", "emp.nenhuma": "Nenhuma empresa",
+  "emp.vazia": "Você ainda não cadastrou nenhuma empresa.",
+  "emp.gerenciar": "Gerenciar empresas",
+  "emp.selecioneAntes": "Selecione ou crie uma empresa primeiro",
+  "emp.renomear": "Novo nome da empresa:",
+  "emp.apagarConf": "Apagar a empresa \"{nome}\"?",
+  "emp.apagarComDados": "A empresa \"{nome}\" tem {n} registro(s) (lançamentos, contas, rotina, ideias etc). Apagar ela também apaga tudo isso. Continuar?",
+  "soc.semEmpresa": "Selecione ou crie uma empresa em Ajustes → Empresas para cadastrar sócios.",
+  "msg.empresaAdd": "empresa criada", "msg.empresaApagada": "empresa apagada",
+
+  "nav.cobrancas": "Cobranças",
+  "cob.sub": "Quem te deve e quanto já foi pago.",
+  "sec.cobrancas": "Cobranças", "sec.cobrancas.sub": "Valores fixos que alguém te deve — registre os pagamentos conforme forem entrando.",
+  "vazio.cobrancas": "Nenhuma cobrança ainda", "vazio.cobrancas.sub": "Cadastre quem te deve e o valor total.",
+  "form.devedor": "quem deve",
+  "cob.valorPago": "valor pago agora", "cob.registrarPag": "Registrar pagamento",
+  "cob.quitada": "Quitada", "cob.resta": "restam",
+  "cob.notaLancamento": "Pagamento de {nome}",
+  "cob.apagarConf": "Apagar esta cobrança? O histórico de pagamentos sai junto, mas o dinheiro já lançado no painel continua lá.",
+  "cob.apagarPagConf": "Apagar este pagamento? O lançamento dele no painel também sai.",
+  "msg.cobrancaAdd": "cobrança cadastrada", "msg.pagamentoRegistrado": "pagamento lançado no painel"
 },
 };
 
@@ -335,7 +360,7 @@ pt: {
 window.CATEGORIAS = {
   pessoal: {
     saida:        ["mercado","comer_fora","transporte","casa","contas","saude","lazer","outros"],
-    entrada:      ["salario","prolabore","retirada","freela","rendimento","outros"],
+    entrada:      ["salario","prolabore","retirada","freela","rendimento","cobranca","outros"],
     investimento: ["reserva","renda_fixa","acoes","cripto","fundos","outros"]
   },
   empresa: {
