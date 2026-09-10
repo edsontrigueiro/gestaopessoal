@@ -48,7 +48,6 @@ let espaco = "pessoal", tela = "painel", periodo = "mes";
 let calRef = null, selDia = null, rtDia = null, blocoAberto = null;
 let dataAlvo = null, tipoSel = "saida", catSel = null, natSel = "essencial", membroSel = null, dig = "";
 let importados = [];
-let pulouInicio = false;
 let arquivoComprovante = null;               // arquivo escolhido no sheet de lançamento, antes de enviar
 let ideiaView = "lista", ideiaConectando = null;
 let empresaAtual = null;                      // id da empresa selecionada, quando espaco==="empresa"
@@ -935,35 +934,6 @@ function rotuloPeriodo(){
   return `${curto(i)} – ${curto(f)}`;
 }
 
-/* Primeira execução: sem lançamento e sem conta, o painel inteiro seria
-   oito caixas tracejadas. Melhor uma tela com três passos. */
-function primeiraVez(){
-  const passos = [
-    ["p1", "foco-conta", contas().length > 0],
-    ["p2", "relatorios", lancs().length > 0],
-    ["p3", "entrada",    noMes(mesDe(hoje()),"entrada").length > 0]
-  ];
-  return `
-  <div class="card pad" style="max-width:720px;margin-inline:auto">
-    <div style="text-align:center;padding:14px 0 26px">
-      <div class="ph-ic" style="margin:0 auto 18px">${ICONES.painel}</div>
-      <h2 style="font-size:26px;letter-spacing:-.03em">${esc(t("ini.titulo"))}</h2>
-      <p class="t2" style="margin-top:8px;font-size:15px;max-width:440px;margin-inline:auto">${esc(t("ini.sub"))}</p>
-    </div>
-    ${passos.map(([k, acao, feito], i)=>`
-      <button class="li" data-acao="${acao}" style="width:100%;text-align:left;border:1px solid var(--linha);
-        border-radius:var(--r2);margin-bottom:11px;padding:18px 20px;${feito?"opacity:.55":""}">
-        <span class="kpi-ic ${feito?"ic-ver":"ic-lar"}" style="position:static;flex:none;width:38px;height:38px">
-          ${feito ? ICO.ok : `<b style="font-size:16px">${i+1}</b>`}</span>
-        <span class="n" style="white-space:normal">
-          <b style="font-size:16px;display:block;margin-bottom:3px">${esc(t("ini."+k))}</b>
-          <span class="t3" style="font-size:13.5px;line-height:1.5">${esc(t("ini."+k+"s"))}</span></span>
-        ${feito ? `<span class="tag ver">${esc(t("ini.feito"))}</span>` : ""}
-      </button>`).join("")}
-    <button class="mini" data-acao="pular-inicio" style="width:100%;margin-top:8px">${esc(t("ini.pular"))}</button>
-  </div>`;
-}
-
 /* ============================================================
    A PONTE — pró-labore e retirada saem da empresa e entram na
    vida pessoal. Duas linhas amarradas por espelho_id, não dois
@@ -1025,7 +995,6 @@ function podeRetirar(){
 
 /* ---------- PAINEL ---------- */
 function vPainel(){
-  if(!pulouInicio && !lancs().length && !contas().length && !recs().length) return primeiraVez();
   const h=hoje(), y=mesDe(h), d=+h.slice(8,10);
   const iM=soma(noMes(y,"entrada")), oM=soma(noMes(y,"saida")), vM=soma(noMes(y,"investimento"));
   const disp=iM-oM-vM, fol=folego();
@@ -2583,20 +2552,40 @@ async function lerArquivo(file){
 }
 
 /* ================= LEMBRETES ================= */
+/* Notifica no máximo uma vez por "chave" — cada chamador monta a chave de um
+   jeito que se repete naturalmente no dia seguinte (ou nunca mais, se for
+   um evento único), então não precisa de nenhum reset manual. */
+function notificarUmaVez(chave, texto){
+  if(avisados.has(chave)) return;
+  avisados.add(chave);
+  toast(texto);
+  try{ if("Notification" in window && Notification.permission==="granted")
+    new Notification("NexVot", { body:texto }); }catch(x){}
+  vibra(30);
+}
+/* Roda a cada 30s enquanto o app estiver aberto numa aba — pessoal ou
+   empresa, não importa qual espaço está selecionado na tela no momento.
+   IMPORTANTE: isso só funciona com o NexVot aberto no navegador (aba em
+   primeiro ou segundo plano). Não é uma notificação push de verdade —
+   com o navegador/app fechado, nada chega. Uma notificação que chegasse
+   mesmo com tudo fechado precisaria de um service worker + push
+   subscription + um agendador rodando num servidor, que este app (só
+   frontend + Supabase, sem backend) não tem hoje. */
 function checarLembretes(){
   const ag=new Date(), h=isoDe(ag);
+  // compromissos da Agenda com lembrete marcado
   db.eventos.filter(e=>e.data===h && e.hora && e.lembrete_min).forEach(e=>{
-    if(avisados.has(e.id)) return;
     const [hh,mm]=hm(e.hora).split(":").map(Number);
     const q=new Date(ag); q.setHours(hh,mm,0,0);
     const f=(q-ag)/60000;
-    if(f<=e.lembrete_min && f>-2){
-      avisados.add(e.id);
-      toast(`${e.titulo} · ${hm(e.hora)}`);
-      try{ if("Notification" in window && Notification.permission==="granted")
-        new Notification("NexVot", { body:`${e.titulo} — ${hm(e.hora)}` }); }catch(x){}
-      vibra(30);
-    }
+    if(f<=e.lembrete_min && f>-2) notificarUmaVez("evt:"+e.id, `${e.titulo} · ${hm(e.hora)}`);
+  });
+  // contas fixas vencendo hoje ou já vencidas e ainda não pagas — de qualquer
+  // espaço/empresa. A chave inclui o dia de hoje, então volta a avisar todo
+  // dia enquanto continuar vencida e sem pagamento marcado.
+  db.contas.forEach(c=>{
+    if(c.ultimo_pago===mesDe(h)) return;
+    if(dif(h, venc(c)) <= 0) notificarUmaVez("conta:"+c.id+":"+h, t("av.contaNotif",{nome:c.nome}));
   });
 }
 
@@ -2670,7 +2659,6 @@ function ligarDelegacao(){
       else if(a==="entrada") abrirLanc(hoje(),"entrada");
       else if(a==="seed-rotina") instalarRotina();
       else if(a==="abrir-hoje") abrirDia(hoje());
-      else if(a==="pular-inicio"){ pulouInicio = true; render(); }
       else if(a==="nova-transf"){
         if(espaco!=="empresa"){ espaco="empresa"; try{ localStorage.setItem("nexvot:espaco","empresa"); }catch(x){} }
         abrirLanc(hoje());
