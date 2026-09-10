@@ -1,6 +1,6 @@
 // ============================================================
-//  NEXVOT — Gestão Pessoal · app.js (v13)
-//  Requer: schema.sql → schema2 → schema3 → schema4 → schema5 → schema6
+//  NEXVOT — Gestão Pessoal · app.js (v14)
+//  Requer: schema.sql → schema2 → schema3 → schema4 → schema5 → schema6 → schema7
 //  e i18n.js carregado antes deste arquivo.
 // ============================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -51,13 +51,14 @@ let importados = [];
 let pulouInicio = false;
 let arquivoComprovante = null;               // arquivo escolhido no sheet de lançamento, antes de enviar
 let ideiaView = "lista", ideiaConectando = null;
+let empresaAtual = null;                      // id da empresa selecionada, quando espaco==="empresa"
 const avisados = new Set();
 
 const db = { lancamentos:[], contas:[], habitos:[], marcas:[], fechados:[], eventos:[],
              membros:[], blocos:[], tarefas:[], orcamentos:[], recorrencias:[], metas:[],
-             ideias:[], conexoes:[] };
+             ideias:[], conexoes:[], empresas:[], cobrancas:[], pagamentos:[] };
 
-const TELAS = ["painel","consolidado","fluxo","orcamento","recorrencias","metas","rotina","agenda","ideias","relatorios","ajustes"];
+const TELAS = ["painel","consolidado","fluxo","orcamento","recorrencias","metas","cobrancas","rotina","agenda","ideias","relatorios","ajustes"];
 const ICONES = {
   painel:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/></svg>',
   consolidado:'<svg viewBox="0 0 24 24"><path d="M7 8h10l-3-3M17 16H7l3 3"/><rect x="2.5" y="3" width="19" height="18" rx="3"/></svg>',
@@ -65,6 +66,7 @@ const ICONES = {
   orcamento:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6 3"/></svg>',
   recorrencias:'<svg viewBox="0 0 24 24"><path d="M4 10a8 8 0 0113.7-5.6L20 7"/><path d="M20 4v4h-4"/><path d="M20 14a8 8 0 01-13.7 5.6L4 17"/><path d="M4 20v-4h4"/></svg>',
   metas:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg>',
+  cobrancas:'<svg viewBox="0 0 24 24"><path d="M6 2.5h12v19l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>',
   rotina:'<svg viewBox="0 0 24 24"><path d="M4 7h3M4 12h3M4 17h3"/><path d="M10 7h10M10 12h10M10 17h10"/></svg>',
   agenda:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
   ideias:'<svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3 11.2c.6.4 1 1 1 1.8v.5h4v-.5c0-.8.4-1.4 1-1.8A6 6 0 0012 3z"/></svg>',
@@ -73,7 +75,8 @@ const ICONES = {
 };
 const TITULO = { painel:["painel.titulo","painel.sub"], consolidado:["con.titulo","con.sub"], fluxo:["nav.fluxo","sec.fluxo.sub"],
   orcamento:["nav.orcamento","sec.orcamento.sub"], recorrencias:["nav.recorrencias","sec.recorrencias.sub"],
-  metas:["nav.metas","sec.metas.sub"], rotina:["nav.rotinaDia","sec.rotinaHoje"],
+  metas:["nav.metas","sec.metas.sub"], cobrancas:["nav.cobrancas","cob.sub"],
+  rotina:["nav.rotinaDia","sec.rotinaHoje"],
   agenda:["nav.agenda","sec.compromissos"], ideias:["nav.ideias","ide.sub"],
   relatorios:["nav.relatorios","sec.fechamento.sub"],
   ajustes:["nav.ajustes","aju.sub"] };
@@ -125,7 +128,8 @@ function toast(txt, erro){
 const falhou = e => { console.error(e); toast((e && e.message) || t("msg.falhaSalvar"), true); };
 const ICO = { seta:'<svg viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg>',
               x:'<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>',
-              ok:'<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>' };
+              ok:'<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>',
+              lapis:'<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>' };
 
 /* ================= TEMA ================= */
 /* preferência guardada: claro · escuro · sistema. O que a tela usa é o resolvido. */
@@ -308,6 +312,7 @@ async function entrar(){
   selDia = hoje(); rtDia = hoje(); dataAlvo = hoje();
   calRef = { a:+selDia.slice(0,4), m:+selDia.slice(5,7) };
   try{ espaco = localStorage.getItem("nexvot:espaco") || "pessoal"; }catch(e){}
+  try{ empresaAtual = localStorage.getItem("nexvot:empresa") || null; }catch(e){}
   // A sessão pode cair com o app aberto, ou o usuário sair em outra aba.
   sb.auth.onAuthStateChange((evento, ses)=>{
     if(evento === "SIGNED_OUT" || (!ses && evento !== "INITIAL_SESSION")){
@@ -342,11 +347,14 @@ async function carregar(){
     sb.from("metas").select("*").order("criado_em"),
     sb.from("perfil").select("*").eq("user_id", user.id).maybeSingle(),
     sb.from("ideias").select("*").order("criado_em"),
-    sb.from("ideia_conexoes").select("*")
+    sb.from("ideia_conexoes").select("*"),
+    sb.from("empresas").select("*").order("criado_em"),
+    sb.from("cobrancas").select("*").order("criado_em"),
+    sb.from("cobranca_pagamentos").select("*").order("data")
   ]);
   const err = r.find(x=>x.error);
   if(err) return falhou(err.error);
-  const [l,c,h,m,f,e,mb,bl,tf,orc,rec,mt,pf,id,cx] = r;
+  const [l,c,h,m,f,e,mb,bl,tf,orc,rec,mt,pf,id,cx,emp,cob,pag] = r;
   db.lancamentos  = (l.data||[]).map(x=>({...x, valor:Number(x.valor)}));
   db.contas       = (c.data||[]).map(x=>({...x, valor:Number(x.valor||0)}));
   db.habitos = h.data||[]; db.marcas = m.data||[];
@@ -358,10 +366,22 @@ async function carregar(){
   db.metas        = (mt.data||[]).map(x=>({...x, alvo:Number(x.alvo)}));
   db.ideias   = id.data||[];
   db.conexoes = cx.data||[];
+  db.empresas = emp.data||[];
+  db.cobrancas  = (cob.data||[]).map(x=>({...x, valor_total:Number(x.valor_total)}));
+  db.pagamentos = (pag.data||[]).map(x=>({...x, valor:Number(x.valor)}));
   perfil = pf.data || null;
-  if(!db.membros.length){
-    const { data:n } = await sb.from("membros").insert({ user_id:user.id, nome:"Você", eh_voce:true }).select().single();
-    if(n) db.membros = [n];
+
+  // valida a empresa selecionada contra a lista real; se não existir mais, ou nunca houver
+  // nenhuma escolhida, cai pra primeira empresa cadastrada (ou nenhuma, se ele ainda não criou uma).
+  if(empresaAtual && !db.empresas.some(x=>x.id===empresaAtual)) empresaAtual = null;
+  if(!empresaAtual && db.empresas.length) empresaAtual = db.empresas[0].id;
+  try{ localStorage.setItem("nexvot:empresa", empresaAtual||""); }catch(e){}
+
+  // sócio "Você" é criado automaticamente pra empresa selecionada, se ela ainda não tiver nenhum —
+  // isso cobre tanto uma empresa nova quanto a migração automática do schema7 (empresa "Minha empresa").
+  if(empresaAtual && !db.membros.some(x=>x.empresa_id===empresaAtual)){
+    const { data:n } = await sb.from("membros").insert({ user_id:user.id, nome:"Você", eh_voce:true, empresa_id:empresaAtual }).select().single();
+    if(n) db.membros.push(n);
   }
 }
 
@@ -393,13 +413,19 @@ let _memo = {};
 const limparMemo = () => { _memo = {}; };
 const memo = (k, fn) => (k in _memo) ? _memo[k] : (_memo[k] = fn());
 
-const lancs   = () => memo("l:"+espaco, ()=>db.lancamentos.filter(x=>x.espaco===espaco));
-const contas  = () => memo("c:"+espaco, ()=>db.contas.filter(x=>x.espaco===espaco));
-const blocos  = () => memo("bl:"+espaco, ()=>db.blocos.filter(x=>x.espaco===espaco));
-const evts    = () => db.eventos.filter(x=>x.espaco===espaco);
-const orcs    = () => db.orcamentos.filter(x=>x.espaco===espaco);
-const recs    = () => db.recorrencias.filter(x=>x.espaco===espaco);
-const metas   = () => db.metas.filter(x=>x.espaco===espaco);
+// no espaço empresa, cada empresa só vê o que é dela — fora disso (pessoal), a checagem não se aplica.
+const daEmpresa = x => espaco!=="empresa" || x.empresa_id===empresaAtual;
+const noEspaco  = x => x.espaco===espaco && daEmpresa(x);
+const membrosEmp = () => empresaAtual ? db.membros.filter(x=>x.empresa_id===empresaAtual) : [];
+const ideiasEmp  = () => empresaAtual ? db.ideias.filter(x=>x.empresa_id===empresaAtual) : [];
+
+const lancs   = () => memo("l:"+espaco+":"+empresaAtual, ()=>db.lancamentos.filter(noEspaco));
+const contas  = () => memo("c:"+espaco+":"+empresaAtual, ()=>db.contas.filter(noEspaco));
+const blocos  = () => memo("bl:"+espaco+":"+empresaAtual, ()=>db.blocos.filter(noEspaco));
+const evts    = () => db.eventos.filter(noEspaco);
+const orcs    = () => db.orcamentos.filter(noEspaco);
+const recs    = () => db.recorrencias.filter(noEspaco);
+const metas   = () => db.metas.filter(noEspaco);
 const soma    = a => a.reduce((s,x)=>s+x.valor,0);
 const noDia   = (d,tp)  => memo(`d:${espaco}:${d}:${tp||""}`, ()=>lancs().filter(x=>x.data===d && (!tp||x.tipo===tp)));
 const noMes   = (y,tp)  => memo(`m:${espaco}:${y}:${tp||""}`, ()=>lancs().filter(x=>mesDe(x.data)===y && (!tp||x.tipo===tp)));
@@ -425,7 +451,7 @@ const contasOrd = () => [...contas()].sort((x,y)=>venc(x).localeCompare(venc(y))
 const contasDia = d => { const a=+d.slice(0,4), m=+d.slice(5,7); return contas().filter(c=>dtMes(a,m,c.dia)===d); };
 const evtsDia   = d => evts().filter(e=>e.data===d).sort((x,y)=>(x.hora||"99").localeCompare(y.hora||"99"));
 const marcado   = (id,d) => db.marcas.some(x=>x.habito_id===id && x.data===d);
-const tarefasDia= d => db.tarefas.filter(x=>x.data===d && x.espaco===espaco).sort((a,b)=>(a.hora||"99").localeCompare(b.hora||"99"));
+const tarefasDia= d => db.tarefas.filter(x=>x.data===d && noEspaco(x)).sort((a,b)=>(a.hora||"99").localeCompare(b.hora||"99"));
 const itensBloco= (id,d) => db.habitos.filter(x=>x.bloco_id===id && (x.dia_semana==null || x.dia_semana===dsem(d))).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
 const nomeM     = id => (db.membros.find(m=>m.id===id)||{}).nome || "—";
 function rank(y){ const s={}; noMes(y,"saida").forEach(x=>{ s[x.categoria]=(s[x.categoria]||0)+x.valor; }); return Object.entries(s).sort((a,b)=>b[1]-a[1]); }
@@ -884,11 +910,20 @@ function render(){
   $("trilha-nome").textContent = t(ti);
   $("periodo-label").textContent = rotuloPeriodo();
   $$("#seg-espaco button").forEach(b=>b.classList.toggle("on", b.dataset.e===espaco));
+  $$("#seg-espaco-m button").forEach(b=>b.classList.toggle("on", b.dataset.e===espaco));
+  montarListaEmpresasMobile();
   $$("#seg-periodo button").forEach(b=>b.classList.toggle("on", b.dataset.p===periodo));
   $$(".side .item[data-v]").forEach(b=>b.classList.toggle("on", b.dataset.v===tela));
   const bIdeias = $("item-ideias"); if(bIdeias) bIdeias.hidden = espaco!=="empresa";
+  const bCobrancas = $("item-cobrancas"); if(bCobrancas) bCobrancas.hidden = espaco==="empresa";
+  const tbEmp = $("tb-empresa");
+  if(tbEmp){
+    tbEmp.hidden = espaco!=="empresa";
+    const nomeEl = $("empresa-nome-atual");
+    if(nomeEl) nomeEl.textContent = (db.empresas.find(x=>x.id===empresaAtual)||{}).nome || t("emp.nenhuma");
+  }
   const fn = { painel:vPainel, consolidado:vConsolidado, fluxo:vFluxo, orcamento:vOrcamento, recorrencias:vRecorrencias,
-               metas:vMetas, rotina:vRotina, agenda:vAgenda, ideias:vIdeias, relatorios:vRelatorios,
+               metas:vMetas, cobrancas:vCobrancas, rotina:vRotina, agenda:vAgenda, ideias:vIdeias, relatorios:vRelatorios,
                ajustes:vAjustes }[tela];
   $("v-"+tela).innerHTML = fn();
   ligarTela();
@@ -1217,6 +1252,89 @@ function vMetas(){
   </div>`;
 }
 
+/* ---------- COBRANÇAS (só no espaço pessoal) ----------
+   Valor fixo que alguém deve. Cada pagamento registrado gera, na hora,
+   um lançamento de entrada no painel pessoal — o dinheiro já sobe pra lá
+   sozinho, sem precisar lançar de novo na mão. */
+const pagamentosDe = id => db.pagamentos.filter(x=>x.cobranca_id===id).sort((a,b)=>b.data.localeCompare(a.data));
+function vCobrancas(){
+  const cs = [...db.cobrancas].sort((a,b)=>b.criado_em.localeCompare(a.criado_em));
+  const corpo = !cs.length ? zero(t("vazio.cobrancas"), t("vazio.cobrancas.sub"), "foco-cobranca")
+    : `<div class="pad" style="padding-top:8px">${cs.map(x=>{
+        const pags = pagamentosDe(x.id);
+        const pago = soma(pags);
+        const pct = x.valor_total>0 ? (pago/x.valor_total)*100 : 0;
+        const resta = Math.max(0, x.valor_total - pago);
+        const quitada = resta <= 0.005;
+        return `<div style="padding:16px 0;border-bottom:1px solid var(--linha2)">
+          <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:10px;flex-wrap:wrap">
+            <b style="font-size:16px;flex:1;min-width:120px">${esc(x.nome)}</b>
+            <span class="num t2">${din0(pago)} / ${din0(x.valor_total)}</span>
+            <span class="tag ${quitada?"ver":"lar"}">${quitada ? t("cob.quitada") : din0(resta)+" "+t("cob.resta")}</span>
+            <button class="x" aria-label="${esc(t('form.apagar'))}" data-del-cobranca="${x.id}">${ICO.x}</button></div>
+          <span class="barra"><i class="${quitada?"ok":pct>=50?"al":""}" style="width:${Math.min(100,pct).toFixed(1)}%"></i></span>
+          ${!quitada ? `<div class="form" style="margin-top:10px">
+            <input id="pag-valor-${x.id}" class="fx" inputmode="decimal" placeholder="${t("cob.valorPago")}">
+            <button class="mini lar" data-pag-add="${x.id}">${t("cob.registrarPag")}</button></div>` : ""}
+          ${pags.length ? `<div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">
+            ${pags.map(p=>`<div style="display:flex;align-items:center;gap:8px">
+              <span class="t3" style="font-size:13px;flex:1">${curto(p.data)} · ${din0(p.valor)}</span>
+              <button class="x" aria-label="${esc(t('form.apagar'))}" data-del-pagamento="${p.id}" style="width:24px;height:24px">${ICO.x}</button></div>`).join("")}
+          </div>` : ""}
+          ${x.nota ? `<div class="t3" style="font-size:13px;margin-top:8px">${esc(x.nota)}</div>` : ""}
+        </div>`; }).join("")}</div>`;
+  return `
+  <div class="card">
+    <div class="pad">${secH(t("sec.cobrancas"), t("sec.cobrancas.sub"))}</div>
+    ${corpo}
+    <div class="form">
+      <input id="cob-nome" class="fn" placeholder="${t("form.devedor")}">
+      <input id="cob-valor" class="fx" inputmode="decimal" placeholder="${t("form.valor")}">
+      <button class="mini lar" id="cob-add">${t("form.add")}</button></div>
+  </div>`;
+}
+async function registrarPagamento(id){
+  const el = $("pag-valor-"+id); if(!el) return;
+  const v = numBR(el.value);
+  if(v<=0) return toast(t("auth.preencha"), true);
+  const cob = db.cobrancas.find(x=>x.id===id); if(!cob) return;
+  const catsE = CATS().pessoal.entrada;
+  const catCobranca = catsE.includes("cobranca") ? "cobranca" : catsE[catsE.length-1];
+  const { data:lanc, error:e1 } = await sb.from("lancamentos").insert({
+    user_id:user.id, espaco:"pessoal", tipo:"entrada", data:hoje(), valor:v,
+    categoria:catCobranca, nota:t("cob.notaLancamento",{nome:cob.nome})
+  }).select().single();
+  if(e1) return falhou(e1);
+  const { data:pag, error:e2 } = await sb.from("cobranca_pagamentos").insert({
+    user_id:user.id, cobranca_id:id, valor:v, data:hoje(), lancamento_id:lanc.id
+  }).select().single();
+  if(e2) return falhou(e2);
+  db.lancamentos.unshift({...lanc, valor:Number(lanc.valor)});
+  db.lancamentos.sort((a,b)=>b.data.localeCompare(a.data));
+  db.pagamentos.push({...pag, valor:Number(pag.valor)});
+  limparMemo(); render(); toast(t("msg.pagamentoRegistrado"));
+}
+async function apagarCobranca(id){
+  if(!confirm(t("cob.apagarConf"))) return;
+  const { error } = await sb.from("cobrancas").delete().eq("id", id);
+  if(error) return falhou(error);
+  db.cobrancas = db.cobrancas.filter(x=>x.id!==id);
+  db.pagamentos = db.pagamentos.filter(x=>x.cobranca_id!==id);
+  render(); toast(t("msg.removido"));
+}
+async function apagarPagamento(id){
+  const pag = db.pagamentos.find(x=>x.id===id); if(!pag) return;
+  if(!confirm(t("cob.apagarPagConf"))) return;
+  const { error } = await sb.from("cobranca_pagamentos").delete().eq("id", id);
+  if(error) return falhou(error);
+  db.pagamentos = db.pagamentos.filter(x=>x.id!==id);
+  if(pag.lancamento_id){
+    await sb.from("lancamentos").delete().eq("id", pag.lancamento_id);
+    db.lancamentos = db.lancamentos.filter(x=>x.id!==pag.lancamento_id);
+  }
+  limparMemo(); render(); toast(t("msg.removido"));
+}
+
 /* ---------- CONSOLIDADO ---------- */
 function vConsolidado(){
   const c = consolidado();
@@ -1391,10 +1509,11 @@ function vAgenda(){
   </div>`;
 }
 
-/* ---------- IDEIAS PRO NEGÓCIO (só no espaço empresa) ---------- */
+/* ---------- IDEIAS PRO NEGÓCIO (só no espaço empresa, por empresa) ---------- */
+const conexoesEmp = () => { const ids = new Set(ideiasEmp().map(x=>x.id)); return db.conexoes.filter(c=>ids.has(c.de) && ids.has(c.para)); };
 function quadrosIdeias(){
   const ord = [];
-  db.ideias.forEach(x => { if(!ord.includes(x.quadro)) ord.push(x.quadro); });
+  ideiasEmp().forEach(x => { if(!ord.includes(x.quadro)) ord.push(x.quadro); });
   if(!ord.length) ord.push("Geral");
   return ord;
 }
@@ -1407,9 +1526,9 @@ function vIdeias(){
   ${ideiaView==="lista" ? vIdeiasLista() : vIdeiasMapa()}`;
 }
 function vIdeiasLista(){
-  const qs = quadrosIdeias();
+  const qs = quadrosIdeias(), ids = ideiasEmp();
   return `
-  ${!db.ideias.length ? `<p class="t3" style="font-size:14px;margin:0 0 16px">${esc(t("ide.vazioSub"))}</p>` : ""}
+  ${!ids.length ? `<p class="t3" style="font-size:14px;margin:0 0 16px">${esc(t("ide.vazioSub"))}</p>` : ""}
   <div class="kanban-nova">
     <input id="id-titulo" class="fn campo" placeholder="${t("ide.tituloPlaceholder")}">
     <input id="id-quadro" class="fx campo" placeholder="${t("ide.novoQuadro")}">
@@ -1417,7 +1536,7 @@ function vIdeiasLista(){
   </div>
   <div class="kanban">
     ${qs.map(q=>{
-      const itens = db.ideias.filter(x=>x.quadro===q);
+      const itens = ids.filter(x=>x.quadro===q);
       return `<div class="kanban-col">
         <div class="tit"><span>${esc(q)}</span><span class="n">${itens.length}</span></div>
         <div class="kanban-corpo">
@@ -1431,13 +1550,14 @@ function vIdeiasLista(){
   </div>`;
 }
 function vIdeiasMapa(){
+  const ids = ideiasEmp();
   // ideias vindas da Lista sem posição ainda: espalha numa grade antes de desenhar
-  db.ideias.forEach((x,i)=>{
+  ids.forEach((x,i)=>{
     if(x.pos_x!=null && x.pos_y!=null) return;
     x.pos_x = 40 + (i % 6) * 230;
     x.pos_y = 40 + Math.floor(i / 6) * 150;
   });
-  const nos = db.ideias.map(x=>`
+  const nos = ids.map(x=>`
     <div class="no-mapa" data-no="${x.id}" style="left:${x.pos_x}px;top:${x.pos_y}px">
       <button type="button" class="link" data-conectar="${x.id}" aria-label="${esc(t('ide.conectar'))}">
         <svg viewBox="0 0 24 24"><path d="M9 15l6-6M11 5l1-1a4 4 0 015.7 5.7l-1 1M13 19l-1 1a4 4 0 01-5.7-5.7l1-1"/></svg>
@@ -1459,8 +1579,9 @@ function vIdeiasMapa(){
   </div>`;
 }
 async function criarIdeia(titulo, quadro){
+  if(!empresaAtual){ toast(t("emp.selecioneAntes"), true); return null; }
   const { data, error } = await sb.from("ideias")
-    .insert({ user_id:user.id, titulo, quadro: quadro||"Geral" }).select().single();
+    .insert({ user_id:user.id, titulo, quadro: quadro||"Geral", empresa_id:empresaAtual }).select().single();
   if(error){ falhou(error); return null; }
   db.ideias.push(data);
   return data;
@@ -1518,7 +1639,7 @@ function redesenharLinhas(){
     const el = document.querySelector(`.no-mapa[data-no="${id}"]`);
     return el ? { x: el.offsetLeft + el.offsetWidth/2, y: el.offsetTop + el.offsetHeight/2 } : null;
   };
-  svg.innerHTML = db.conexoes.map(c=>{
+  svg.innerHTML = conexoesEmp().map(c=>{
     const a = centro(c.de), b = centro(c.para);
     return a && b ? `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" data-conexao="${c.id}"></line>` : "";
   }).join("");
@@ -1674,18 +1795,81 @@ function vAjustes(){
         <button class="mini" id="bt-backup">${t("conta.backup")}</button>
         <button class="mini" id="bt-sair2">${t("conta.sair")}</button></div>
     </div>
+    <div class="card" style="--d:40ms">
+      <div class="pad">${secH(t("sec.empresas"), t("sec.empresas.sub"))}</div>
+      <div class="pad" style="padding-top:8px">
+        ${db.empresas.length ? db.empresas.map(e=>`<div class="li" style="padding-left:0;padding-right:0">
+          <span class="n">${esc(e.nome)}${e.id===empresaAtual?` <span class="tag" style="margin-left:6px">${esc(t("emp.atual"))}</span>`:""}</span>
+          <span style="display:flex;gap:2px">
+            <button class="x" aria-label="${esc(t('form.editar'))}" data-editar-empresa="${e.id}">${ICO.lapis}</button>
+            <button class="x" aria-label="${esc(t('form.apagar'))}" data-del-empresa="${e.id}">${ICO.x}</button>
+          </span></div>`).join("")
+        : `<p class="t3" style="font-size:14px;margin:0 0 4px">${esc(t("emp.vazia"))}</p>`}
+      </div>
+      <div class="form">
+        <input id="emp-nome" class="fn" placeholder="${t("form.empresa")}">
+        <button class="mini lar" id="emp-add">${t("form.add")}</button></div>
+    </div>
     <div class="card" style="--d:60ms">
       <div class="pad">${secH(t("sec.socios"), t("sec.socios.sub"))}</div>
+      ${!empresaAtual ? `<div class="pad" style="padding-top:0">
+        <p class="t3" style="font-size:14px;margin:0">${esc(t("soc.semEmpresa"))}</p></div>` : `
       <div class="pad" style="padding-top:8px">
-        ${db.membros.map(m=>`<div class="li" style="padding-left:0;padding-right:0">
+        ${membrosEmp().map(m=>`<div class="li" style="padding-left:0;padding-right:0">
           <span class="n">${esc(m.nome)}</span>
           ${!m.eh_voce?`<button class="x" aria-label="${esc(t('form.apagar'))}" data-del-membro="${m.id}">${ICO.x}</button>`:""}</div>`).join("")}
       </div>
       <div class="form">
         <input id="m-nome" class="fn" placeholder="${t("form.socio")}">
-        <button class="mini lar" id="m-add">${t("form.add")}</button></div>
+        <button class="mini lar" id="m-add">${t("form.add")}</button></div>`}
     </div>
   </div>`;
+}
+
+/* ---------- empresas: criar / renomear / apagar ---------- */
+async function criarEmpresa(nome){
+  nome = (nome||"").trim(); if(!nome) return null;
+  const { data, error } = await sb.from("empresas").insert({ user_id:user.id, nome }).select().single();
+  if(error){ falhou(error); return null; }
+  db.empresas.push(data);
+  empresaAtual = data.id;
+  try{ localStorage.setItem("nexvot:empresa", empresaAtual); }catch(e){}
+  const { data:n } = await sb.from("membros").insert({ user_id:user.id, nome:"Você", eh_voce:true, empresa_id:data.id }).select().single();
+  if(n) db.membros.push(n);
+  limparMemo();
+  return data;
+}
+async function editarEmpresa(id){
+  const emp = db.empresas.find(x=>x.id===id); if(!emp) return;
+  const novo = prompt(t("emp.renomear"), emp.nome);
+  if(novo==null) return;
+  const nome = novo.trim(); if(!nome) return;
+  const { error } = await sb.from("empresas").update({ nome }).eq("id", id);
+  if(error) return falhou(error);
+  emp.nome = nome; render(); toast(t("msg.salvo"));
+}
+const MAPA_EMPRESA = [["lancamentos","lancamentos"],["contas","contas"],["recorrencias","recorrencias"],
+  ["metas","metas"],["orcamentos","orcamentos"],["blocos_rotina","blocos"],["tarefas","tarefas"],
+  ["eventos","eventos"],["membros","membros"],["ideias","ideias"]];
+async function apagarEmpresa(id){
+  const emp = db.empresas.find(x=>x.id===id); if(!emp) return;
+  let total = 0;
+  MAPA_EMPRESA.forEach(([,campo]) => total += db[campo].filter(x=>x.empresa_id===id).length);
+  const msg = total>0 ? t("emp.apagarComDados",{n:total,nome:emp.nome}) : t("emp.apagarConf",{nome:emp.nome});
+  if(!confirm(msg)) return;
+  for(const [tabela] of MAPA_EMPRESA){
+    const { error } = await sb.from(tabela).delete().eq("empresa_id", id);
+    if(error) return falhou(error);
+  }
+  const { error:e2 } = await sb.from("empresas").delete().eq("id", id);
+  if(e2) return falhou(e2);
+  const idsIdeias = db.ideias.filter(x=>x.empresa_id===id).map(x=>x.id);
+  MAPA_EMPRESA.forEach(([,campo]) => { db[campo] = db[campo].filter(x=>x.empresa_id!==id); });
+  db.conexoes = db.conexoes.filter(c=>!idsIdeias.includes(c.de) && !idsIdeias.includes(c.para));
+  db.empresas = db.empresas.filter(x=>x.id!==id);
+  if(empresaAtual===id){ empresaAtual = db.empresas[0] ? db.empresas[0].id : null;
+    try{ localStorage.setItem("nexvot:empresa", empresaAtual||""); }catch(e){} }
+  limparMemo(); render(); toast(t("msg.empresaApagada"));
 }
 
 /* ---------- pedaços compartilhados ---------- */
@@ -1756,9 +1940,59 @@ function alternarPop(gatilho, pop){
   fecharPop();
   if(jaAberto) return;
   if(pop === "pop-avisos") montarAvisos();
+  if(pop === "pop-empresa") montarPopEmpresas();
   $(pop).classList.add("on");
   $(gatilho).classList.add("aberto");
   popAberto = { gatilho, pop };
+}
+
+/* lista rápida das empresas no topo, pra trocar sem ir até Ajustes */
+function montarPopEmpresas(){
+  const box = $("lista-empresas-pop");
+  if(!box) return;
+  box.innerHTML = (db.empresas.length ? db.empresas.map(e=>`
+    <div class="pop-i" style="cursor:pointer" data-ir-empresa="${e.id}">
+      <i class="pt" style="background:${e.id===empresaAtual?"var(--laranja)":"var(--linha)"}"></i>
+      <b style="color:var(--txt);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.nome)}</b>
+    </div>`).join("")
+    : `<div class="pop-i" style="cursor:default;color:var(--txt3)">${esc(t("emp.vazia"))}</div>`)
+    + `<div class="pop-sep"></div>
+       <button class="pop-i" id="ir-gerenciar-empresas">
+         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>
+         <span>${esc(t("emp.gerenciar"))}</span></button>`;
+  $$("#lista-empresas-pop [data-ir-empresa]").forEach(el => el.onclick = ()=>{
+    empresaAtual = el.dataset.irEmpresa;
+    try{ localStorage.setItem("nexvot:empresa", empresaAtual); }catch(x){}
+    fecharPop(); limparMemo(); render();
+  });
+  const ir = $("ir-gerenciar-empresas");
+  if(ir) ir.onclick = ()=>{ fecharPop(); irPara("ajustes"); };
+}
+
+/* mesma lista de empresas, mas dentro da gaveta — é o que aparece no celular,
+   onde o topo com #tb-empresa fica escondido por falta de espaço. */
+function montarListaEmpresasMobile(){
+  const box = $("lista-empresas-m");
+  if(!box) return;
+  box.hidden = espaco!=="empresa";
+  if(espaco!=="empresa") return;
+  box.innerHTML = (db.empresas.length ? db.empresas.map(e=>`
+    <button class="item ${e.id===empresaAtual?"on":""}" data-ir-empresa-m="${e.id}">
+      <i class="pt" style="background:${e.id===empresaAtual?"var(--laranja)":"var(--linha)"}"></i>
+      <span class="side-txt" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.nome)}</span>
+    </button>`).join("")
+    : `<div class="t3" style="font-size:12.5px;padding:6px 15px 10px">${esc(t("emp.vazia"))}</div>`)
+    + `<button class="item" data-ir-ajustes-empresa-m>
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>
+        <span class="side-txt">${esc(t("emp.gerenciar"))}</span></button>`;
+  $$("#lista-empresas-m [data-ir-empresa-m]").forEach(el => el.onclick = ()=>{
+    vibra(6);
+    empresaAtual = el.dataset.irEmpresaM;
+    try{ localStorage.setItem("nexvot:empresa", empresaAtual); }catch(x){}
+    limparMemo(); render();
+  });
+  const irAj = box.querySelector("[data-ir-ajustes-empresa-m]");
+  if(irAj) irAj.onclick = ()=>{ fecharGaveta(); irPara("ajustes"); };
 }
 
 /* o sino agora lista o que precisa de atenção, em vez de só pedir permissão */
@@ -1846,7 +2080,7 @@ function lerValor(txt){
 const valorDig = () => lerValor();
 function abrirLanc(data, tipo){
   dig=""; catSel=null; tipoSel=tipo||"saida"; natSel="essencial";
-  membroSel = (db.membros.find(m=>m.eh_voce)||db.membros[0]||{}).id||null;
+  membroSel = (membrosEmp().find(m=>m.eh_voce)||membrosEmp()[0]||{}).id||null;
   dataAlvo = data||hoje();
   arquivoComprovante = null;
   abrirSheet(`
@@ -1963,10 +2197,11 @@ function pintaNat(){
   if(m) $$("#dp-nat button").forEach(b=>b.classList.toggle("on", b.dataset.n===natSel));
 }
 function pintaMembro(){
-  const m = espaco==="empresa" && tipoSel==="saida" && db.membros.length>0;
+  const socios = membrosEmp();
+  const m = espaco==="empresa" && tipoSel==="saida" && socios.length>0;
   $("rl-membro").hidden = !m;
   if(!m) return;
-  $("rl-membro").innerHTML = db.membros.map(x=>`<button class="chip ${x.id===membroSel?"on":""}" data-m="${x.id}">${esc(x.nome)}</button>`).join("");
+  $("rl-membro").innerHTML = socios.map(x=>`<button class="chip ${x.id===membroSel?"on":""}" data-m="${x.id}">${esc(x.nome)}</button>`).join("");
   $$("#rl-membro button").forEach(b=>b.onclick=()=>{ membroSel=b.dataset.m; vibra(); pintaMembro(); });
 }
 
@@ -2113,6 +2348,7 @@ async function lancar(){
   const v = valorDig();
   if(v<=0){ $("lanc-msg").textContent=t("lanc.digite"); return; }
   if(!catSel){ $("lanc-msg").textContent=t("lanc.categoria"); return; }
+  if(espaco==="empresa" && !empresaAtual){ $("lanc-msg").textContent=t("emp.selecioneAntes"); return; }
 
   const bt = $("bt-lancar");
   if(bt.disabled) return;              // trava contra duplo clique
@@ -2131,7 +2367,8 @@ async function lancar(){
   }
 
   const base = {
-    user_id:user.id, espaco, tipo:tipoSel, data:dataAlvo, valor:v, categoria:catSel,
+    user_id:user.id, espaco, empresa_id: espaco==="empresa"?empresaAtual:null,
+    tipo:tipoSel, data:dataAlvo, valor:v, categoria:catSel,
     nota:$("nota").value.trim(),
     natureza:(espaco==="pessoal"&&tipoSel==="saida")?natSel:null,
     membro_id:(espaco==="empresa"&&tipoSel==="saida")?membroSel:null,
@@ -2164,7 +2401,7 @@ async function pagarConta(c){
     const listaS = CATS()[c.espaco].saida;
     const catContas = listaS.includes("contas") ? "contas" : listaS[listaS.length-1];
     const { data, error:e2 } = await sb.from("lancamentos").insert({
-      user_id:user.id, espaco:c.espaco, tipo:"saida", data:hoje(), valor:c.valor,
+      user_id:user.id, espaco:c.espaco, empresa_id:c.empresa_id||null, tipo:"saida", data:hoje(), valor:c.valor,
       categoria:catContas, nota:c.nome, natureza:c.espaco==="pessoal"?"essencial":null }).select().single();
     if(e2) return falhou(e2);
     db.lancamentos.unshift({...data, valor:Number(data.valor)});
@@ -2189,9 +2426,11 @@ async function marcarItem(id, on, d){
 }
 async function addEvento(){
   const ti=$("e-tit").value.trim(); if(!ti) return;
+  if(espaco==="empresa" && !empresaAtual) return toast(t("emp.selecioneAntes"), true);
   const lm=$("e-lem").value;
   const { data, error } = await sb.from("eventos").insert({
-    user_id:user.id, espaco, data:selDia, hora:$("e-hora").value||null, titulo:ti,
+    user_id:user.id, espaco, empresa_id: espaco==="empresa"?empresaAtual:null,
+    data:selDia, hora:$("e-hora").value||null, titulo:ti,
     lembrete_min: lm?parseInt(lm,10):null }).select().single();
   if(error) return falhou(error);
   db.eventos.push(data); fecharSheet(); render(); toast(t("msg.compromisso"));
@@ -2215,11 +2454,13 @@ const ROTINA_BASE = [
   { hora:"23:59", titulo:"Dormir", itens:["Dormir"] }
 ];
 async function instalarRotina(){
+  if(espaco==="empresa" && !empresaAtual) return toast(t("emp.selecioneAntes"), true);
   toast(t("msg.instalando"));
   for(let i=0;i<ROTINA_BASE.length;i++){
     const b = ROTINA_BASE[i];
     const { data:bloco, error } = await sb.from("blocos_rotina")
-      .insert({ user_id:user.id, espaco, hora:b.hora, titulo:b.titulo, nota:b.nota||null, ordem:i }).select().single();
+      .insert({ user_id:user.id, espaco, empresa_id: espaco==="empresa"?empresaAtual:null,
+        hora:b.hora, titulo:b.titulo, nota:b.nota||null, ordem:i }).select().single();
     if(error) return falhou(error);
     db.blocos.push(bloco);
     const itens = b.itens.map((it,j)=>{
@@ -2298,10 +2539,11 @@ function parseCSV(txt){
   }
   return out;
 }
-const jaExiste = x => db.lancamentos.some(l => l.espaco===espaco && l.data===x.data &&
+const jaExiste = x => db.lancamentos.some(l => l.espaco===espaco && daEmpresa(l) && l.data===x.data &&
     Math.abs(l.valor - x.valor) < 0.005 && l.tipo===x.tipo);
 
 async function lerArquivo(file){
+  if(espaco==="empresa" && !empresaAtual) return toast(t("emp.selecioneAntes"), true);
   let txt;
   try{ txt = await file.text(); }catch(e){ return toast(t("msg.arquivoInvalido"), true); }
   let itens = /<STMTTRN>/i.test(txt) ? parseOFX(txt) : parseCSV(txt);
@@ -2327,7 +2569,8 @@ async function lerArquivo(file){
   $("imp-ok").onclick = async ()=>{
     $$("#sheets [data-cat]").forEach(s => importados[+s.dataset.cat].categoria = s.value);
     const linhas = importados.map(x=>({
-      user_id:user.id, espaco, tipo:x.tipo, data:x.data, valor:x.valor,
+      user_id:user.id, espaco, empresa_id: espaco==="empresa"?empresaAtual:null,
+      tipo:x.tipo, data:x.data, valor:x.valor,
       categoria: x.categoria || (x.tipo==="entrada"?catsE[catsE.length-1]:catsS[catsS.length-1]),
       nota:(x.nota||"").slice(0,140),
       natureza:(espaco==="pessoal"&&x.tipo==="saida")?"essencial":null }));
@@ -2360,18 +2603,23 @@ function checarLembretes(){
 /* ================= EVENTOS GLOBAIS ================= */
 function ligar(){
   $$(".side .item[data-v]").forEach(b => b.onclick = ()=>{ vibra(6); irPara(b.dataset.v); });
-  $$("#seg-espaco button").forEach(b => b.onclick = ()=>{
+  const trocarEspaco = b => {
     if(espaco===b.dataset.e) return;
     espaco = b.dataset.e;
     try{ localStorage.setItem("nexvot:espaco", espaco); }catch(e){}
     vibra(10);
-    if(tela==="ideias" && espaco!=="empresa") irPara("painel"); else render();
-  });
+    const foraDeLugar = (tela==="ideias" && espaco!=="empresa") || (tela==="cobrancas" && espaco==="empresa");
+    if(foraDeLugar) irPara("painel"); else render();
+  };
+  $$("#seg-espaco button").forEach(b => b.onclick = ()=>trocarEspaco(b));
+  $$("#seg-espaco-m button").forEach(b => b.onclick = ()=>trocarEspaco(b));
   $$("#seg-periodo button").forEach(b => b.onclick = ()=>{ periodo=b.dataset.p; vibra(6); render(); });
   $("bt-menu").onclick = ()=>{ vibra(8); abrirGaveta(); };
   $("bt-tema").onclick   = e=>{ e.stopPropagation(); alternarPop("bt-tema","pop-tema"); };
   $("bt-avisos").onclick = e=>{ e.stopPropagation(); alternarPop("bt-avisos","pop-avisos"); };
   $("bt-perfil").onclick = e=>{ e.stopPropagation(); alternarPop("bt-perfil","pop-perfil"); };
+  const btEmp = $("bt-empresa");
+  if(btEmp) btEmp.onclick = e=>{ e.stopPropagation(); alternarPop("bt-empresa","pop-empresa"); };
   $$("#pop-tema [data-tema]").forEach(b => b.onclick = ()=>{ fecharPop(); aplicarTema(b.dataset.tema); });
   $$("#pop-perfil [data-ir]").forEach(b => b.onclick = ()=>{ fecharPop(); irPara(b.dataset.ir); });
   $("pop-sair").onclick = async ()=>{ await sb.auth.signOut(); location.reload(); };
@@ -2417,7 +2665,7 @@ function ligarDelegacao(){
     if(ac){
       const a = ac.dataset.acao;
       const focos = { "foco-orc":"orc-valor", "foco-rec":"rec-desc", "foco-meta":"meta-nome",
-                      "foco-conta":"c-nome", "foco-tarefa":"t-tit" };
+                      "foco-conta":"c-nome", "foco-tarefa":"t-tit", "foco-cobranca":"cob-nome" };
       if(a==="novo") abrirLanc(hoje());
       else if(a==="entrada") abrirLanc(hoje(),"entrada");
       else if(a==="seed-rotina") instalarRotina();
@@ -2537,7 +2785,9 @@ function ligarTela(){
   add("c-add", async ()=>{
     const n=$("c-nome").value.trim(), d=parseInt($("c-dia").value,10);
     if(!n||!d) return toast(t("auth.preencha"), true);
-    const { data, error } = await sb.from("contas").insert({ user_id:user.id, espaco, nome:n,
+    if(espaco==="empresa" && !empresaAtual) return toast(t("emp.selecioneAntes"), true);
+    const { data, error } = await sb.from("contas").insert({ user_id:user.id, espaco,
+      empresa_id: espaco==="empresa"?empresaAtual:null, nome:n,
       dia:Math.min(Math.max(d,1),31), valor:numBR($("c-valor").value) }).select().single();
     if(error) return falhou(error);
     db.contas.push({...data, valor:Number(data.valor||0)});
@@ -2546,21 +2796,26 @@ function ligarTela(){
   add("orc-add", async ()=>{
     const c=$("orc-cat").value, v=numBR($("orc-valor").value);
     if(!v) return toast(t("auth.preencha"), true);
+    if(espaco==="empresa" && !empresaAtual) return toast(t("emp.selecioneAntes"), true);
+    const empId = espaco==="empresa" ? empresaAtual : null;
+    const onConflict = espaco==="empresa" ? "user_id,empresa_id,categoria" : "user_id,categoria";
     const { data, error } = await sb.from("orcamentos")
-      .upsert({ user_id:user.id, espaco, categoria:c, valor_mes:v }, { onConflict:"user_id,espaco,categoria" })
+      .upsert({ user_id:user.id, espaco, empresa_id:empId, categoria:c, valor_mes:v }, { onConflict })
       .select().single();
     if(error) return falhou(error);
-    db.orcamentos = db.orcamentos.filter(x=>!(x.espaco===espaco && x.categoria===c));
+    db.orcamentos = db.orcamentos.filter(x=>!(x.espaco===espaco && x.empresa_id===empId && x.categoria===c));
     db.orcamentos.push({...data, valor_mes:Number(data.valor_mes)});
     limparMemo(); render(); toast(t("msg.tetoSalvo"));
   });
   add("rec-add", async ()=>{
     const d=parseInt($("rec-dia").value,10), v=numBR($("rec-valor").value);
     if(!d||!v) return toast(t("auth.preencha"), true);
+    if(espaco==="empresa" && !empresaAtual) return toast(t("emp.selecioneAntes"), true);
     const tp=$("rec-tipo").value;
     const comecaAgora = $("rec-inicio").value === "agora";
     const { data, error } = await sb.from("recorrencias").insert({
-      user_id:user.id, espaco, tipo:tp, categoria:$("rec-cat").value,
+      user_id:user.id, espaco, empresa_id: espaco==="empresa"?empresaAtual:null,
+      tipo:tp, categoria:$("rec-cat").value,
       descricao:$("rec-desc").value.trim(), valor:v, dia:Math.min(Math.max(d,1),31),
       ultimo_gerado: comecaAgora ? null : mesDe(hoje()),
       natureza:(espaco==="pessoal"&&tp==="saida")?"essencial":null }).select().single();
@@ -2572,15 +2827,35 @@ function ligarTela(){
   add("meta-add", async ()=>{
     const n=$("meta-nome").value.trim(), a=numBR($("meta-alvo").value);
     if(!n||!a) return toast(t("auth.preencha"), true);
-    const { data, error } = await sb.from("metas").insert({ user_id:user.id, espaco, nome:n, alvo:a,
+    if(espaco==="empresa" && !empresaAtual) return toast(t("emp.selecioneAntes"), true);
+    const { data, error } = await sb.from("metas").insert({ user_id:user.id, espaco,
+      empresa_id: espaco==="empresa"?empresaAtual:null, nome:n, alvo:a,
       categoria:$("meta-cat").value||null }).select().single();
     if(error) return falhou(error);
     db.metas.push({...data, alvo:Number(data.alvo)});
     limparMemo(); render(); toast(t("msg.metaSalva"));
   });
+  add("cob-add", async ()=>{
+    const n=$("cob-nome").value.trim(), v=numBR($("cob-valor").value);
+    if(!n||!v) return toast(t("auth.preencha"), true);
+    const { data, error } = await sb.from("cobrancas").insert({ user_id:user.id, nome:n, valor_total:v }).select().single();
+    if(error) return falhou(error);
+    db.cobrancas.push({...data, valor_total:Number(data.valor_total)});
+    render(); toast(t("msg.cobrancaAdd"));
+  });
+  $$("[data-pag-add]").forEach(b=>{
+    const id = b.dataset.pagAdd;
+    b.onclick = ()=>registrarPagamento(id);
+    const el = $("pag-valor-"+id);
+    if(el) el.onkeydown = e => { if(e.key==="Enter"){ e.preventDefault(); registrarPagamento(id); } };
+  });
+  $$("[data-del-cobranca]").forEach(b=>b.onclick=()=>apagarCobranca(b.dataset.delCobranca));
+  $$("[data-del-pagamento]").forEach(b=>b.onclick=()=>apagarPagamento(b.dataset.delPagamento));
   add("t-add", async ()=>{
     const ti=$("t-tit").value.trim(); if(!ti) return;
+    if(espaco==="empresa" && !empresaAtual) return toast(t("emp.selecioneAntes"), true);
     const { data, error } = await sb.from("tarefas").insert({ user_id:user.id, data:rtDia, espaco,
+      empresa_id: espaco==="empresa"?empresaAtual:null,
       hora:$("t-hora").value||null, titulo:ti }).select().single();
     if(error) return falhou(error);
     db.tarefas.push(data); limparMemo(); render(); toast(t("msg.salvo"));
@@ -2588,7 +2863,9 @@ function ligarTela(){
   add("b-add", async ()=>{
     const h=$("b-hora").value, ti=$("b-tit").value.trim();
     if(!h||!ti) return toast(t("auth.preencha"), true);
-    const { data, error } = await sb.from("blocos_rotina").insert({ user_id:user.id, espaco, hora:h, titulo:ti,
+    if(espaco==="empresa" && !empresaAtual) return toast(t("emp.selecioneAntes"), true);
+    const { data, error } = await sb.from("blocos_rotina").insert({ user_id:user.id, espaco,
+      empresa_id: espaco==="empresa"?empresaAtual:null, hora:h, titulo:ti,
       ordem:blocos().length }).select().single();
     if(error) return falhou(error);
     db.blocos.push(data); blocoAberto=data.id; limparMemo(); render(); toast(t("msg.salvo"));
@@ -2606,10 +2883,18 @@ function ligarTela(){
   });
   add("m-add", async ()=>{
     const n=$("m-nome").value.trim(); if(!n) return;
-    const { data, error } = await sb.from("membros").insert({ user_id:user.id, nome:n, eh_voce:false }).select().single();
+    if(!empresaAtual) return toast(t("emp.selecioneAntes"), true);
+    const { data, error } = await sb.from("membros").insert({ user_id:user.id, nome:n, eh_voce:false, empresa_id:empresaAtual }).select().single();
     if(error) return falhou(error);
     db.membros.push(data); limparMemo(); render(); toast(t("msg.socioAdd"));
   });
+  add("emp-add", async ()=>{
+    const n=$("emp-nome").value.trim(); if(!n) return;
+    if(!(await criarEmpresa(n))) return;
+    render(); toast(t("msg.empresaAdd"));
+  });
+  $$("[data-editar-empresa]").forEach(b=>b.onclick=()=>editarEmpresa(b.dataset.editarEmpresa));
+  $$("[data-del-empresa]").forEach(b=>b.onclick=()=>apagarEmpresa(b.dataset.delEmpresa));
   add("bt-backup", ()=>{
     const a=document.createElement("a");
     a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:"application/json"}));
@@ -2631,7 +2916,8 @@ function ligarTela(){
   // Enter envia o formulário da linha
   [["c-valor","c-add"],["orc-valor","orc-add"],["rec-valor","rec-add"],["meta-alvo","meta-add"],
    ["t-tit","t-add"],["b-tit","b-add"],["m-nome","m-add"],["res-valor","res-salvar"],
-   ["id-titulo","id-add"],["id-tituloM","id-addM"]]
+   ["id-titulo","id-add"],["id-tituloM","id-addM"],["emp-nome","emp-add"],
+   ["cob-nome","cob-add"],["cob-valor","cob-add"]]
    .forEach(([campo,botao])=>{
      const el = $(campo); if(!el) return;
      el.onkeydown = e => { if(e.key==="Enter"){ e.preventDefault(); const b=$(botao); if(b) b.click(); } };
