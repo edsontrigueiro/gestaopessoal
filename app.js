@@ -1,5 +1,5 @@
 // ============================================================
-//  ZORVEL — Gestão Inteligente · app.js (v12)
+//  NEXVOT — Gestão Pessoal · app.js (v12)
 //  Requer: schema.sql → schema2 → schema3 → schema4 → schema5
 //  e i18n.js carregado antes deste arquivo.
 // ============================================================
@@ -13,63 +13,48 @@ const $$ = s  => Array.from(document.querySelectorAll(s));
 function fatal(msg){
   const el = $("splash-txt");
   if(el){ el.className = "st erro"; el.textContent = msg; }
-  console.error("[Zorvel]", msg);
+  console.error("[NexVot]", msg);
 }
 
-/* ================= IDIOMA ================= */
-let idioma = "pt";
+/* ================= TEXTOS =================
+   App só em português — sem seletor de idioma. O dicionário e a
+   função t() continuam existindo (i18n.js), só não trocam mais. */
+const idioma = "pt";
 function t(k, vars, alt){
   const D = window.I18N;
-  let s = (D && ((D[idioma] && D[idioma][k]) || (D.pt && D.pt[k]))) || alt || k;
+  let s = (D && D.pt && D.pt[k]) || alt || k;
   if(vars) for(const [a,b] of Object.entries(vars)) s = String(s).replace("{"+a+"}", b);
   return s;
 }
 const VAZIO_LISTAS = { dias:["","","","","","",""], diasCurto:["","","","","","",""] };
-const listas = () => (window.I18N_LISTAS && (window.I18N_LISTAS[idioma] || window.I18N_LISTAS.pt)) || VAZIO_LISTAS;
+const listas = () => (window.I18N_LISTAS && window.I18N_LISTAS.pt) || VAZIO_LISTAS;
 /* CATS devolve CHAVES estáveis; rotCat traduz na hora de mostrar. */
 const CATS   = () => window.CATEGORIAS;
 const rotCat = k => k ? t("cat."+k, null, k) : "";
 const DIAS   = () => listas().dias;
 const DIASC  = () => listas().diasCurto;
-const locale = () => idioma==="en" ? "en-US" : idioma==="es" ? "es-ES" : "pt-BR";
-const simb   = () => idioma==="en" ? "$" : idioma==="es" ? "€" : "R$";
+const locale = () => "pt-BR";
+const simb   = () => "R$";
 
 function aplicarTextos(){
   $$("[data-i]").forEach(e => e.textContent = t(e.dataset.i));
   $$("[data-ip]").forEach(e => e.placeholder = t(e.dataset.ip));
-  const la = $("lang-atual"); if(la) la.textContent = idioma.toUpperCase();
-  document.documentElement.lang = idioma === "pt" ? "pt-BR" : idioma;
-  $$("#auth-lang button").forEach(b => b.classList.toggle("on", b.dataset.l === idioma));
-  $$("#pop-lang [data-lang]").forEach(b => b.classList.toggle("on", b.dataset.lang === idioma));
-}
-async function trocarIdioma(l){
-  idioma = l;
-  try{ localStorage.setItem("zorvel:idioma", l); }catch(e){}
-  aplicarTextos();
-  if(user && sb) sb.from("perfil").upsert({ user_id:user.id, idioma:l, atualizado:new Date().toISOString() }).then(()=>{});
-  if(!$("app").hidden) render();
+  document.documentElement.lang = "pt-BR";
 }
 
 /* ================= ESTADO ================= */
-let user = null, perfil = null, assinatura = null, ciclo = "anual";
+let user = null, perfil = null;
 let espaco = "pessoal", tela = "painel", periodo = "mes";
 let calRef = null, selDia = null, rtDia = null, blocoAberto = null;
 let dataAlvo = null, tipoSel = "saida", catSel = null, natSel = "essencial", membroSel = null, dig = "";
 let importados = [];
 let pulouInicio = false;
-
-/* Preço mostrado na tela. Precisa bater com o que está no provedor —
-   o valor cobrado vem de lá, nunca daqui. */
-const PRECO = { mensal: 39.9, anual: 349 };
-const temPro = () => !!assinatura && assinatura.plano === "pro"
-  && ["ativa","periodo_final"].includes(assinatura.situacao)
-  && (!assinatura.vale_ate || new Date(assinatura.vale_ate) > new Date());
 const avisados = new Set();
 
 const db = { lancamentos:[], contas:[], habitos:[], marcas:[], fechados:[], eventos:[],
              membros:[], blocos:[], tarefas:[], orcamentos:[], recorrencias:[], metas:[] };
 
-const TELAS = ["painel","consolidado","fluxo","orcamento","recorrencias","metas","rotina","agenda","relatorios","planos","ajustes"];
+const TELAS = ["painel","consolidado","fluxo","orcamento","recorrencias","metas","rotina","agenda","relatorios","ajustes"];
 const ICONES = {
   painel:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/></svg>',
   consolidado:'<svg viewBox="0 0 24 24"><path d="M7 8h10l-3-3M17 16H7l3 3"/><rect x="2.5" y="3" width="19" height="18" rx="3"/></svg>',
@@ -80,14 +65,13 @@ const ICONES = {
   rotina:'<svg viewBox="0 0 24 24"><path d="M4 7h3M4 12h3M4 17h3"/><path d="M10 7h10M10 12h10M10 17h10"/></svg>',
   agenda:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
   relatorios:'<svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>',
-  planos:'<svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="3"/><path d="M2 11h20M6 15h4"/></svg>',
   ajustes:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>'
 };
 const TITULO = { painel:["painel.titulo","painel.sub"], consolidado:["con.titulo","con.sub"], fluxo:["nav.fluxo","sec.fluxo.sub"],
   orcamento:["nav.orcamento","sec.orcamento.sub"], recorrencias:["nav.recorrencias","sec.recorrencias.sub"],
   metas:["nav.metas","sec.metas.sub"], rotina:["nav.rotinaDia","sec.rotinaHoje"],
   agenda:["nav.agenda","sec.compromissos"], relatorios:["nav.relatorios","sec.fechamento.sub"],
-  planos:["pl.titulo","pl.sub"], ajustes:["nav.ajustes","sec.idioma.sub"] };
+  ajustes:["nav.ajustes","aju.sub"] };
 
 /* ================= UTILIDADES ================= */
 const isoDe = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -151,7 +135,7 @@ function aplicarTema(pref, salvar){
   temaPref = pref;
   const real = resolverTema();
   document.documentElement.dataset.tema = real;
-  try{ localStorage.setItem("zorvel:tema", pref); }catch(e){}
+  try{ localStorage.setItem("nexvot:tema", pref); }catch(e){}
   const meta = document.querySelector('meta[name="theme-color"]');
   if(meta) meta.setAttribute("content", real==="escuro" ? "#0A0A0B" : "#F7F8FA");
   const ic = $("ic-tema");
@@ -175,8 +159,6 @@ async function boot(){
   if(!window.CONFIG)
     return fatal("O config.js não carregou. Confira se o arquivo está na raiz do repositório.");
 
-  try{ idioma = localStorage.getItem("zorvel:idioma") || (navigator.language||"pt").slice(0,2); }catch(e){}
-  if(!["pt","en","es"].includes(idioma)) idioma = "pt";
   aplicarTextos();
 
   const url = String(window.CONFIG.SUPABASE_URL||"").trim();
@@ -195,7 +177,7 @@ async function boot(){
   }catch(e){ return fatal("Não consegui falar com o Supabase ("+e.message+")."); }
 
   let prefSalva = "escuro";
-  try{ prefSalva = localStorage.getItem("zorvel:tema") || "escuro"; }catch(e){}
+  try{ prefSalva = localStorage.getItem("nexvot:tema") || "escuro"; }catch(e){}
   aplicarTema(prefSalva, false);
   $("splash").hidden = true;
   if(ehRetornoDeSenha()){ telaAuth(); return; }
@@ -205,25 +187,14 @@ async function boot(){
 }
 
 /* ============================================================
-   ACESSO — entrar e criar conta por e-mail
+   ACESSO — entrar por e-mail e recuperar senha
+   (sem cadastro: a conta é a que você já tem)
    ============================================================ */
 const soDigito = v => String(v||"").replace(/\D/g,"");
 const emailValido = v => /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(String(v||"").trim());
-const usuarioValido = v => String(v||"").trim().replace(/\s+/g," ").length >= 2;
 
 const PAISES = () => window.PAISES || [];
 const acharPais = iso => PAISES().find(p => p.iso === iso) || PAISES()[0];
-
-/* Validação por comprimento do número nacional, dentro da faixa do país. */
-function telValido(iso, numero){
-  const p = acharPais(iso); if(!p) return false;
-  const d = soDigito(numero);
-  if(d.length < p.min || d.length > p.max) return false;
-  if(iso === "BR" && d.length === 11 && d[2] !== "9") return false;   // celular brasileiro
-  if(iso === "BR" && +d.slice(0,2) < 11) return false;                // DDD válido
-  return true;
-}
-const faixaPais = iso => { const p = acharPais(iso); return p.min === p.max ? String(p.min) : `${p.min}–${p.max}`; };
 
 function mascaraTel(iso, v){
   const p = acharPais(iso), d = soDigito(v).slice(0, p.max);
@@ -241,22 +212,10 @@ function mascaraTel(iso, v){
   return partes.join(" ");
 }
 
-function montarPaises(){
-  const sel = $("c-pais"); if(!sel) return;
-  const lista = [...PAISES()].sort((a,b)=>{
-    if(a.iso === "BR") return -1; if(b.iso === "BR") return 1;
-    return a.nome[idioma].localeCompare(b.nome[idioma], locale());
-  });
-  sel.innerHTML = lista.map(p =>
-    `<option value="${p.iso}">${p.b} +${p.ddi}</option>`).join("");
-  sel.title = lista.map(p=>p.nome[idioma]).join(", ");
-}
-
 const marcar = (grupo, ruim) => { const g = $(grupo); if(g) g.classList.toggle("ruim", !!ruim); };
 function mostrarBloco(qual){
-  ["entrar","criar","senha","nova"].forEach(x => $("bloco-"+x).hidden = x !== qual);
+  ["entrar","senha","nova"].forEach(x => $("bloco-"+x).hidden = x !== qual);
   $("a-msg").textContent = "";
-  if(qual === "criar"){ montarPaises(); atualizarDicaTel(); }
 }
 
 async function pedirLinkSenha(){
@@ -291,11 +250,6 @@ function aviso(txt, ok){
   m.className = "msg " + (ok ? "ok" : "erro");
   m.textContent = txt || "";
 }
-function atualizarDicaTel(){
-  const iso = $("c-pais").value || "BR";
-  $("c-tel").placeholder = iso === "BR" ? "(00) 00000-0000" : "0".repeat(acharPais(iso).min);
-  $("erro-tel").textContent = t("err.telPais", { n: faixaPais(iso) });
-}
 
 /* Link de recuperação devolve o usuário aqui com uma sessão temporária. */
 function ehRetornoDeSenha(){
@@ -306,9 +260,6 @@ function ehRetornoDeSenha(){
 function telaAuth(){
   $("auth").hidden = false;
   mostrarBloco(ehRetornoDeSenha() ? "nova" : "entrar");
-  $$("#auth-lang button").forEach(b => b.onclick = ()=>trocarIdioma(b.dataset.l));
-  $("ir-criar").onclick   = ()=>mostrarBloco("criar");
-  $("ir-entrar").onclick  = ()=>mostrarBloco("entrar");
   $("ir-entrar2").onclick = ()=>mostrarBloco("entrar");
   $("ir-senha").onclick   = ()=>{ mostrarBloco("senha"); $("s-email").value = $("a-email").value; };
   $("bt-enviar-senha").onclick = pedirLinkSenha;
@@ -316,18 +267,8 @@ function telaAuth(){
   $("s-email").addEventListener("keydown", e=>{ if(e.key==="Enter") pedirLinkSenha(); });
   $("n-senha2").addEventListener("keydown", e=>{ if(e.key==="Enter") salvarSenhaNova(); });
   $("bt-entrar").onclick = entrarPorEmail;
-  $("bt-criar").onclick  = criarConta;
-
-  $("c-pais").onchange = ()=>{ $("c-tel").value = ""; atualizarDicaTel(); marcar("g-tel", false); };
-  $("c-tel").addEventListener("input", ()=>{
-    const el = $("c-tel"), fim = el.selectionStart === el.value.length;
-    el.value = mascaraTel($("c-pais").value, el.value);
-    if(fim) el.selectionStart = el.selectionEnd = el.value.length;
-  });
-  $("c-termos").addEventListener("change", ()=>marcar("g-termos", false));
 
   ["a-email","a-senha"].forEach(k => $(k).addEventListener("keydown", e=>{ if(e.key==="Enter") entrarPorEmail(); }));
-  $("c-senha2").addEventListener("keydown", e=>{ if(e.key==="Enter") criarConta(); });
 }
 
 async function entrarPorEmail(){
@@ -341,114 +282,6 @@ async function entrarPorEmail(){
   user = data.user; $("auth").hidden = true; entrar();
 }
 
-/* Cria a conta, grava o lead e devolve para a tela de login. */
-async function criarConta(){
-  const nome  = $("c-nome-completo").value.trim().replace(/\s+/g," ");
-  const email = $("c-email").value.trim();
-  const iso   = $("c-pais").value || "BR";
-  const tel   = soDigito($("c-tel").value);
-  const s1    = $("c-senha").value, s2 = $("c-senha2").value;
-  const ok    = $("c-termos").checked;
-
-  const erros = [
-    [ "g-nome",   !usuarioValido(nome) ],
-    [ "g-email",  !emailValido(email) ],
-    [ "g-tel",    !telValido(iso, tel) ],
-    [ "g-senha",  s1.length < 6 ],
-    [ "g-senha2", s1 !== s2 || !s2 ],
-    [ "g-termos", !ok ]
-  ];
-  erros.forEach(([g,ruim]) => marcar(g, ruim));
-  if(erros.some(([,ruim]) => ruim)) return aviso(ok ? "" : t("err.termos"));
-
-  aviso(t("auth.criando"), true);
-  $("bt-criar").disabled = true;
-
-  const p = acharPais(iso);
-  const { data, error } = await sb.auth.signUp({
-    email, password: s1,
-    options: { data: { full_name: nome, phone: tel, tel_pais: iso, tel_ddi: p.ddi } }
-  });
-  if(error){ $("bt-criar").disabled = false; return aviso(error.message); }
-
-  // grava o cadastro enquanto a sessão do signUp ainda existe
-  if(data.session){
-    await sb.from("perfil").upsert({
-      user_id: data.user.id, nome_completo: nome, telefone: tel,
-      tel_pais: iso, tel_ddi: p.ddi, origem: "email", idioma,
-      aceite_termos: true, aceite_em: new Date().toISOString(), aceite_versao: "1.0",
-      cadastro_completo: true, atualizado: new Date().toISOString()
-    }, { onConflict: "user_id" });
-    await sb.auth.signOut();          // volta para o login, como você pediu
-  }
-
-  $("bt-criar").disabled = false;
-  ["c-nome-completo","c-email","c-tel","c-senha","c-senha2"].forEach(k => $(k).value = "");
-  $("c-termos").checked = false;
-  mostrarBloco("entrar");
-  $("a-email").value = email;
-  $("a-senha").focus();
-  aviso(data.session ? t("cad.contaCriada") : t("auth.confirme"), true);
-}
-
-/* ============================================================
-   ADMIN · CONTA SUSPENSA · CONFIGURAÇÃO DO SISTEMA
-   Quem decide se alguém é admin é o servidor (/api/admin).
-   O navegador só obedece à resposta.
-   ============================================================ */
-async function desviarSeAdmin(){
-  try{
-    const { data:{ session } } = await sb.auth.getSession();
-    if(!session) return false;
-    const r = await fetch("/api/admin?acao=eu", {
-      headers:{ Authorization: "Bearer " + session.access_token } });
-    if(!r.ok) return false;
-    const j = await r.json();
-    if(j && j.admin){ location.replace("./admin.html"); return true; }
-  }catch(e){}
-  return false;
-}
-
-function telaSuspensa(){
-  $("auth").hidden = true; $("app").hidden = true;
-  const fab = $("fab"); if(fab) fab.hidden = true;
-  const d = document.createElement("div");
-  d.style.cssText = "position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:24px;background:var(--bg)";
-  d.innerHTML = '<div style="max-width:420px;text-align:center">'
-    + '<div style="width:46px;height:46px;margin:0 auto 16px;border-radius:12px;background:var(--laranja)"></div>'
-    + '<h2 style="font-size:19px;font-weight:600;margin-bottom:8px">Conta suspensa</h2>'
-    + '<p style="color:var(--txt2);font-size:14px;line-height:1.6">Seus dados estão salvos e intactos, mas esta conta '
-    + 'está temporariamente suspensa e não aceita novos lançamentos. Fale com o suporte para reativar.</p>'
-    + '<button id="susp-sair" style="margin-top:20px;background:none;border:1px solid var(--linha);color:var(--txt2);'
-    + 'border-radius:9px;padding:9px 18px;font:inherit;font-size:14px;cursor:pointer">Sair</button></div>';
-  document.body.appendChild(d);
-  const b = document.getElementById("susp-sair");
-  if(b) b.onclick = async ()=>{ try{ await sb.auth.signOut(); }catch(e){} location.reload(); };
-}
-
-async function aplicarConfigSistema(){
-  try{
-    const { data } = await sb.from("config_sistema").select("chave,valor");
-    if(!data) return;
-    const m = {}; data.forEach(r => { m[r.chave] = r.valor; });
-
-    const flags = m.flags || {};
-    Object.keys(flags).forEach(k => {
-      if(flags[k] === false)
-        document.querySelectorAll('[data-v="' + k + '"]').forEach(el => { el.style.display = "none"; });
-    });
-
-    const av = m.aviso || {};
-    if(av.ativo && av.texto){
-      const b = document.createElement("div");
-      b.style.cssText = "position:relative;z-index:40;background:var(--laranja);color:#0A0A0B;"
-        + "font-size:13.5px;font-weight:500;padding:9px 16px;text-align:center";
-      b.textContent = av.texto;
-      document.body.insertBefore(b, document.body.firstChild);
-    }
-  }catch(e){}
-}
-
 async function entrar(){
   $("auth").hidden = true;
   $("app").hidden = false;
@@ -458,9 +291,6 @@ async function entrar(){
     perfil = p || null;
   }
 
-  if(await desviarSeAdmin()) return;                 // admin não vê o painel do usuário
-  if(perfil && perfil.ativo === false){ telaSuspensa(); return; }
-  aplicarConfigSistema();
   const bruto = (perfil && perfil.nome_completo)
     || (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name))
     || (user.email||"").split("@")[0];
@@ -472,7 +302,7 @@ async function entrar(){
   $("pop-email").textContent = user.email || "";
   selDia = hoje(); rtDia = hoje(); dataAlvo = hoje();
   calRef = { a:+selDia.slice(0,4), m:+selDia.slice(5,7) };
-  try{ espaco = localStorage.getItem("zorvel:espaco") || "pessoal"; }catch(e){}
+  try{ espaco = localStorage.getItem("nexvot:espaco") || "pessoal"; }catch(e){}
   // A sessão pode cair com o app aberto, ou o usuário sair em outra aba.
   sb.auth.onAuthStateChange((evento, ses)=>{
     if(evento === "SIGNED_OUT" || (!ses && evento !== "INITIAL_SESSION")){
@@ -487,7 +317,6 @@ async function entrar(){
   await materializarRecorrencias();
   const q = new URLSearchParams(location.search);
   irPara(TELAS.includes(q.get("tela")) ? q.get("tela") : "painel");
-  conferirRetornoPagamento();
   setInterval(checarLembretes, 30000);
 }
 
@@ -506,12 +335,11 @@ async function carregar(){
     sb.from("orcamentos").select("*"),
     sb.from("recorrencias").select("*").order("dia"),
     sb.from("metas").select("*").order("criado_em"),
-    sb.from("perfil").select("*").eq("user_id", user.id).maybeSingle(),
-    sb.from("assinaturas").select("*").eq("user_id", user.id).maybeSingle()
+    sb.from("perfil").select("*").eq("user_id", user.id).maybeSingle()
   ]);
   const err = r.find(x=>x.error);
   if(err) return falhou(err.error);
-  const [l,c,h,m,f,e,mb,bl,tf,orc,rec,mt,pf,asn] = r;
+  const [l,c,h,m,f,e,mb,bl,tf,orc,rec,mt,pf] = r;
   db.lancamentos  = (l.data||[]).map(x=>({...x, valor:Number(x.valor)}));
   db.contas       = (c.data||[]).map(x=>({...x, valor:Number(x.valor||0)}));
   db.habitos = h.data||[]; db.marcas = m.data||[];
@@ -522,8 +350,6 @@ async function carregar(){
   db.recorrencias = (rec.data||[]).map(x=>({...x, valor:Number(x.valor)}));
   db.metas        = (mt.data||[]).map(x=>({...x, alvo:Number(x.alvo)}));
   perfil = pf.data || null;
-  assinatura = asn.data || null;
-  if(perfil && perfil.idioma && perfil.idioma !== idioma){ idioma = perfil.idioma; aplicarTextos(); }
   if(!db.membros.length){
     const { data:n } = await sb.from("membros").insert({ user_id:user.id, nome:"Você", eh_voce:true }).select().single();
     if(n) db.membros = [n];
@@ -1052,11 +878,8 @@ function render(){
   $$(".side .item[data-v]").forEach(b=>b.classList.toggle("on", b.dataset.v===tela));
   const fn = { painel:vPainel, consolidado:vConsolidado, fluxo:vFluxo, orcamento:vOrcamento, recorrencias:vRecorrencias,
                metas:vMetas, rotina:vRotina, agenda:vAgenda, relatorios:vRelatorios,
-               planos:vPlanos, ajustes:vAjustes }[tela];
-  // espaço empresa é do Pro. O portão fica aqui, mas o que protege
-  // de verdade é o RLS no banco — isto é só a porta da frente.
-  const travado = espaco === "empresa" && !temPro() && tela !== "planos" && tela !== "ajustes";
-  $("v-"+tela).innerHTML = travado ? paredePro() : fn();
+               ajustes:vAjustes }[tela];
+  $("v-"+tela).innerHTML = fn();
   ligarTela();
 }
 function rotuloPeriodo(){
@@ -1622,95 +1445,11 @@ function vRelatorios(){
   </div>`;
 }
 
-/* ---------- PLANOS ---------- */
-function vPlanos(){
-  const chk = '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>';
-  const item = (k, on) => `<li class="${on?"":"off"}">${chk}<span>${esc(t(k))}</span></li>`;
-  const pro = temPro();
-  const dt = d => d ? ext(d.slice(0,10), {day:"2-digit", month:"long", year:"numeric"}) : "";
-
-  let situacao = "";
-  if(assinatura && assinatura.situacao === "em_atraso")
-    situacao = `<div class="card alerta-vrm" style="margin-bottom:18px"><div class="status">
-      <div class="txt"><div class="tt">${esc(t("pl.emAtraso"))}</div>
-        <div class="ss">${esc(t("pl.emAtrasoSub"))}</div></div>
-      <button class="btn-pri" id="bt-portal2">${esc(t("pl.gerenciar"))}</button></div></div>`;
-  else if(pro && assinatura)
-    situacao = `<div class="card" style="margin-bottom:18px"><div class="status">
-      <div class="kpi-ic ic-ver" style="position:static;flex:none">${ICO.ok}</div>
-      <div class="txt"><div class="tt">${esc(t("pl.pro"))}</div><div class="ss">${
-        esc(assinatura.cancela_no_fim
-          ? t("pl.periodoFinal", { d: dt(assinatura.vale_ate) })
-          : t("pl.ativa", { d: dt(assinatura.vale_ate) }))}</div></div>
-      <button class="btn-sec" id="bt-portal">${esc(t("pl.gerenciar"))}</button></div></div>`;
-
-  const valor = ciclo === "anual" ? PRECO.anual : PRECO.mensal;
-
-  return `
-  ${situacao}
-  <div class="ciclo" id="seg-ciclo">
-    <button data-ciclo="mensal" class="${ciclo==="mensal"?"on":""}">${t("pl.mensal")}</button>
-    <button data-ciclo="anual" class="${ciclo==="anual"?"on":""}">${t("pl.anual")}
-      <span class="eco">${t("pl.anualDica")}</span></button>
-  </div>
-
-  <div class="planos">
-    <div class="plano">
-      <h3>${esc(t("pl.gratuito"))}</h3>
-      <div class="desc">${esc(t("pl.gratuitoSub"))}</div>
-      <div class="preco"><b>${esc(t("pl.gratis"))}</b></div>
-      <div class="obs">${esc(t("pl.semCartao"))}</div>
-      ${!pro ? `<button class="btn sec" disabled style="background:var(--card2);color:var(--txt2);border:1px solid var(--linha)">${esc(t("pl.atual"))}</button>` : ""}
-      <ul>
-        ${item("pl.f1",1)}${item("pl.f2",1)}${item("pl.f3",1)}
-        ${item("pl.f4",1)}${item("pl.f5",1)}${item("pl.f6",1)}
-        ${item("pl.f7",0)}${item("pl.f8",0)}${item("pl.f9",0)}
-      </ul>
-    </div>
-
-    <div class="plano destaque">
-      <span class="selo">${esc(t("pl.pro"))}</span>
-      <h3>${esc(t("pl.pro"))}</h3>
-      <div class="desc">${esc(t("pl.proSub"))}</div>
-      <div class="preco"><b>${simb()} ${num(valor)}</b><span>${esc(t("pl."+ciclo))}</span></div>
-      <div class="obs">${ciclo === "anual"
-        ? esc(`${simb()} ${num(PRECO.anual/12)} ${t("pl.mensal")}`) : "&nbsp;"}</div>
-      ${pro
-        ? `<button class="btn" id="bt-portal3">${esc(t("pl.gerenciar"))}</button>`
-        : `<button class="btn" id="bt-assinar">${esc(t("pl.assinar"))}</button>`}
-      <ul>
-        ${item("pl.f1",1)}${item("pl.f2",1)}${item("pl.f3",1)}
-        ${item("pl.f4",1)}${item("pl.f5",1)}${item("pl.f6",1)}
-        ${item("pl.f7",1)}${item("pl.f8",1)}${item("pl.f9",1)}
-        ${item("pl.f10",1)}${item("pl.f11",1)}${item("pl.f12",1)}
-      </ul>
-      <div class="t3" style="font-size:13px;margin-top:20px;text-align:center">${esc(t("pl.cancelar"))}</div>
-    </div>
-  </div>`;
-}
-
-/* Tela mostrada quando o espaço empresa está travado. */
-function paredePro(){
-  return `<div class="trava">
-    <div class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="2.5"/>
-      <path d="M8 10V7a4 4 0 018 0v3"/></svg></div>
-    <h2>${esc(t("pl.bloqueado"))}</h2>
-    <p>${esc(t("pl.bloqueadoSub"))}</p>
-    <button class="btn-pri" data-acao="planos" style="margin:0 auto">${esc(t("pl.verPlanos"))}</button>
-  </div>`;
-}
-
 /* ---------- AJUSTES ---------- */
 function vAjustes(){
-  const langs = [["pt","Português"],["en","English"],["es","Español"]];
   return `
   <div class="grade g2">
     <div class="card pad">
-      ${secH(t("sec.idioma"), t("sec.idioma.sub"))}
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        ${langs.map(([k,n])=>`<button class="chip ${idioma===k?"on":""}" data-lang="${k}">${n}</button>`).join("")}</div>
-    </div>
-    <div class="card pad" style="--d:60ms">
       ${secH(t("sec.conta"), user.email||"")}
       ${perfil && perfil.cadastro_completo ? `
       <div class="faixa" style="grid-template-columns:1fr;margin-bottom:16px">
@@ -1719,21 +1458,20 @@ function vAjustes(){
           perfil.telefone ? esc("+"+(perfil.tel_ddi||"")+" "+mascaraTel(perfil.tel_pais||"BR", perfil.telefone)) : "—"}</div></div>
       </div>` : ""}
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="mini lar" data-acao="planos">${t("pl.titulo")}</button>
         <button class="mini" id="bt-backup">${t("conta.backup")}</button>
         <button class="mini" id="bt-sair2">${t("conta.sair")}</button></div>
     </div>
-  </div>
-  <div class="card" style="--d:110ms">
-    <div class="pad">${secH(t("sec.socios"), t("sec.socios.sub"))}</div>
-    <div class="pad" style="padding-top:8px">
-      ${db.membros.map(m=>`<div class="li" style="padding-left:0;padding-right:0">
-        <span class="n">${esc(m.nome)}</span>
-        ${!m.eh_voce?`<button class="x" aria-label="${esc(t('form.apagar'))}" data-del-membro="${m.id}">${ICO.x}</button>`:""}</div>`).join("")}
+    <div class="card" style="--d:60ms">
+      <div class="pad">${secH(t("sec.socios"), t("sec.socios.sub"))}</div>
+      <div class="pad" style="padding-top:8px">
+        ${db.membros.map(m=>`<div class="li" style="padding-left:0;padding-right:0">
+          <span class="n">${esc(m.nome)}</span>
+          ${!m.eh_voce?`<button class="x" aria-label="${esc(t('form.apagar'))}" data-del-membro="${m.id}">${ICO.x}</button>`:""}</div>`).join("")}
+      </div>
+      <div class="form">
+        <input id="m-nome" class="fn" placeholder="${t("form.socio")}">
+        <button class="mini lar" id="m-add">${t("form.add")}</button></div>
     </div>
-    <div class="form">
-      <input id="m-nome" class="fn" placeholder="${t("form.socio")}">
-      <button class="mini lar" id="m-add">${t("form.add")}</button></div>
   </div>`;
 }
 
@@ -2084,59 +1822,6 @@ function abrirBloco(bl){
   };
 }
 
-/* ============================================================
-   COBRANÇA — o navegador só pede; quem decide é o servidor.
-   ============================================================ */
-async function chamarApi(rota, corpo){
-  const { data } = await sb.auth.getSession();
-  const token = data.session && data.session.access_token;
-  const r = await fetch("/api/" + rota, {
-    method: "POST",
-    headers: { "Content-Type":"application/json", "Authorization": "Bearer " + token },
-    body: JSON.stringify(corpo || {})
-  });
-  if(!r.ok) throw new Error("HTTP " + r.status);
-  return r.json();
-}
-
-async function assinar(){
-  const bt = $("bt-assinar"); if(bt) bt.disabled = true;
-  try{
-    const { url } = await chamarApi("checkout", { ciclo });
-    if(!url) throw new Error("sem url");
-    location.href = url;
-  }catch(e){
-    console.error(e);
-    if(bt) bt.disabled = false;
-    toast(t("err.checkout"), true);
-  }
-}
-
-async function abrirPortal(){
-  try{
-    const { url } = await chamarApi("portal", {});
-    if(url) location.href = url;
-  }catch(e){ console.error(e); toast(t("err.checkout"), true); }
-}
-
-/* Depois de pagar, o provedor devolve para cá. O webhook pode
-   demorar alguns segundos, então recarregamos a assinatura. */
-async function conferirRetornoPagamento(){
-  const q = new URLSearchParams(location.search);
-  const p = q.get("pagamento");
-  if(!p) return;
-  history.replaceState(null, "", location.pathname);
-  if(p === "cancelado") return toast(t("msg.pagamentoCancelado"));
-
-  for(let i = 0; i < 6; i++){
-    const { data } = await sb.from("assinaturas").select("*").eq("user_id", user.id).maybeSingle();
-    assinatura = data || assinatura;
-    if(temPro()){ limparMemo(); render(); return toast(t("msg.pagamentoOk")); }
-    await new Promise(r => setTimeout(r, 1500));
-  }
-  render();
-}
-
 /* ================= MUTAÇÕES ================= */
 /* Apagar guarda a linha inteira e oferece Desfazer por 7 segundos.
    Num app de dinheiro, um clique errado não pode ser definitivo. */
@@ -2416,7 +2101,7 @@ function checarLembretes(){
       avisados.add(e.id);
       toast(`${e.titulo} · ${hm(e.hora)}`);
       try{ if("Notification" in window && Notification.permission==="granted")
-        new Notification("Zorvel", { body:`${e.titulo} — ${hm(e.hora)}` }); }catch(x){}
+        new Notification("NexVot", { body:`${e.titulo} — ${hm(e.hora)}` }); }catch(x){}
       vibra(30);
     }
   });
@@ -2428,16 +2113,14 @@ function ligar(){
   $$("#seg-espaco button").forEach(b => b.onclick = ()=>{
     if(espaco===b.dataset.e) return;
     espaco = b.dataset.e;
-    try{ localStorage.setItem("zorvel:espaco", espaco); }catch(e){}
+    try{ localStorage.setItem("nexvot:espaco", espaco); }catch(e){}
     vibra(10); render();
   });
   $$("#seg-periodo button").forEach(b => b.onclick = ()=>{ periodo=b.dataset.p; vibra(6); render(); });
   $("bt-menu").onclick = ()=>{ vibra(8); abrirGaveta(); };
-  $("bt-lang").onclick   = e=>{ e.stopPropagation(); alternarPop("bt-lang","pop-lang"); };
   $("bt-tema").onclick   = e=>{ e.stopPropagation(); alternarPop("bt-tema","pop-tema"); };
   $("bt-avisos").onclick = e=>{ e.stopPropagation(); alternarPop("bt-avisos","pop-avisos"); };
   $("bt-perfil").onclick = e=>{ e.stopPropagation(); alternarPop("bt-perfil","pop-perfil"); };
-  $$("#pop-lang [data-lang]").forEach(b => b.onclick = ()=>{ fecharPop(); trocarIdioma(b.dataset.lang); });
   $$("#pop-tema [data-tema]").forEach(b => b.onclick = ()=>{ fecharPop(); aplicarTema(b.dataset.tema); });
   $$("#pop-perfil [data-ir]").forEach(b => b.onclick = ()=>{ fecharPop(); irPara(b.dataset.ir); });
   $("pop-sair").onclick = async ()=>{ await sb.auth.signOut(); location.reload(); };
@@ -2447,7 +2130,7 @@ function ligar(){
   $("bt-sair").onclick = async ()=>{ await sb.auth.signOut(); location.reload(); };
   $("bt-recolher").onclick = ()=>{
     document.body.classList.toggle("recolhido");
-    try{ localStorage.setItem("zorvel:recolhido", document.body.classList.contains("recolhido")?"1":"0"); }catch(e){}
+    try{ localStorage.setItem("nexvot:recolhido", document.body.classList.contains("recolhido")?"1":"0"); }catch(e){}
   };
   $("veu").onclick = fecharSheet;
   $("busca").addEventListener("input", e=>{
@@ -2490,7 +2173,7 @@ function ligarDelegacao(){
       else if(a==="abrir-hoje") abrirDia(hoje());
       else if(a==="pular-inicio"){ pulouInicio = true; render(); }
       else if(a==="nova-transf"){
-        if(espaco!=="empresa"){ espaco="empresa"; try{ localStorage.setItem("zorvel:espaco","empresa"); }catch(x){} }
+        if(espaco!=="empresa"){ espaco="empresa"; try{ localStorage.setItem("nexvot:espaco","empresa"); }catch(x){} }
         abrirLanc(hoje());
       }
       else if(focos[a]){
@@ -2570,9 +2253,6 @@ function ligarDelegacao(){
       if(error) return falhou(error);
       x.feita = !x.feita; limparMemo(); vibra(); return render(); }
 
-    const lg = alvo("[data-lang]");
-    if(lg){ fecharPop(); return trocarIdioma(lg.dataset.lang); }
-
     const tm = alvo("[data-tema]");
     if(tm){ fecharPop(); return aplicarTema(tm.dataset.tema); }
 
@@ -2651,9 +2331,6 @@ function ligarTela(){
     db.blocos.push(data); blocoAberto=data.id; limparMemo(); render(); toast(t("msg.salvo"));
   });
   add("rt-seed", instalarRotina);
-  add("bt-assinar", assinar);
-  ["bt-portal","bt-portal2","bt-portal3"].forEach(id => add(id, abrirPortal));
-  $$("#seg-ciclo [data-ciclo]").forEach(b => b.onclick = ()=>{ ciclo = b.dataset.ciclo; render(); });
   add("res-salvar", async ()=>{
     const v = numBR($("res-valor").value);
     const { error } = await sb.from("perfil").upsert({
@@ -2673,7 +2350,7 @@ function ligarTela(){
   add("bt-backup", ()=>{
     const a=document.createElement("a");
     a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,2)],{type:"application/json"}));
-    a.download=`zorvel-${hoje()}.json`; a.click();
+    a.download=`nexvot-${hoje()}.json`; a.click();
   });
   add("bt-sair2", async ()=>{ await sb.auth.signOut(); location.reload(); });
   add("bt-pdf", ()=>{ toast(t("exp.dica")); setTimeout(()=>window.print(), 500); });
