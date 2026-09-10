@@ -1,6 +1,6 @@
 // ============================================================
-//  NEXVOT — Gestão Pessoal · app.js (v12)
-//  Requer: schema.sql → schema2 → schema3 → schema4 → schema5
+//  NEXVOT — Gestão Pessoal · app.js (v13)
+//  Requer: schema.sql → schema2 → schema3 → schema4 → schema5 → schema6
 //  e i18n.js carregado antes deste arquivo.
 // ============================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -49,12 +49,15 @@ let calRef = null, selDia = null, rtDia = null, blocoAberto = null;
 let dataAlvo = null, tipoSel = "saida", catSel = null, natSel = "essencial", membroSel = null, dig = "";
 let importados = [];
 let pulouInicio = false;
+let arquivoComprovante = null;               // arquivo escolhido no sheet de lançamento, antes de enviar
+let ideiaView = "lista", ideiaConectando = null;
 const avisados = new Set();
 
 const db = { lancamentos:[], contas:[], habitos:[], marcas:[], fechados:[], eventos:[],
-             membros:[], blocos:[], tarefas:[], orcamentos:[], recorrencias:[], metas:[] };
+             membros:[], blocos:[], tarefas:[], orcamentos:[], recorrencias:[], metas:[],
+             ideias:[], conexoes:[] };
 
-const TELAS = ["painel","consolidado","fluxo","orcamento","recorrencias","metas","rotina","agenda","relatorios","ajustes"];
+const TELAS = ["painel","consolidado","fluxo","orcamento","recorrencias","metas","rotina","agenda","ideias","relatorios","ajustes"];
 const ICONES = {
   painel:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/></svg>',
   consolidado:'<svg viewBox="0 0 24 24"><path d="M7 8h10l-3-3M17 16H7l3 3"/><rect x="2.5" y="3" width="19" height="18" rx="3"/></svg>',
@@ -64,13 +67,15 @@ const ICONES = {
   metas:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg>',
   rotina:'<svg viewBox="0 0 24 24"><path d="M4 7h3M4 12h3M4 17h3"/><path d="M10 7h10M10 12h10M10 17h10"/></svg>',
   agenda:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  ideias:'<svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3 11.2c.6.4 1 1 1 1.8v.5h4v-.5c0-.8.4-1.4 1-1.8A6 6 0 0012 3z"/></svg>',
   relatorios:'<svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>',
   ajustes:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/></svg>'
 };
 const TITULO = { painel:["painel.titulo","painel.sub"], consolidado:["con.titulo","con.sub"], fluxo:["nav.fluxo","sec.fluxo.sub"],
   orcamento:["nav.orcamento","sec.orcamento.sub"], recorrencias:["nav.recorrencias","sec.recorrencias.sub"],
   metas:["nav.metas","sec.metas.sub"], rotina:["nav.rotinaDia","sec.rotinaHoje"],
-  agenda:["nav.agenda","sec.compromissos"], relatorios:["nav.relatorios","sec.fechamento.sub"],
+  agenda:["nav.agenda","sec.compromissos"], ideias:["nav.ideias","ide.sub"],
+  relatorios:["nav.relatorios","sec.fechamento.sub"],
   ajustes:["nav.ajustes","aju.sub"] };
 
 /* ================= UTILIDADES ================= */
@@ -335,11 +340,13 @@ async function carregar(){
     sb.from("orcamentos").select("*"),
     sb.from("recorrencias").select("*").order("dia"),
     sb.from("metas").select("*").order("criado_em"),
-    sb.from("perfil").select("*").eq("user_id", user.id).maybeSingle()
+    sb.from("perfil").select("*").eq("user_id", user.id).maybeSingle(),
+    sb.from("ideias").select("*").order("criado_em"),
+    sb.from("ideia_conexoes").select("*")
   ]);
   const err = r.find(x=>x.error);
   if(err) return falhou(err.error);
-  const [l,c,h,m,f,e,mb,bl,tf,orc,rec,mt,pf] = r;
+  const [l,c,h,m,f,e,mb,bl,tf,orc,rec,mt,pf,id,cx] = r;
   db.lancamentos  = (l.data||[]).map(x=>({...x, valor:Number(x.valor)}));
   db.contas       = (c.data||[]).map(x=>({...x, valor:Number(x.valor||0)}));
   db.habitos = h.data||[]; db.marcas = m.data||[];
@@ -349,6 +356,8 @@ async function carregar(){
   db.orcamentos   = (orc.data||[]).map(x=>({...x, valor_mes:Number(x.valor_mes)}));
   db.recorrencias = (rec.data||[]).map(x=>({...x, valor:Number(x.valor)}));
   db.metas        = (mt.data||[]).map(x=>({...x, alvo:Number(x.alvo)}));
+  db.ideias   = id.data||[];
+  db.conexoes = cx.data||[];
   perfil = pf.data || null;
   if(!db.membros.length){
     const { data:n } = await sb.from("membros").insert({ user_id:user.id, nome:"Você", eh_voce:true }).select().single();
@@ -386,6 +395,7 @@ const memo = (k, fn) => (k in _memo) ? _memo[k] : (_memo[k] = fn());
 
 const lancs   = () => memo("l:"+espaco, ()=>db.lancamentos.filter(x=>x.espaco===espaco));
 const contas  = () => memo("c:"+espaco, ()=>db.contas.filter(x=>x.espaco===espaco));
+const blocos  = () => memo("bl:"+espaco, ()=>db.blocos.filter(x=>x.espaco===espaco));
 const evts    = () => db.eventos.filter(x=>x.espaco===espaco);
 const orcs    = () => db.orcamentos.filter(x=>x.espaco===espaco);
 const recs    = () => db.recorrencias.filter(x=>x.espaco===espaco);
@@ -415,7 +425,7 @@ const contasOrd = () => [...contas()].sort((x,y)=>venc(x).localeCompare(venc(y))
 const contasDia = d => { const a=+d.slice(0,4), m=+d.slice(5,7); return contas().filter(c=>dtMes(a,m,c.dia)===d); };
 const evtsDia   = d => evts().filter(e=>e.data===d).sort((x,y)=>(x.hora||"99").localeCompare(y.hora||"99"));
 const marcado   = (id,d) => db.marcas.some(x=>x.habito_id===id && x.data===d);
-const tarefasDia= d => db.tarefas.filter(x=>x.data===d).sort((a,b)=>(a.hora||"99").localeCompare(b.hora||"99"));
+const tarefasDia= d => db.tarefas.filter(x=>x.data===d && x.espaco===espaco).sort((a,b)=>(a.hora||"99").localeCompare(b.hora||"99"));
 const itensBloco= (id,d) => db.habitos.filter(x=>x.bloco_id===id && (x.dia_semana==null || x.dia_semana===dsem(d))).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
 const nomeM     = id => (db.membros.find(m=>m.id===id)||{}).nome || "—";
 function rank(y){ const s={}; noMes(y,"saida").forEach(x=>{ s[x.categoria]=(s[x.categoria]||0)+x.valor; }); return Object.entries(s).sort((a,b)=>b[1]-a[1]); }
@@ -876,8 +886,9 @@ function render(){
   $$("#seg-espaco button").forEach(b=>b.classList.toggle("on", b.dataset.e===espaco));
   $$("#seg-periodo button").forEach(b=>b.classList.toggle("on", b.dataset.p===periodo));
   $$(".side .item[data-v]").forEach(b=>b.classList.toggle("on", b.dataset.v===tela));
+  const bIdeias = $("item-ideias"); if(bIdeias) bIdeias.hidden = espaco!=="empresa";
   const fn = { painel:vPainel, consolidado:vConsolidado, fluxo:vFluxo, orcamento:vOrcamento, recorrencias:vRecorrencias,
-               metas:vMetas, rotina:vRotina, agenda:vAgenda, relatorios:vRelatorios,
+               metas:vMetas, rotina:vRotina, agenda:vAgenda, ideias:vIdeias, relatorios:vRelatorios,
                ajustes:vAjustes }[tela];
   $("v-"+tela).innerHTML = fn();
   ligarTela();
@@ -1273,11 +1284,12 @@ function vRotina(){
   const rel = d===h?t("dia.hoje"):d===mais(h,-1)?t("dia.ontem"):d===mais(h,1)?t("dia.amanha")
     :(dif(h,d)>0?t("dia.em",{n:dif(h,d)}):t("dia.atras",{n:-dif(h,d)}));
   let corpo="", tI=0, tF=0;
-  if(!db.blocos.length){
+  const bls = blocos();
+  if(!bls.length){
     corpo = `<div class="card">${zero(t("vazio.rotina"), t("vazio.rotina.sub"), "seed-rotina")}</div>`;
   }else{
     const agora = new Date().toTimeString().slice(0,5);
-    const bs = [...db.blocos].sort((a,b)=>a.hora.localeCompare(b.hora));
+    const bs = [...bls].sort((a,b)=>a.hora.localeCompare(b.hora));
     corpo = bs.map((bl,i)=>{
       const itens = itensBloco(bl.id,d);
       const feitos = itens.filter(x=>marcado(x.id,d)).length;
@@ -1328,7 +1340,7 @@ function vRotina(){
       <input id="b-hora" class="fh" type="time">
       <input id="b-tit" class="fn" placeholder="${t("form.bloco")}">
       <button class="mini" id="b-add">${t("form.add")}</button>
-      ${!db.blocos.length?`<button class="mini lar" id="rt-seed">${t("rot.instalar")}</button>`:""}</div>
+      ${!bls.length?`<button class="mini lar" id="rt-seed">${t("rot.instalar")}</button>`:""}</div>
   </div>`;
 }
 
@@ -1377,6 +1389,207 @@ function vAgenda(){
       }).join("") : zero(t("vazio.compromissos"), t("vazio.compromissos.sub"), "abrir-hoje")}
     </div>
   </div>`;
+}
+
+/* ---------- IDEIAS PRO NEGÓCIO (só no espaço empresa) ---------- */
+function quadrosIdeias(){
+  const ord = [];
+  db.ideias.forEach(x => { if(!ord.includes(x.quadro)) ord.push(x.quadro); });
+  if(!ord.length) ord.push("Geral");
+  return ord;
+}
+function vIdeias(){
+  return `
+  <div class="dup" id="dp-ideiaview" style="max-width:280px">
+    <button data-v="lista" class="${ideiaView==="lista"?"on":""}">${t("ide.lista")}</button>
+    <button data-v="mapa" class="${ideiaView==="mapa"?"on":""}">${t("ide.mapa")}</button>
+  </div>
+  ${ideiaView==="lista" ? vIdeiasLista() : vIdeiasMapa()}`;
+}
+function vIdeiasLista(){
+  const qs = quadrosIdeias();
+  return `
+  ${!db.ideias.length ? `<p class="t3" style="font-size:14px;margin:0 0 16px">${esc(t("ide.vazioSub"))}</p>` : ""}
+  <div class="kanban-nova">
+    <input id="id-titulo" class="fn campo" placeholder="${t("ide.tituloPlaceholder")}">
+    <input id="id-quadro" class="fx campo" placeholder="${t("ide.novoQuadro")}">
+    <button class="mini lar" id="id-add">${t("ide.novaIdeia")}</button>
+  </div>
+  <div class="kanban">
+    ${qs.map(q=>{
+      const itens = db.ideias.filter(x=>x.quadro===q);
+      return `<div class="kanban-col">
+        <div class="tit"><span>${esc(q)}</span><span class="n">${itens.length}</span></div>
+        <div class="kanban-corpo">
+          ${itens.length ? itens.map(x=>`<div class="ideia-card" data-editar-ideia="${x.id}">
+            <div class="tt">${esc(x.titulo)}</div>
+            ${x.nota?`<div class="ss">${esc(x.nota)}</div>`:""}</div>`).join("")
+            : `<div class="t3" style="font-size:13px;padding:6px 2px">—</div>`}
+        </div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+function vIdeiasMapa(){
+  // ideias vindas da Lista sem posição ainda: espalha numa grade antes de desenhar
+  db.ideias.forEach((x,i)=>{
+    if(x.pos_x!=null && x.pos_y!=null) return;
+    x.pos_x = 40 + (i % 6) * 230;
+    x.pos_y = 40 + Math.floor(i / 6) * 150;
+  });
+  const nos = db.ideias.map(x=>`
+    <div class="no-mapa" data-no="${x.id}" style="left:${x.pos_x}px;top:${x.pos_y}px">
+      <button type="button" class="link" data-conectar="${x.id}" aria-label="${esc(t('ide.conectar'))}">
+        <svg viewBox="0 0 24 24"><path d="M9 15l6-6M11 5l1-1a4 4 0 015.7 5.7l-1 1M13 19l-1 1a4 4 0 01-5.7-5.7l1-1"/></svg>
+      </button>
+      <div class="tt">${esc(x.titulo)}</div>
+      ${x.nota?`<div class="ss">${esc(x.nota)}</div>`:""}
+    </div>`).join("");
+  return `
+  <div class="mapa-wrap" id="mapa-wrap">
+    <div class="mapa-area" id="mapa-area">
+      <svg class="mapa-svg" id="mapa-svg"></svg>
+      ${nos}
+    </div>
+  </div>
+  <div class="mapa-dica">${esc(t("ide.dicaMapa"))}</div>
+  <div class="kanban-nova" style="margin-top:10px;max-width:420px">
+    <input id="id-tituloM" class="campo" placeholder="${t("ide.tituloPlaceholder")}">
+    <button class="mini lar" id="id-addM">${t("ide.novaIdeia")}</button>
+  </div>`;
+}
+async function criarIdeia(titulo, quadro){
+  const { data, error } = await sb.from("ideias")
+    .insert({ user_id:user.id, titulo, quadro: quadro||"Geral" }).select().single();
+  if(error){ falhou(error); return null; }
+  db.ideias.push(data);
+  return data;
+}
+async function criarConexao(a, b){
+  if(!a || !b || a===b) return;
+  const [de, para] = a < b ? [a,b] : [b,a];
+  if(db.conexoes.some(c=>c.de===de && c.para===para)) return;
+  const { data, error } = await sb.from("ideia_conexoes")
+    .insert({ user_id:user.id, de, para }).select().single();
+  if(error) return falhou(error);
+  db.conexoes.push(data);
+  redesenharLinhas();
+}
+function abrirIdeia(x){
+  if(!x) return;
+  abrirSheet(`
+    ${cabSheet(ICONES.ideias, t("ide.editarIdeia"))}
+    <div class="campo-g"><label>${t("ide.tituloPlaceholder")}</label>
+      <input id="ide-tit" class="campo" value="${esc(x.titulo)}"></div>
+    <div class="campo-g"><label>${t("ide.notaPlaceholder")}</label>
+      <textarea id="ide-nota" class="campo" rows="4" style="resize:vertical">${esc(x.nota||"")}</textarea></div>
+    <div class="campo-g"><label>${t("ide.mover")}</label>
+      <input id="ide-quadro" class="campo" value="${esc(x.quadro)}"></div>
+    <button class="btn" id="ide-salvar">${t("form.salvar")}</button>
+    <button class="mini" id="ide-apagar" style="width:100%;margin-top:12px;color:var(--vermelho);
+      border-color:color-mix(in srgb,var(--vermelho) 40%,transparent)">${t("form.apagar")}</button>`);
+  $("ide-salvar").onclick = async ()=>{
+    const titulo=$("ide-tit").value.trim(), nota=$("ide-nota").value.trim(),
+          quadro=$("ide-quadro").value.trim()||"Geral";
+    if(!titulo) return toast(t("auth.preencha"), true);
+    const { error } = await sb.from("ideias").update({ titulo, nota, quadro }).eq("id", x.id);
+    if(error) return falhou(error);
+    x.titulo=titulo; x.nota=nota; x.quadro=quadro;
+    fecharSheet(); render(); toast(t("msg.salvo"));
+  };
+  $("ide-apagar").onclick = ()=>apagarIdeia(x.id);
+}
+async function apagarIdeia(id){
+  if(!confirm(t("ide.apagarIdeia"))) return;
+  const { error } = await sb.from("ideias").delete().eq("id", id);
+  if(error) return falhou(error);
+  db.ideias = db.ideias.filter(x=>x.id!==id);
+  db.conexoes = db.conexoes.filter(c=>c.de!==id && c.para!==id);
+  fecharSheet(); render(); toast(t("msg.removido"));
+}
+/* desenha as linhas do mapa a partir da posição ATUAL no DOM — não
+   depende de re-render, por isso funciona liso durante o arraste. */
+function redesenharLinhas(){
+  const svg = $("mapa-svg"), area = $("mapa-area");
+  if(!svg || !area) return;
+  svg.setAttribute("width", area.scrollWidth);
+  svg.setAttribute("height", area.scrollHeight);
+  const centro = id => {
+    const el = document.querySelector(`.no-mapa[data-no="${id}"]`);
+    return el ? { x: el.offsetLeft + el.offsetWidth/2, y: el.offsetTop + el.offsetHeight/2 } : null;
+  };
+  svg.innerHTML = db.conexoes.map(c=>{
+    const a = centro(c.de), b = centro(c.para);
+    return a && b ? `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" data-conexao="${c.id}"></line>` : "";
+  }).join("");
+  $$("#mapa-svg line").forEach(ln => ln.onclick = async ()=>{
+    if(!confirm(t("ide.apagarConexao"))) return;
+    const id = ln.dataset.conexao;
+    const { error } = await sb.from("ideia_conexoes").delete().eq("id", id);
+    if(error) return falhou(error);
+    db.conexoes = db.conexoes.filter(x=>x.id!==id);
+    redesenharLinhas();
+  });
+}
+function ligarMapaIdeias(){
+  redesenharLinhas();
+  $$(".no-mapa").forEach(no=>{
+    let arrastando=false, moveu=false, offX=0, offY=0;
+    no.addEventListener("pointerdown", e=>{
+      if(e.target.closest(".link")) return;
+      arrastando=true; moveu=false;
+      try{ no.setPointerCapture(e.pointerId); }catch(x){}
+      offX = e.clientX - no.offsetLeft; offY = e.clientY - no.offsetTop;
+    });
+    no.addEventListener("pointermove", e=>{
+      if(!arrastando) return;
+      moveu = true;
+      no.style.left = Math.max(0, e.clientX-offX)+"px";
+      no.style.top  = Math.max(0, e.clientY-offY)+"px";
+      redesenharLinhas();
+    });
+    no.addEventListener("pointerup", async ()=>{
+      if(!arrastando) return;
+      arrastando=false;
+      if(!moveu) return;
+      const id = no.dataset.no, x = parseFloat(no.style.left), y = parseFloat(no.style.top);
+      const item = db.ideias.find(z=>z.id===id);
+      if(item){ item.pos_x=x; item.pos_y=y; }
+      await sb.from("ideias").update({ pos_x:x, pos_y:y }).eq("id", id);
+    });
+    no.addEventListener("click", ()=>{
+      if(moveu) return;
+      abrirIdeia(db.ideias.find(z=>z.id===no.dataset.no));
+    });
+  });
+  $$(".no-mapa .link").forEach(bt=>bt.onclick = e=>{
+    e.stopPropagation();
+    const id = bt.dataset.conectar;
+    if(!ideiaConectando){
+      ideiaConectando = id;
+      $$(".no-mapa").forEach(n=>n.classList.toggle("ligando", n.dataset.no===id));
+      toast(t("ide.conectando"));
+    }else if(ideiaConectando===id){
+      ideiaConectando = null;
+      $$(".no-mapa").forEach(n=>n.classList.remove("ligando"));
+    }else{
+      criarConexao(ideiaConectando, id);
+      ideiaConectando = null;
+      $$(".no-mapa").forEach(n=>n.classList.remove("ligando"));
+    }
+  });
+}
+function ligarIdeiasLista(){
+  const bt = $("id-add");
+  if(bt) bt.onclick = async ()=>{
+    const ti = $("id-titulo").value.trim(); if(!ti) return;
+    const q = $("id-quadro").value.trim();
+    if(!(await criarIdeia(ti, q))) return;
+    $("id-titulo").value=""; $("id-quadro").value=""; render();
+  };
+  $$("[data-editar-ideia]").forEach(card=>{
+    card.onclick = ()=> abrirIdeia(db.ideias.find(x=>x.id===card.dataset.editarIdeia));
+  });
 }
 
 /* ---------- RELATÓRIOS ---------- */
@@ -1500,6 +1713,10 @@ function tabelaContas(){
         <span class="dir-fim">${tag}<button class="x" aria-label="${esc(t('form.apagar'))}" data-del-conta="${c.id}">${ICO.x}</button></span></div>`;
     }).join("")}</div>` + formulario;
 }
+const btnComprovante = l => l.comprovante_path
+  ? `<button class="clip" aria-label="${esc(t('ver.comprovante'))}" data-ver-comprovante="${l.id}">
+      <svg viewBox="0 0 24 24"><path d="M21 11.5V7a2 2 0 00-2-2H8L4 9v10a2 2 0 002 2h6"/><path d="M4 9h4V5"/><path d="M15 15l3 3 5-5"/></svg></button>`
+  : "";
 function listaLancamentos(n){
   const h=hoje(), ult=lancs().slice(0,n);
   if(!ult.length) return zero(t("vazio.lancamentos"), t("vazio.lancamentos.sub"), "novo");
@@ -1512,6 +1729,7 @@ function listaLancamentos(n){
       ${l.natureza==="futil"?`<span class="tag amb">${t("leg.futil")}</span>`:""}
       <span class="tag">${l.data===h?t("dia.hoje"):curto(l.data)}</span>
       <span class="v" style="color:${c}">${sinal} ${num(l.valor)}</span>
+      ${btnComprovante(l)}
       <button class="x" aria-label="${esc(t('form.apagar'))}" data-del-lanc="${l.id}">${ICO.x}</button></div>`;
   }).join("");
 }
@@ -1630,6 +1848,7 @@ function abrirLanc(data, tipo){
   dig=""; catSel=null; tipoSel=tipo||"saida"; natSel="essencial";
   membroSel = (db.membros.find(m=>m.eh_voce)||db.membros[0]||{}).id||null;
   dataAlvo = data||hoje();
+  arquivoComprovante = null;
   abrirSheet(`
     ${cabSheet('<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>', t("lanc.titulo"))}
     <div class="trio" id="dp-tipo">
@@ -1650,6 +1869,12 @@ function abrirLanc(data, tipo){
     <label class="aceite" id="lin-espelho" hidden style="margin:0 0 16px">
       <input type="checkbox" id="ck-espelho" checked>
       <span>${t("esp.espelhar")}</span></label>
+    <div class="comprovante-linha" id="lin-comprovante" hidden>
+      <input type="file" id="comprovante-arq" accept="image/*,application/pdf" hidden>
+      <button type="button" class="mini" id="bt-comprovante">
+        <svg viewBox="0 0 24 24"><path d="M21 11.5V7a2 2 0 00-2-2H8L4 9v10a2 2 0 002 2h6"/><path d="M4 9h4V5"/><path d="M15 15l3 3 5-5"/></svg>
+        <span id="comprovante-label">${t("lanc.comprovante")}</span></button>
+    </div>
     <div class="tec">
       ${[1,2,3,4,5,6,7,8,9].map(k=>`<button data-k="${k}">${k}</button>`).join("")}
       <button data-k="00" class="aux">00</button><button data-k="0">0</button>
@@ -1657,8 +1882,14 @@ function abrirLanc(data, tipo){
     <input id="nota" class="campo" placeholder="${t("lanc.nota")}">
     <div id="lanc-msg" class="msg erro"></div>
     <button id="bt-lancar" class="btn">${t("lanc.botao")}</button>`);
-  pintaTipo(); pintaData(); pintaCat(); pintaNat(); pintaMembro(); pintaEspelho(); pintaValor();
-  $$("#dp-tipo button").forEach(b=>b.onclick=()=>{ tipoSel=b.dataset.t; vibra(); pintaTipo(); pintaCat(); pintaNat(); pintaMembro(); pintaEspelho(); pintaValor(); });
+  pintaTipo(); pintaData(); pintaCat(); pintaNat(); pintaMembro(); pintaEspelho(); pintaComprovante(); pintaValor();
+  $$("#dp-tipo button").forEach(b=>b.onclick=()=>{ tipoSel=b.dataset.t; vibra(); pintaTipo(); pintaCat(); pintaNat(); pintaMembro(); pintaEspelho(); pintaComprovante(); pintaValor(); });
+  $("bt-comprovante").onclick = ()=>$("comprovante-arq").click();
+  $("comprovante-arq").onchange = e=>{
+    const f = e.target.files[0] || null;
+    arquivoComprovante = f;
+    $("comprovante-label").textContent = f ? (t("lanc.comprovanteTrocar")+" · "+f.name) : t("lanc.comprovante");
+  };
   $$("#dp-nat button").forEach(b=>b.onclick=()=>{ natSel=b.dataset.n; vibra(); pintaNat(); });
   $$(".tec button").forEach(b=>b.onclick=()=>tecla(b.dataset.k));
 
@@ -1722,6 +1953,10 @@ function pintaEspelho(){
   const el = $("lin-espelho"); if(!el) return;
   el.hidden = !ehTransferivel(espaco, tipoSel, catSel);
 }
+function pintaComprovante(){
+  const el = $("lin-comprovante"); if(!el) return;
+  el.hidden = !(espaco==="empresa" && tipoSel==="saida");
+}
 function pintaNat(){
   const m = espaco==="pessoal" && tipoSel==="saida";
   $("dp-nat").hidden = !m;
@@ -1750,6 +1985,7 @@ function abrirDia(d){
       return `<div class="li" style="padding:12px 0"><i class="pt" style="background:${c}"></i>
         <span class="n">${esc(rotCat(l.categoria))}${l.nota?`<small>${esc(l.nota)}</small>`:""}</span>
         <span class="v" style="color:${c}">${num(l.valor)}</span>
+        ${btnComprovante(l)}
         <button class="x" aria-label="${esc(t('form.apagar'))}" data-del-lanc="${l.id}">${ICO.x}</button></div>`;
     }).join(""):`<div class="t3" style="font-size:14px;padding:8px 0">—</div>`}
     <div class="sub-sec">${t("sec.contas")}</div>
@@ -1878,16 +2114,29 @@ async function lancar(){
   if(v<=0){ $("lanc-msg").textContent=t("lanc.digite"); return; }
   if(!catSel){ $("lanc-msg").textContent=t("lanc.categoria"); return; }
 
+  const bt = $("bt-lancar");
+  if(bt.disabled) return;              // trava contra duplo clique
+  bt.disabled = true;
+
+  // comprovante: sobe pro Storage ANTES de gravar o lançamento, pra guardar
+  // só o caminho (texto) na linha — nunca o arquivo em si.
+  let comprovante_path = null;
+  if(arquivoComprovante){
+    toast(t("msg.comprovanteEnviando"));
+    const nomeSeguro = arquivoComprovante.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+    const caminho = `${user.id}/${Date.now()}-${nomeSeguro}`;
+    const { error: eUp } = await sb.storage.from("comprovantes").upload(caminho, arquivoComprovante);
+    if(eUp){ bt.disabled = false; return falhou({ message: t("msg.comprovanteFalhou") }); }
+    comprovante_path = caminho;
+  }
+
   const base = {
     user_id:user.id, espaco, tipo:tipoSel, data:dataAlvo, valor:v, categoria:catSel,
     nota:$("nota").value.trim(),
     natureza:(espaco==="pessoal"&&tipoSel==="saida")?natSel:null,
-    membro_id:(espaco==="empresa"&&tipoSel==="saida")?membroSel:null
+    membro_id:(espaco==="empresa"&&tipoSel==="saida")?membroSel:null,
+    comprovante_path
   };
-
-  const bt = $("bt-lancar");
-  if(bt.disabled) return;              // trava contra duplo clique
-  bt.disabled = true;
 
   const espelhar = ehTransferivel(espaco, tipoSel, catSel) && $("ck-espelho") && $("ck-espelho").checked;
   let novos;
@@ -1902,6 +2151,7 @@ async function lancar(){
 
   db.lancamentos.unshift(...novos.map(x=>({...x, valor:Number(x.valor)})));
   db.lancamentos.sort((a,b)=>b.data.localeCompare(a.data));
+  arquivoComprovante = null;
   vibra(14); fecharSheet(); limparMemo(); render();
   toast(espelhar ? t("msg.espelhado") : `${tipoSel==="entrada"?"+":"−"} ${din(v)}`);
 }
@@ -1969,7 +2219,7 @@ async function instalarRotina(){
   for(let i=0;i<ROTINA_BASE.length;i++){
     const b = ROTINA_BASE[i];
     const { data:bloco, error } = await sb.from("blocos_rotina")
-      .insert({ user_id:user.id, hora:b.hora, titulo:b.titulo, nota:b.nota||null, ordem:i }).select().single();
+      .insert({ user_id:user.id, espaco, hora:b.hora, titulo:b.titulo, nota:b.nota||null, ordem:i }).select().single();
     if(error) return falhou(error);
     db.blocos.push(bloco);
     const itens = b.itens.map((it,j)=>{
@@ -2114,7 +2364,8 @@ function ligar(){
     if(espaco===b.dataset.e) return;
     espaco = b.dataset.e;
     try{ localStorage.setItem("nexvot:espaco", espaco); }catch(e){}
-    vibra(10); render();
+    vibra(10);
+    if(tela==="ideias" && espaco!=="empresa") irPara("painel"); else render();
   });
   $$("#seg-periodo button").forEach(b => b.onclick = ()=>{ periodo=b.dataset.p; vibra(6); render(); });
   $("bt-menu").onclick = ()=>{ vibra(8); abrirGaveta(); };
@@ -2186,6 +2437,18 @@ function ligarDelegacao(){
           const el = $(mapa[a]);
           if(el) el.scrollIntoView({behavior:"smooth", block:"center"});
         } else irPara(a);
+      }
+      return;
+    }
+
+    // ---- ver comprovante anexado a um lançamento ----
+    const verC = alvo("[data-ver-comprovante]");
+    if(verC){
+      const l = db.lancamentos.find(x=>x.id===verC.dataset.verComprovante);
+      if(l && l.comprovante_path){
+        const { data, error } = await sb.storage.from("comprovantes").createSignedUrl(l.comprovante_path, 120);
+        if(error || !data) toast(t("ver.comprovanteFalhou"), true);
+        else window.open(data.signedUrl, "_blank", "noopener");
       }
       return;
     }
@@ -2317,7 +2580,7 @@ function ligarTela(){
   });
   add("t-add", async ()=>{
     const ti=$("t-tit").value.trim(); if(!ti) return;
-    const { data, error } = await sb.from("tarefas").insert({ user_id:user.id, data:rtDia,
+    const { data, error } = await sb.from("tarefas").insert({ user_id:user.id, data:rtDia, espaco,
       hora:$("t-hora").value||null, titulo:ti }).select().single();
     if(error) return falhou(error);
     db.tarefas.push(data); limparMemo(); render(); toast(t("msg.salvo"));
@@ -2325,8 +2588,8 @@ function ligarTela(){
   add("b-add", async ()=>{
     const h=$("b-hora").value, ti=$("b-tit").value.trim();
     if(!h||!ti) return toast(t("auth.preencha"), true);
-    const { data, error } = await sb.from("blocos_rotina").insert({ user_id:user.id, hora:h, titulo:ti,
-      ordem:db.blocos.length }).select().single();
+    const { data, error } = await sb.from("blocos_rotina").insert({ user_id:user.id, espaco, hora:h, titulo:ti,
+      ordem:blocos().length }).select().single();
     if(error) return falhou(error);
     db.blocos.push(data); blocoAberto=data.id; limparMemo(); render(); toast(t("msg.salvo"));
   });
@@ -2355,9 +2618,20 @@ function ligarTela(){
   add("bt-sair2", async ()=>{ await sb.auth.signOut(); location.reload(); });
   add("bt-pdf", ()=>{ toast(t("exp.dica")); setTimeout(()=>window.print(), 500); });
 
+  if(tela==="ideias"){
+    $$("#dp-ideiaview button").forEach(b=>b.onclick=()=>{ ideiaView=b.dataset.v; render(); });
+    add("id-addM", async ()=>{
+      const ti = $("id-tituloM").value.trim(); if(!ti) return;
+      if(!(await criarIdeia(ti, ""))) return;
+      render();
+    });
+    if(ideiaView==="lista") ligarIdeiasLista(); else ligarMapaIdeias();
+  }
+
   // Enter envia o formulário da linha
   [["c-valor","c-add"],["orc-valor","orc-add"],["rec-valor","rec-add"],["meta-alvo","meta-add"],
-   ["t-tit","t-add"],["b-tit","b-add"],["m-nome","m-add"],["res-valor","res-salvar"]]
+   ["t-tit","t-add"],["b-tit","b-add"],["m-nome","m-add"],["res-valor","res-salvar"],
+   ["id-titulo","id-add"],["id-tituloM","id-addM"]]
    .forEach(([campo,botao])=>{
      const el = $(campo); if(!el) return;
      el.onkeydown = e => { if(e.key==="Enter"){ e.preventDefault(); const b=$(botao); if(b) b.click(); } };
