@@ -302,7 +302,28 @@ pt: {
   "sen.salvar": "Salvar senha",
   "sen.trocada": "Senha alterada. Entrando…",
   "aju.sub": "Sua conta, backup e as pessoas do seu financeiro.",
-  "sem.base": "sem base do mês passado", "sem.dados": "sem dados"
+  "sem.base": "sem base do mês passado", "sem.dados": "sem dados",
+
+  "nav.ideias": "Ideias",
+  "ide.sub": "Anote e organize as ideias pro negócio.",
+  "ide.lista": "Lista", "ide.mapa": "Mapa mental",
+  "ide.novaIdeia": "Nova ideia", "ide.tituloPlaceholder": "título da ideia",
+  "ide.notaPlaceholder": "detalhe (opcional)",
+  "ide.novoQuadro": "novo quadro", "ide.addQuadro": "Criar quadro",
+  "ide.vazio": "Nenhuma ideia ainda", "ide.vazioSub": "Anote a primeira ideia pro negócio — organize depois.",
+  "ide.vazioMapa": "Sem ideias no mapa ainda",
+  "ide.vazioMapaSub": "Crie uma ideia na Lista, ou direto aqui, e arraste pra organizar.",
+  "ide.conectar": "Conectar", "ide.conectando": "Toque em outra ideia para conectar",
+  "ide.dicaMapa": "Arraste uma ideia para reposicionar. Toque no ícone de link para conectar duas ideias — toque na linha para apagar a conexão.",
+  "ide.apagarConexao": "Apagar essa conexão?",
+  "ide.editarIdeia": "Editar ideia", "ide.mover": "Mover para",
+  "ide.apagarIdeia": "Apagar esta ideia? As conexões dela também saem.",
+
+  "lanc.comprovante": "Anexar comprovante",
+  "lanc.comprovanteTrocar": "Trocar comprovante", "lanc.comprovanteRemover": "Remover",
+  "msg.comprovanteEnviando": "enviando comprovante…",
+  "msg.comprovanteFalhou": "não consegui enviar o comprovante",
+  "ver.comprovante": "Ver comprovante", "ver.comprovanteFalhou": "não consegui abrir o comprovante"
 },
 };
 
