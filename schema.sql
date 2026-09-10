@@ -1,7 +1,18 @@
 -- ============================================================
---  ZORVEL — Gestão Inteligente — schema Supabase
+--  NEXVOT — Gestão Pessoal — schema Supabase
 --  Cole tudo no SQL Editor do Supabase e rode uma vez.
 --  Seguro rodar de novo: tudo é "if not exists" / "drop if exists".
+--
+--  Este arquivo só documenta as tabelas de dados pessoais
+--  (lançamentos, contas, hábitos, eventos). As tabelas de
+--  assinatura/admin (assinaturas, config_sistema, investimentos,
+--  eventos_pagto) nunca estiveram aqui — foram criadas direto no
+--  SQL Editor do Supabase. Como o app não usa mais nada disso,
+--  você pode apagá-las manualmente quando quiser:
+--    drop table if exists public.assinaturas cascade;
+--    drop table if exists public.config_sistema cascade;
+--    drop table if exists public.investimentos cascade;
+--    drop table if exists public.eventos_pagto cascade;
 -- ============================================================
 
 -- ---------- LANÇAMENTOS ----------
